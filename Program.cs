@@ -30,7 +30,10 @@ var specFileReader = new FileReader();
 await ReadSpecFilesRecursive(inputFiles);
 graph.Build();
 
+Console.WriteLine("Spec Graph built");
 Console.WriteLine(graph);
+
+
 return 0;
 
 Config ReadConfiguration()

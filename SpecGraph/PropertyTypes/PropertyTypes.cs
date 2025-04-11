@@ -119,6 +119,7 @@ public class AnyType : IPropertyType
 public class UserType : IPropertyType
 {
     public required string Name { get; set; }
-    
+    public required string? Namespace { get; set; }
     public required FileNode OwnedFile { get; set; }
+
 }

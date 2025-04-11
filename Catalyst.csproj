@@ -9,12 +9,12 @@
 
     <ItemGroup>
       <Folder Include="LanguageCompilers\Cpp\" />
-      <Folder Include="LanguageCompilers\Cs\" />
       <Folder Include="LanguageCompilers\Unreal\" />
       <Folder Include="SpecCompiler\" />
     </ItemGroup>
 
     <ItemGroup>
+      <PackageReference Include="CaseConverter" Version="2.0.1" />
       <PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="9.0.4" />
       <PackageReference Include="Microsoft.Extensions.Configuration.CommandLine" Version="9.0.4" />
       <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="9.0.4" />

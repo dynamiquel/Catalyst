@@ -48,6 +48,8 @@ public class Graph
         IPropertyType? foundPropertyType = PropertyTypes.Find(p => p.Matches(propertyNode.Type));
         if (foundPropertyType is not null)
         {
+            propertyNode.PropertyType = foundPropertyType;
+            
             if (foundPropertyType is IPropertyContainerType propertyContainerType)
                 ResolveContainerProperty(fileNode, propertyNode, propertyContainerType);
             return;
@@ -62,6 +64,7 @@ public class Graph
             if (foundPropertyType is not null)
             {
                 propertyNode.Type = sameNameSpacePropertyTypeName;
+                propertyNode.PropertyType = foundPropertyType;
                 if (foundPropertyType is IPropertyContainerType propertyContainerType)
                     ResolveContainerProperty(fileNode, propertyNode, propertyContainerType);
                 return;
@@ -125,6 +128,7 @@ public class Graph
                 Name = string.IsNullOrEmpty(fileNode.Namespace)
                     ? definitionPair.Key
                     : $"{fileNode.Namespace}.{definitionPair.Key}",
+                Namespace = fileNode.Namespace,
                 OwnedFile = fileNode
             };
 

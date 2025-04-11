@@ -1,5 +1,3 @@
-using System.Text;
-
 namespace Catalyst.SpecGraph.Nodes;
 
 public class ServiceNode : Node
