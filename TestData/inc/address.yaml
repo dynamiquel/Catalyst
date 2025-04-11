@@ -1,0 +1,9 @@
+namespace: Catalyst.Tests
+
+definitions:
+  address:
+    properties:
+      street: str
+      city: str
+      postcode: str
+      country: str

@@ -1,0 +1,9 @@
+namespace: Catalyst.Tests
+
+includes:
+  - ../address.yaml
+
+definitions:
+  businessAddress:
+    properties:
+      businessName: str

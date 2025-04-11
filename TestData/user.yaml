@@ -1,0 +1,16 @@
+namespace: Catalyst.Tests
+
+includes:
+  - inc/address.yaml
+
+definitions:
+  getUserRequest:
+    properties:
+      userId:
+        type: str
+      address: address
+  getUserResponse:
+    properties:
+      username:
+        type: str
+      lastLoggedIn: date
