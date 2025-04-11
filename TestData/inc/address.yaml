@@ -3,7 +3,7 @@ namespace: Catalyst.Tests
 definitions:
   address:
     properties:
-      street: str
+      street: str?
       city: str
       postcode: str
       country: str

@@ -1,4 +1,3 @@
-using System.Text;
 using System.Text.Json;
 using Catalyst.SpecGraph.Nodes;
 using Catalyst.SpecGraph.PropertyTypes;
@@ -38,33 +37,82 @@ public class Graph
             {
                 foreach (KeyValuePair<string, PropertyNode> property in definition.Value.Properties)
                 {
-                    bool bPropertyTypeFound = PropertyTypes.Any(p => p.Name == property.Value.Type);
-                    if (!bPropertyTypeFound)
-                    {
-                        if (!string.IsNullOrWhiteSpace(file.Namespace))
-                        {
-                            // This file is in a namespace, check if there's a Property Type of this name
-                            // in the same namespace as this file.
-                            string sameNameSpacePropertyTypeName = $"{file.Namespace}.{property.Value.Type}";
-                            bool bSameNameSpacePropertyFound = PropertyTypes.Any(p => p.Name == sameNameSpacePropertyTypeName);
-                            if (bSameNameSpacePropertyFound)
-                            {
-                                property.Value.Type = sameNameSpacePropertyTypeName;
-                                bPropertyTypeFound = true;
-                            }
-                        }
-                    }
-
-                    if (!bPropertyTypeFound)
-                    {
-                        throw new PropertyTypeNotFoundException
-                        {
-                            ExpectedProperty = property.Value.Type,
-                            Node = property.Value
-                        };
-                    }
+                    ResolveProperty(file, property.Value);
                 }
             }
+        }
+    }
+
+    void ResolveProperty(FileNode fileNode, PropertyNode propertyNode)
+    {
+        IPropertyType? foundPropertyType = PropertyTypes.Find(p => p.Matches(propertyNode.Type));
+        if (foundPropertyType is not null)
+        {
+            if (foundPropertyType is IPropertyContainerType propertyContainerType)
+                ResolveContainerProperty(fileNode, propertyNode, propertyContainerType);
+            return;
+        }
+
+        if (!string.IsNullOrWhiteSpace(fileNode.Namespace))
+        {
+            // This file is in a namespace, check if there's a Property Type of this name
+            // in the same namespace as this file.
+            string sameNameSpacePropertyTypeName = $"{fileNode.Namespace}.{propertyNode.Type}";
+            foundPropertyType = PropertyTypes.Find(p => p.Matches(sameNameSpacePropertyTypeName));
+            if (foundPropertyType is not null)
+            {
+                propertyNode.Type = sameNameSpacePropertyTypeName;
+                if (foundPropertyType is IPropertyContainerType propertyContainerType)
+                    ResolveContainerProperty(fileNode, propertyNode, propertyContainerType);
+                return;
+            }
+        }
+        
+        throw new PropertyTypeNotFoundException
+        {
+            ExpectedProperty = propertyNode.Type,
+            Node = propertyNode
+        };
+    }
+
+    void ResolveContainerProperty(FileNode fileNode, PropertyNode propertyNode, IPropertyContainerType propertyContainerType)
+    {
+        // Ensure the inner types are valid.
+        string[] innerPropertyTypes = propertyContainerType.GetInnerPropertyTypes(propertyNode.Type);
+        foreach (var innerPropertyType in innerPropertyTypes)
+        {
+            IPropertyType? foundPropertyType = PropertyTypes.Find(p => p.Matches(innerPropertyType));
+            if (foundPropertyType is not null)
+            {
+                if (foundPropertyType is IPropertyContainerType innerPropertyContainerType)
+                    throw new NotImplementedException("Containers within Containers is not yet supported");
+                
+                continue;
+            }
+            
+            if (!string.IsNullOrWhiteSpace(fileNode.Namespace))
+            {
+                // This file is in a namespace, check if there's a Property Type of this name
+                // in the same namespace as this file.
+                string sameNameSpacePropertyTypeName = $"{fileNode.Namespace}.{innerPropertyType}";
+                foundPropertyType = PropertyTypes.Find(p => p.Matches(sameNameSpacePropertyTypeName));
+                if (foundPropertyType is not null)
+                {
+                    // Update the inner type name to match the namespace property type name.
+                    propertyNode.Type = propertyNode.Type.Replace(innerPropertyType, sameNameSpacePropertyTypeName);
+                    
+                    if (foundPropertyType is IPropertyContainerType innerPropertyContainerType)
+                        throw new NotImplementedException("Containers within Containers is not yet supported");
+                    
+                    continue;
+                }
+            }
+            
+            throw new PropertyTypeNotFoundException
+            {
+                ExpectedProperty = innerPropertyType,
+                Node = propertyNode
+            };
         }
     }
 
@@ -74,11 +122,13 @@ public class Graph
         {
             UserType newUserPropertyType = new()
             {
-                Name = string.IsNullOrEmpty(fileNode.Namespace) ? definitionPair.Key : $"{fileNode.Namespace}.{definitionPair.Key}",
+                Name = string.IsNullOrEmpty(fileNode.Namespace)
+                    ? definitionPair.Key
+                    : $"{fileNode.Namespace}.{definitionPair.Key}",
                 OwnedFile = fileNode
             };
-            
-            IPropertyType? existingPropertyType = PropertyTypes.Find(p => p.Name == newUserPropertyType.Name);
+
+            IPropertyType? existingPropertyType = PropertyTypes.Find(p => p.Matches(newUserPropertyType.Name));
             if (existingPropertyType is not null)
             {
                 throw new PropertyTypeAlreadyExistsException
@@ -87,11 +137,11 @@ public class Graph
                     NewPropertyType = newUserPropertyType
                 };
             }
-            
+
             PropertyTypes.Add(newUserPropertyType);
         }
     }
-    
+
     void AddBuiltInPropertyTypes()
     {
         PropertyTypes.Add(new StringType());

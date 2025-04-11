@@ -9,6 +9,7 @@ definitions:
       userId:
         type: str
       address: address
+      friends: list<address?>
   getUserResponse:
     properties:
       username:
