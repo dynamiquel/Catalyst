@@ -1,0 +1,11 @@
+namespace: Catalyst.Tests.Common
+
+definitions:
+  Address:
+    description: Represents a physical address.
+    properties:
+      number: i32?
+      street: str
+      city: str
+      postalCode: str
+      country: str

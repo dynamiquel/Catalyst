@@ -1,6 +1,8 @@
 using System.Text.Json;
+using System.Text.Json.Nodes;
+using Catalyst.LanguageCompilers;
 using Catalyst.SpecGraph.Nodes;
-using Catalyst.SpecGraph.PropertyTypes;
+using Catalyst.SpecGraph.Properties;
 
 namespace Catalyst.SpecGraph;
 
@@ -14,6 +16,11 @@ public class Graph
         AddBuiltInPropertyTypes();
     }
 
+    public IPropertyType? FindPropertyType(string rawPropertyType)
+    {
+        return PropertyTypes.FirstOrDefault(x => x.Name == rawPropertyType);
+    }
+    
     public void AddFileNode(FileNode fileNode)
     {
         if (Files.Contains(fileNode))
@@ -31,91 +38,385 @@ public class Graph
 
     public void Build()
     {
+        // All definitions have been added at this point. It's safe to register container property types now.
+        BuildContainerPropertyTypes();
+        
+        // All Property Types are now defined. Now let's build the Properties themselves with the new type info.
+        BuildProperties();
+    }
+
+    void BuildContainerPropertyTypes()
+    {
         foreach (FileNode file in Files)
+        foreach (KeyValuePair<string, DefinitionNode> definition in file.Definitions)
+        foreach (KeyValuePair<string, PropertyNode> property in definition.Value.Properties)
+            BuildContainerPropertyType(property.Value, property.Value.UnBuiltType);
+    }
+
+    void BuildContainerPropertyType(PropertyNode propertyNode, string rawPropertyType)
+    {
+        // TODO: handle recursion. probably requires in -> out approach.
+        
+        if (rawPropertyType.StartsWith("list<"))
         {
-            foreach (KeyValuePair<string, DefinitionNode> definition in file.Definitions)
+            string rawInnerPropertyType = IPropertyTemplate1Type.ExtractRawInnerType(rawPropertyType);
+            string rawContainerPropertyType = $"list<{rawInnerPropertyType}>";
+            
+            if (FindPropertyType(rawContainerPropertyType) is null)
             {
-                foreach (KeyValuePair<string, PropertyNode> property in definition.Value.Properties)
+                IPropertyType? foundInnerPropertyType = FindPropertyType(rawInnerPropertyType);
+                if (foundInnerPropertyType is null)
                 {
-                    ResolveProperty(file, property.Value);
+                    throw new PropertyTypeNotFoundException
+                    {
+                        ExpectedProperty = rawInnerPropertyType,
+                        Node = propertyNode
+                    };
+                }
+
+                if (IPropertyType.IsOptional(foundInnerPropertyType))
+                {
+                    PropertyTypes.Add(new OptionalListType
+                    {
+                        Name = rawContainerPropertyType,
+                        InnerType = foundInnerPropertyType
+                    });
+                }
+                else
+                {
+                    PropertyTypes.Add(new ListType
+                    {
+                        Name = rawContainerPropertyType,
+                        InnerType = foundInnerPropertyType
+                    });
                 }
             }
         }
+        else if (rawPropertyType.StartsWith("set<"))
+        {
+            string rawInnerPropertyType = IPropertyTemplate1Type.ExtractRawInnerType(rawPropertyType);
+            string rawContainerPropertyType = $"set<{rawInnerPropertyType}>";
+            
+            if (FindPropertyType(rawContainerPropertyType) is null)
+            {
+                IPropertyType? foundInnerPropertyType = FindPropertyType(rawInnerPropertyType);
+                if (foundInnerPropertyType is null)
+                {
+                    throw new PropertyTypeNotFoundException
+                    {
+                        ExpectedProperty = rawInnerPropertyType,
+                        Node = propertyNode
+                    };
+                }
+
+                if (IPropertyType.IsOptional(foundInnerPropertyType))
+                {
+                    PropertyTypes.Add(new OptionalSetType
+                    {
+                        Name = rawContainerPropertyType,
+                        InnerType = foundInnerPropertyType
+                    });
+                }
+                else
+                {
+                    PropertyTypes.Add(new SetType
+                    {
+                        Name = rawContainerPropertyType,
+                        InnerType = foundInnerPropertyType
+                    });
+                }
+            }
+        }
+        else if (rawPropertyType.StartsWith("map<"))
+        {
+            Tuple<string, string> rawInnerPropertyTypes = IPropertyTemplate2Type.ExtractRawInnerTypes(rawPropertyType);
+            string rawContainerPropertyType = $"set<{rawInnerPropertyTypes.Item1},{rawInnerPropertyTypes.Item2}>";
+            
+            if (FindPropertyType(rawContainerPropertyType) is null)
+            {
+                IPropertyType? foundInnerAPropertyType = FindPropertyType(rawInnerPropertyTypes.Item1);
+                if (foundInnerAPropertyType is null)
+                {
+                    throw new PropertyTypeNotFoundException
+                    {
+                        ExpectedProperty = rawInnerPropertyTypes.Item1,
+                        Node = propertyNode
+                    };
+                }
+                
+                IPropertyType? foundInnerBPropertyType = FindPropertyType(rawInnerPropertyTypes.Item2);
+                if (foundInnerBPropertyType is null)
+                {
+                    throw new PropertyTypeNotFoundException
+                    {
+                        ExpectedProperty = rawInnerPropertyTypes.Item2,
+                        Node = propertyNode
+                    };
+                }
+
+                if (IPropertyType.IsOptional(foundInnerBPropertyType))
+                {
+                    PropertyTypes.Add(new OptionalMapType
+                    {
+                        Name = rawContainerPropertyType,
+                        InnerTypeA = foundInnerAPropertyType,
+                        InnerTypeB = foundInnerBPropertyType
+                    });
+                }
+                else
+                {
+                    PropertyTypes.Add(new MapType
+                    {
+                        Name = rawContainerPropertyType,
+                        InnerTypeA = foundInnerAPropertyType,
+                        InnerTypeB = foundInnerBPropertyType
+                    });
+                }
+            }
+        }
+        else
+        {
+            return;
+        }
     }
 
-    void ResolveProperty(FileNode fileNode, PropertyNode propertyNode)
+    void BuildProperties()
     {
-        IPropertyType? foundPropertyType = PropertyTypes.Find(p => p.Matches(propertyNode.Type));
-        if (foundPropertyType is not null)
+        // Build the types first.
+        foreach (FileNode file in Files)
+        foreach (KeyValuePair<string, DefinitionNode> definition in file.Definitions)
+        foreach (KeyValuePair<string, PropertyNode> property in definition.Value.Properties)
+            BuildTypeForProperty(file, property.Value);
+        
+        // Now types are all build, build the default values.
+        foreach (FileNode file in Files)
+        foreach (KeyValuePair<string, DefinitionNode> definition in file.Definitions)
+        foreach (KeyValuePair<string, PropertyNode> property in definition.Value.Properties)
+            BuildValueForProperty(file, property.Value);
+    }
+
+    void BuildTypeForProperty(FileNode fileNode, PropertyNode propertyNode)
+    {
+        IPropertyType? foundPropertyType = FindPropertyType(propertyNode.UnBuiltType);
+        if (foundPropertyType is null)
         {
-            propertyNode.PropertyType = foundPropertyType;
-            
-            if (foundPropertyType is IPropertyContainerType propertyContainerType)
-                ResolveContainerProperty(fileNode, propertyNode, propertyContainerType);
+            // Property could be namespaced, check it.
+            if (!string.IsNullOrWhiteSpace(fileNode.Namespace))
+            {
+                string fullPropertyTypeName = $"{fileNode.Namespace}.{propertyNode.UnBuiltType}";
+                foundPropertyType = FindPropertyType(fullPropertyTypeName);
+            }
+
+            if (foundPropertyType is null)
+            {
+                throw new PropertyTypeNotFoundException
+                {
+                    ExpectedProperty = propertyNode.UnBuiltType,
+                    Node = propertyNode
+                };
+            }
+        }
+
+        propertyNode.BuiltType = foundPropertyType;
+    }
+
+    void BuildValueForProperty(FileNode fileNode, PropertyNode propertyNode)
+    {
+        if (propertyNode.Value is null)
+            return;
+        
+        UnBuiltValue? unbuiltValue = propertyNode.Value as UnBuiltValue;
+        if (unbuiltValue is null)
+        {
+            // As of now, this should never happen but maybe in the future it could.
             return;
         }
 
-        if (!string.IsNullOrWhiteSpace(fileNode.Namespace))
-        {
-            // This file is in a namespace, check if there's a Property Type of this name
-            // in the same namespace as this file.
-            string sameNameSpacePropertyTypeName = $"{fileNode.Namespace}.{propertyNode.Type}";
-            foundPropertyType = PropertyTypes.Find(p => p.Matches(sameNameSpacePropertyTypeName));
-            if (foundPropertyType is not null)
-            {
-                propertyNode.Type = sameNameSpacePropertyTypeName;
-                propertyNode.PropertyType = foundPropertyType;
-                if (foundPropertyType is IPropertyContainerType propertyContainerType)
-                    ResolveContainerProperty(fileNode, propertyNode, propertyContainerType);
-                return;
-            }
-        }
         
-        throw new PropertyTypeNotFoundException
-        {
-            ExpectedProperty = propertyNode.Type,
-            Node = propertyNode
-        };
+        JsonNode? valueJsonNode = JsonNode.Parse(unbuiltValue.ValueJson);
+        BuildJsonNode(propertyNode, propertyNode.BuiltType!, valueJsonNode, out IPropertyValue propertyValue);
+        propertyNode.Value = propertyValue;
     }
 
-    void ResolveContainerProperty(FileNode fileNode, PropertyNode propertyNode, IPropertyContainerType propertyContainerType)
+    bool IsDefaultValue(JsonValue value)
     {
-        // Ensure the inner types are valid.
-        string[] innerPropertyTypes = propertyContainerType.GetInnerPropertyTypes(propertyNode.Type);
-        foreach (var innerPropertyType in innerPropertyTypes)
+        value.TryGetValue(out string? result);
+        return result is "" or "default";
+    }
+
+    void BuildJsonNode(PropertyNode propertyNode, IPropertyType propertyType, JsonNode? jsonNode, out IPropertyValue propertyValue)
+    {
+        // TODO: Support recursion properly. Cba doing it rn. Too complicated for what it's worth.
+        
+        if (jsonNode is null)
         {
-            IPropertyType? foundPropertyType = PropertyTypes.Find(p => p.Matches(innerPropertyType));
-            if (foundPropertyType is not null)
-            {
-                if (foundPropertyType is IPropertyContainerType innerPropertyContainerType)
-                    throw new NotImplementedException("Containers within Containers is not yet supported");
-                
-                continue;
-            }
-            
-            if (!string.IsNullOrWhiteSpace(fileNode.Namespace))
-            {
-                // This file is in a namespace, check if there's a Property Type of this name
-                // in the same namespace as this file.
-                string sameNameSpacePropertyTypeName = $"{fileNode.Namespace}.{innerPropertyType}";
-                foundPropertyType = PropertyTypes.Find(p => p.Matches(sameNameSpacePropertyTypeName));
-                if (foundPropertyType is not null)
+            propertyValue = new NullValue();
+            return;
+        }
+        
+        switch (jsonNode)
+        {
+            case JsonArray jsonArray:
+                if (propertyType is not ListType or SetType or AnyType)
                 {
-                    // Update the inner type name to match the namespace property type name.
-                    propertyNode.Type = propertyNode.Type.Replace(innerPropertyType, sameNameSpacePropertyTypeName);
-                    
-                    if (foundPropertyType is IPropertyContainerType innerPropertyContainerType)
-                        throw new NotImplementedException("Containers within Containers is not yet supported");
-                    
-                    continue;
+                    throw new PropertyTypeMismatchException
+                    {
+                        Node = propertyNode,
+                        ExpectedPropertyTypes = [typeof(ListType), typeof(SetType)],
+                    };
                 }
-            }
-            
-            throw new PropertyTypeNotFoundException
-            {
-                ExpectedProperty = innerPropertyType,
-                Node = propertyNode
-            };
+
+                IPropertyType innerType = ((propertyType as IPropertyTemplate1Type)?.InnerType ?? propertyType as AnyType) ?? throw new InvalidOperationException();
+
+                List<IPropertyValue> childValues = [];
+                foreach (JsonNode? childJsonNode in jsonArray)
+                {
+                    BuildJsonNode(propertyNode, innerType, childJsonNode, out IPropertyValue childValue);
+                    childValues.Add(childValue);
+                }
+
+                propertyValue = new ListValue(childValues);
+                break;
+            case JsonObject jsonObject:
+                if (propertyNode.BuiltType is MapType mapType)
+                {
+                    var mapEntries = new Dictionary<IPropertyValue, IPropertyValue>();
+                    foreach (KeyValuePair<string, JsonNode?> property in jsonObject)
+                    {
+                        JsonValue keyNode = JsonValue.Create(property.Key);
+                        
+                        BuildJsonNode(propertyNode, mapType.InnerTypeA, keyNode, out IPropertyValue keyPropertyValue);
+                        BuildJsonNode(propertyNode, mapType.InnerTypeB, property.Value, out IPropertyValue valuePropertyValue);
+                        mapEntries.Add(keyPropertyValue, valuePropertyValue);
+                    }
+                    
+                    propertyValue = new MapValue(mapEntries);
+                }
+                else if (propertyNode.BuiltType is ObjectType objectType)
+                {
+                    throw new NotImplementedException();
+                }
+                else if (propertyNode.BuiltType is AnyType)
+                {
+                    throw new NotImplementedException();
+                }
+                else
+                {
+                    throw new PropertyTypeMismatchException
+                    {
+                        Node = propertyNode,
+                        ExpectedPropertyTypes = [typeof(MapType), typeof(ObjectType), typeof(AnyType)],
+                    };
+                }
+                break;
+            case JsonValue jsonValue:
+                switch (propertyType)
+                {
+                    case AnyType:
+                        switch (jsonValue.GetValueKind())
+                        {
+                            case JsonValueKind.String:
+                                propertyValue = new StringValue(jsonValue.GetValue<string>());
+                                break;
+                            case JsonValueKind.Number:
+                                propertyValue = new FloatValue(jsonValue.GetValue<double>());
+                                break;
+                            case JsonValueKind.True:
+                                propertyValue = new BooleanValue(false);
+                                break;
+                            case JsonValueKind.False:
+                                propertyValue = new BooleanValue(false);
+                                break;
+                            case JsonValueKind.Null:
+                                propertyValue = new NullValue();
+                                break;
+                            default:
+                                throw new ArgumentOutOfRangeException();
+                        }
+                        break;
+                    case BooleanType:
+                        bool boolValue;
+                        if (IsDefaultValue(jsonValue))
+                            boolValue = false;
+                        else if (jsonValue.GetValueKind() == JsonValueKind.Number)
+                            boolValue = jsonValue.GetValue<bool>();
+                        else if (jsonValue.GetValueKind() == JsonValueKind.String)
+                            boolValue = bool.Parse(jsonValue.GetValue<string>());
+                        else
+                            throw new Exception("Invalid value format given for float");
+                        
+                        propertyValue = new BooleanValue(boolValue);
+                        break;
+                    case DateType:
+                        DateTime dateValue;
+                        if (IsDefaultValue(jsonValue))
+                            dateValue = default;
+                        else
+                            dateValue = jsonValue.GetValue<DateTime>();
+                        
+                        propertyValue = new DateValue(dateValue);
+                        break;
+                    case FloatType:
+                        double floatValue;
+                        if (IsDefaultValue(jsonValue))
+                            floatValue = 0;
+                        else if (jsonValue.GetValueKind() == JsonValueKind.Number)
+                            floatValue = jsonValue.GetValue<double>();
+                        else if (jsonValue.GetValueKind() == JsonValueKind.String)
+                            floatValue = double.Parse(jsonValue.GetValue<string>());
+                        else
+                            throw new Exception("Invalid value format given for float");
+                        
+                        propertyValue = new FloatValue(floatValue);
+                        break;
+                    case IntegerType:
+                        int intValue;
+                        if (IsDefaultValue(jsonValue))
+                            intValue = 0;
+                        else if (jsonValue.GetValueKind() == JsonValueKind.Number)
+                            intValue = jsonValue.GetValue<int>();
+                        else if (jsonValue.GetValueKind() == JsonValueKind.String)
+                            intValue = int.Parse(jsonValue.GetValue<string>());
+                        else
+                            throw new Exception("Invalid value format given for float");
+                        
+                        propertyValue = new IntegerValue(intValue);
+                        break;
+                    case StringType:
+                        string stringValue;
+                        if (IsDefaultValue(jsonValue))
+                            stringValue = string.Empty;
+                        else
+                            stringValue = jsonValue.GetValue<string>();
+                        propertyValue = new StringValue(stringValue);
+                        break;
+                    case TimeType:
+                        double seconds;
+                        if (IsDefaultValue(jsonValue))
+                            seconds = 0;
+                        else if (jsonValue.GetValueKind() == JsonValueKind.Number)
+                            seconds = jsonValue.GetValue<double>();
+                        else if (jsonValue.GetValueKind() == JsonValueKind.String)
+                            seconds = double.Parse(jsonValue.GetValue<string>());
+                        else
+                            throw new Exception("Invalid value format given for time");
+                        
+                        propertyValue = new TimeValue(TimeSpan.FromSeconds(seconds));
+                        break;
+                    default:
+                        throw new PropertyTypeMismatchException
+                        {
+                            Node = propertyNode,
+                            ExpectedPropertyTypes =
+                            [
+                                typeof(AnyType), typeof(BooleanType), typeof(DateType), typeof(FloatType),
+                                typeof(IntegerType), typeof(StringType), typeof(TimeType)
+                            ]
+                        };
+                }
+                break;
+            default:
+                throw new Exception();
         }
     }
 
@@ -123,7 +424,7 @@ public class Graph
     {
         foreach (KeyValuePair<string, DefinitionNode> definitionPair in fileNode.Definitions)
         {
-            UserType newUserPropertyType = new()
+            ObjectType newObjectPropertyType = new()
             {
                 Name = string.IsNullOrEmpty(fileNode.Namespace)
                     ? definitionPair.Key
@@ -132,31 +433,53 @@ public class Graph
                 OwnedFile = fileNode
             };
 
-            IPropertyType? existingPropertyType = PropertyTypes.Find(p => p.Matches(newUserPropertyType.Name));
+            IPropertyType? existingPropertyType = FindPropertyType(newObjectPropertyType.Name);
             if (existingPropertyType is not null)
             {
                 throw new PropertyTypeAlreadyExistsException
                 {
                     ExistingPropertyType = existingPropertyType,
-                    NewPropertyType = newUserPropertyType
+                    NewPropertyType = newObjectPropertyType
+                };
+            }
+            
+            OptionalObjectType newOptionalObjectPropertyType = new()
+            {
+                Name = string.IsNullOrEmpty(fileNode.Namespace)
+                    ? $"{definitionPair.Key}?"
+                    : $"{fileNode.Namespace}.{definitionPair.Key}?",
+                Namespace = fileNode.Namespace,
+                OwnedFile = fileNode
+            };
+
+            IPropertyType? existingOptionalPropertyType = FindPropertyType(newOptionalObjectPropertyType.Name);
+            if (existingOptionalPropertyType is not null)
+            {
+                throw new PropertyTypeAlreadyExistsException
+                {
+                    ExistingPropertyType = existingOptionalPropertyType,
+                    NewPropertyType = newOptionalObjectPropertyType
                 };
             }
 
-            PropertyTypes.Add(newUserPropertyType);
+            PropertyTypes.AddRange([newObjectPropertyType, newOptionalObjectPropertyType]);
         }
     }
 
     void AddBuiltInPropertyTypes()
     {
-        PropertyTypes.Add(new StringType());
-        PropertyTypes.Add(new IntegerType());
-        PropertyTypes.Add(new FloatType());
         PropertyTypes.Add(new BooleanType());
+        PropertyTypes.Add(new OptionalBooleanType());
+        PropertyTypes.Add(new IntegerType());
+        PropertyTypes.Add(new OptionalIntegerType());
+        PropertyTypes.Add(new FloatType());
+        PropertyTypes.Add(new OptionalFloatType());
+        PropertyTypes.Add(new StringType());
+        PropertyTypes.Add(new OptionalStringType());
         PropertyTypes.Add(new DateType());
-        PropertyTypes.Add(new TimespanType());
-        PropertyTypes.Add(new ListType());
-        PropertyTypes.Add(new SetType());
-        PropertyTypes.Add(new MapType());
+        PropertyTypes.Add(new OptionalDateType());
+        PropertyTypes.Add(new TimeType());
+        PropertyTypes.Add(new OptionalTimeType());
         PropertyTypes.Add(new AnyType());
     }
 

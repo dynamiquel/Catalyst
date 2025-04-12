@@ -1,0 +1,23 @@
+namespace: Catalyst.Tests.ProductCatalog
+
+definitions:
+  Category:
+    description: Represents a product category.
+    properties:
+      categoryId: i32
+      name: str
+      description: str?
+      #parentCategory: Category?
+      #subCategories: list<Category>
+  Product:
+    description: Represents a product.
+    properties:
+      productId: str
+      name: str
+      description: str?
+      category: Category
+      price: f64
+      isActive: bool
+      #attributes: map<str, str>
+      tags: set<str>
+      releaseDate: date?

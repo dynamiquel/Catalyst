@@ -1,4 +1,6 @@
+using System.Text.Json;
 using Catalyst.SpecGraph.Nodes;
+using Catalyst.SpecGraph.Properties;
 using YamlDotNet.Serialization;
 
 namespace Catalyst.SpecReader;
@@ -93,7 +95,7 @@ public class FileReader
             
         foreach (var definition in definitions)
         {
-            string definitionName = (string)definition.Key;
+            string definitionName = ((string)definition.Key);
             Dictionary<object, object>? definitionValue = definition.Value as Dictionary<object, object>;
             if (definitionValue is null)
             {
@@ -156,7 +158,7 @@ public class FileReader
             {
                 Parent = definitionNode,
                 Name = propertyName,
-                Type = propertyShortValue
+                UnBuiltType = propertyShortValue
             });
         }
         else
@@ -184,14 +186,23 @@ public class FileReader
                     TokenName = "type"
                 };
             }
+
+            UnBuiltValue? unBuiltValue = null;
+            object? propertyDefaultValue = propertyRawNode.Internal.GetValueOrDefault("default");
+            if (propertyDefaultValue is not null)
+            {
+                unBuiltValue = new UnBuiltValue(JsonSerializer.Serialize(
+                    propertyDefaultValue, 
+                    new JsonSerializerOptions{ WriteIndented = true }));
+            }
             
             definitionNode.Properties.Add(propertyName, new PropertyNode
             {
                 Parent = definitionNode,
                 Name = propertyName,
-                Type = propertyType,
+                UnBuiltType = propertyType,
                 Description = propertyRawNode.ReadPropertyAsStr("description"),
-                DefaultValue = propertyRawNode.Internal.GetValueOrDefault("default")?.ToString()
+                Value = unBuiltValue
             });
         }
     }

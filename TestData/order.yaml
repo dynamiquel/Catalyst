@@ -1,0 +1,24 @@
+namespace: Catalyst.Tests.OrderProcessing
+
+includes:
+  - user.yaml
+  - product.yaml
+
+definitions:
+  OrderItem:
+    description: Represents an item in an order.
+    properties:
+      product: Catalyst.Tests.ProductCatalog.Product
+      quantity: i32
+      unitPrice: f64
+  Order:
+    description: Represents a customer order.
+    properties:
+      orderId: str
+      customer: Catalyst.Tests.UserManagement.User
+      orderDate: date
+      items: list<Catalyst.Tests.OrderProcessing.OrderItem>
+      totalAmount: f64
+      shippingAddress: Catalyst.Tests.Common.Address
+      orderStatus: str
+      notes: str?

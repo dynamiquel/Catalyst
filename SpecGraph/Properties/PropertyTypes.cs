@@ -1,0 +1,192 @@
+using Catalyst.SpecGraph.Nodes;
+
+namespace Catalyst.SpecGraph.Properties;
+
+public interface IPropertyType
+{
+    public string Name { get; }
+
+    public bool Matches(string compare)
+    {
+        return Name == compare || $"{Name}?" == compare;
+    }
+
+    public static bool IsOptional(string rawPropertyType) =>
+        rawPropertyType.EndsWith('?');
+
+    public static bool IsOptional(IPropertyType propertyType) =>
+        propertyType is IOptionalPropertyType;
+}
+
+public interface IOptionalPropertyType;
+
+public class BooleanType : IPropertyType
+{
+    public virtual string Name => "bool";
+}
+
+public class OptionalBooleanType : BooleanType, IOptionalPropertyType
+{
+    public override string Name => "bool?";
+}
+
+public class IntegerType : IPropertyType
+{
+    public virtual string Name => "i32";
+}
+
+public class OptionalIntegerType : IntegerType, IOptionalPropertyType
+{
+    public override string Name => "i32?";
+}
+
+public class FloatType : IPropertyType
+{
+    public virtual string Name => "f64";
+}
+
+public class OptionalFloatType : FloatType, IOptionalPropertyType
+{
+    public override string Name => "f64?";
+}
+
+public class StringType : IPropertyType
+{
+    public virtual string Name => "str";
+}
+
+public class OptionalStringType : StringType, IOptionalPropertyType
+{
+    public override string Name => "str?";
+}
+
+public class DateType : IPropertyType
+{
+    public virtual string Name => "date";
+}
+
+public class OptionalDateType : DateType, IOptionalPropertyType
+{
+    public override string Name => "date?";
+}
+
+public class TimeType : IPropertyType
+{
+    public virtual string Name => "time";
+}
+
+public class OptionalTimeType : TimeType, IOptionalPropertyType
+{
+    public override string Name => "time?";
+}
+
+public class AnyType : IPropertyType
+{
+    public string Name => "any";
+}
+
+public interface IPropertyContainerType : IPropertyType
+{
+    public static Tuple<int, int>? GetInnerPropertyTypesRange(string propertyType)
+    {
+        Tuple<int, int> tuple = new(propertyType.IndexOf('<'), propertyType.LastIndexOf('>'));
+        if (tuple.Item1 == -1 || tuple.Item2 == -1)
+            return null;
+
+        return new Tuple<int, int>(tuple.Item1 + 1, tuple.Item2);
+    }
+
+    public static string[] GetRawInnerPropertyTypes(string propertyType)
+    {
+        Tuple<int, int>? innerTypesRange = GetInnerPropertyTypesRange(propertyType);
+        
+        if (innerTypesRange is null)
+            throw new ArgumentOutOfRangeException($"Property type '{propertyType}' is not a valid container type");
+        
+        string innerTypesStr = propertyType[innerTypesRange.Item1..innerTypesRange.Item2];
+        
+        innerTypesStr = innerTypesStr.Replace(" ", string.Empty);
+        
+        string[] innerTypes = innerTypesStr.Split(',');
+        if (innerTypes.Length == 0)
+            throw new InvalidOperationException($"Property type '{propertyType}' is not a valid container type");
+        
+        return innerTypes;
+    }
+
+    bool IPropertyType.Matches(string compare)
+    {
+        // Containers match when:
+        // 1. They have the same number of inner types.
+        // 2. They start with the same name.
+        
+        Tuple<int, int> baseTypesRange = GetInnerPropertyTypesRange(Name) ?? throw new InvalidOperationException();
+        Tuple<int, int>? compareTypesRange = GetInnerPropertyTypesRange(compare);
+        
+        // Compare is not a container.
+        if (compareTypesRange is null)
+            return false;
+        
+        string baseName = Name[..baseTypesRange.Item1];
+        string compareName = Name[..compareTypesRange.Item1];
+
+        if (baseName != compareName)
+            return false;
+        
+        string[] baseInnerTypes = GetRawInnerPropertyTypes(Name);
+        string[] compareInnerTypes = GetRawInnerPropertyTypes(compare);
+        return baseInnerTypes.Length == compareInnerTypes.Length;
+    }
+}
+
+public interface IPropertyTemplate1Type : IPropertyContainerType
+{
+    IPropertyType InnerType { get; set; }
+
+    public static string ExtractRawInnerType(string rawContainerType)
+    {
+        return GetRawInnerPropertyTypes(rawContainerType).First();
+    }
+}
+
+public interface IPropertyTemplate2Type : IPropertyContainerType
+{
+    IPropertyType InnerTypeA { get; set; }
+    IPropertyType InnerTypeB { get; set; }
+
+    public static Tuple<string, string> ExtractRawInnerTypes(string rawContainerType)
+    {
+        string[] innerTypes = GetRawInnerPropertyTypes(rawContainerType);
+        return new(innerTypes[0], innerTypes[1]);
+    }
+}
+
+public class ListType : IPropertyTemplate1Type
+{
+    public required string Name { get; set; }
+    public required IPropertyType InnerType { get; set; }
+}
+public class OptionalListType : ListType, IOptionalPropertyType;
+
+public class SetType : IPropertyTemplate1Type
+{
+    public required string Name { get; set; }
+    public required IPropertyType InnerType { get; set; }
+}
+public class OptionalSetType : SetType, IOptionalPropertyType;
+
+public class MapType : IPropertyTemplate2Type
+{
+    public required string Name { get; set; }
+    public required IPropertyType InnerTypeA { get; set; }
+    public required IPropertyType InnerTypeB { get; set; }
+}
+public class OptionalMapType : MapType, IOptionalPropertyType;
+
+public class ObjectType : IPropertyType
+{
+    public required string Name { get; set; }
+    public required string? Namespace { get; set; }
+    public required FileNode OwnedFile { get; set; }
+}
+public class OptionalObjectType : ObjectType, IOptionalPropertyType;

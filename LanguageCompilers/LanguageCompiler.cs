@@ -1,8 +1,8 @@
+using Catalyst.SpecGraph;
 using Catalyst.SpecGraph.Nodes;
-using Catalyst.SpecGraph.PropertyTypes;
+using Catalyst.SpecGraph.Properties;
 
 namespace Catalyst.LanguageCompilers;
-
 
 public abstract class LanguageCompiler
 {
@@ -19,7 +19,7 @@ public abstract class LanguageCompiler
 
     public void BuildFile(File file, FileNode fileNode)
     {
-        HashSet<Tuple<string, IPropertyType>> usedPropertyTypes = [];
+        HashSet<IPropertyType> usedPropertyTypes = [];
         
         foreach (KeyValuePair<string, DefinitionNode> definitionNode in fileNode.Definitions)
         {
@@ -27,19 +27,19 @@ public abstract class LanguageCompiler
             
             foreach (KeyValuePair<string, PropertyNode> propertyNode in definitionNode.Value.Properties)
             {
-                if (propertyNode.Value.PropertyType is null)
+                if (propertyNode.Value.BuiltType is null)
                     throw new NullReferenceException("Property Type should not be null at this point");
                 
-                usedPropertyTypes.Add(new(propertyNode.Value.Type, propertyNode.Value.PropertyType));
+                usedPropertyTypes.Add(propertyNode.Value.BuiltType);
             }
         }
 
-        foreach (Tuple<string, IPropertyType> usedPropertyType in usedPropertyTypes)
-            AddPropertyType(file, usedPropertyType.Item1, usedPropertyType.Item2);
+        foreach (IPropertyType usedPropertyType in usedPropertyTypes)
+            AddPropertyType(file, usedPropertyType);
     }
     
-    protected abstract void AddPropertyType(File file, string propertyTypeName, IPropertyType propertyType);
+    protected abstract void AddPropertyType(File file, IPropertyType propertyType);
     protected abstract void AddDefinition(File file, DefinitionNode definition);
-    protected abstract PropertyType GetPropertyType(string propertyTypeName, IPropertyType propertyType);
-    protected abstract string GetDefaultValueForProperty(PropertyNode propertyNode);
+    protected abstract PropertyType GetPropertyType(IPropertyType propertyType);
+    protected abstract string GetDefaultValueForProperty(IPropertyValue propertyValue);
 }

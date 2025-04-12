@@ -1,23 +1,29 @@
-namespace: Catalyst.Tests
+namespace: Catalyst.Tests.UserManagement
 
 includes:
-  - inc/address.yaml
+  - ./common/address.yaml
 
 definitions:
-  user:
+  User:
+    description: Represents a user in the system.
     properties:
-      userId: str
+      userId: i32
       username: str
-      address: address?
-      friends: 
-        type: list<str>
-        default: []
-  getUserRequest:
+      email: str
+      registrationDate: date
+      shippingAddress: Catalyst.Tests.Common.Address
+      billingAddress: Catalyst.Tests.Common.Address?
+      roles: list<str>
+      #preferences: map<str, any>
+      lastLogin: date?
+      loginTime:
+        type: time
+        default: default
+  UserProfile:
+    description: Additional profile information for a user.
     properties:
-      userId:
-        type: str
-  getUserResponse:
-    properties:
-      username:
-        type: str
-      lastLoggedIn: date
+      userRef: User
+      firstName: str
+      lastName: str
+      birthDate: date?
+      phoneNumbers: list<str>

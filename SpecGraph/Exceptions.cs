@@ -1,5 +1,6 @@
+using System.Text;
 using Catalyst.SpecGraph.Nodes;
-using Catalyst.SpecGraph.PropertyTypes;
+using Catalyst.SpecGraph.Properties;
 
 namespace Catalyst.SpecGraph;
 
@@ -24,10 +25,10 @@ public class PropertyTypeAlreadyExistsException : CatalystGraphException
         get
         {
             var msg = $"Property Type '{ExistingPropertyType.Name}' already exists in the SpecGraph";
-            if (ExistingPropertyType is UserType existingUserPropertyType)
+            if (ExistingPropertyType is ObjectType existingUserPropertyType)
                 msg += $" and is declared in '{existingUserPropertyType.OwnedFile.FullName}'";
             
-            if (NewPropertyType is UserType newUserPropertyType)
+            if (NewPropertyType is ObjectType newUserPropertyType)
                 msg += $". Cannot add the new one found in '{newUserPropertyType.OwnedFile.FullName}'";
 
             return msg;
@@ -43,11 +44,28 @@ public class PropertyTypeNotFoundException : CatalystGraphException
     {
         get
         {
-            var msg = $"Property Type '{ExpectedProperty}' could not be found in the SpecGraph";
-            msg += $" for '{Node.FullName}'";
-
+            var msg = $"Property Type '{ExpectedProperty}' could not be found in the SpecGraph for '{Node.FullName}'";
             return msg;
         }
     }
 }
 
+public class PropertyTypeMismatchException : CatalystGraphException
+{
+    public required PropertyNode Node { get; set; }
+    public required Type[] ExpectedPropertyTypes { get; set; }
+
+    public override string Message
+    {
+        get
+        {
+            StringBuilder sb = new();
+            
+            sb.Append($"Unexpected Property Type '{Node.BuiltType!.Name}' for '{Node.FullName}'. Expected: ");
+            foreach (var expectedPropertyType in ExpectedPropertyTypes)
+                sb.Append($"{expectedPropertyType.Name}, ");
+            
+            return sb.ToString();
+        }
+    }
+}

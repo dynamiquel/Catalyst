@@ -33,6 +33,10 @@ var graph = new Graph();
 var specFileReader = new FileReader();
 
 await ReadSpecFilesRecursive(inputFiles);
+
+Console.WriteLine("Spec Graph created");
+Console.WriteLine(graph);
+
 graph.Build();
 
 Console.WriteLine("Spec Graph built");
