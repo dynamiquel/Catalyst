@@ -73,12 +73,12 @@ public class StringType : IPropertyType
 
 public class IntegerType : IPropertyType
 {
-    public string Name => "int";
+    public string Name => "i32";
 }
 
 public class FloatType : IPropertyType
 {
-    public string Name => "float";
+    public string Name => "f64";
 }
 
 public class BooleanType : IPropertyType

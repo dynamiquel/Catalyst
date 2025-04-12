@@ -1,6 +1,8 @@
 ﻿// See https://aka.ms/new-console-template for more information
 
 using Catalyst;
+using Catalyst.LanguageCompilers;
+using Catalyst.LanguageCompilers.Cs;
 using Catalyst.SpecGraph;
 using Catalyst.SpecGraph.Nodes;
 using Catalyst.SpecReader;
@@ -9,6 +11,9 @@ using Microsoft.Extensions.Configuration;
 Console.WriteLine("Running Catalyst!");
 
 Config config = ReadConfiguration();
+
+if (string.IsNullOrWhiteSpace(config.Language))
+    throw new Exception("Language not set!");
 
 DirectoryInfo baseInputDir = new DirectoryInfo(config.BaseInputDir);
 DirectoryInfo baseOutputDir = new DirectoryInfo(config.BaseOutputDir);
@@ -33,6 +38,26 @@ graph.Build();
 Console.WriteLine("Spec Graph built");
 Console.WriteLine(graph);
 
+LanguageCompiler compiler;
+switch (config.Language)
+{
+    case "cs":
+        compiler = new CSharpLanguageCompiler();
+        break;
+    default:
+        throw new InvalidOperationException($"Language {config.Language} is not supported");
+}
+
+CompiledFiles compiledFiles = new();
+foreach (FileNode fileNode in graph.Files)
+{
+    LanguageCompiler.File file = compiler.CreateFile(fileNode);
+    compiler.BuildFile(file, fileNode);
+    CompiledFile compiledFile = compiler.CompileFile(file);
+    compiledFiles.AddFile(compiledFile);
+}
+
+await compiledFiles.OutputFiles(baseInputDir, baseOutputDir);
 
 return 0;
 

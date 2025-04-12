@@ -4,12 +4,18 @@ includes:
   - inc/address.yaml
 
 definitions:
+  user:
+    properties:
+      userId: str
+      username: str
+      address: address?
+      friends: 
+        type: list<str>
+        default: []
   getUserRequest:
     properties:
       userId:
         type: str
-      address: address
-      friends: list<address?>
   getUserResponse:
     properties:
       username:

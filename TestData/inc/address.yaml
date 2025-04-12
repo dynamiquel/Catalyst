@@ -3,7 +3,10 @@ namespace: Catalyst.Tests
 definitions:
   address:
     properties:
+      number: i32?
       street: str?
       city: str
       postcode: str
-      country: str
+      country: 
+        type: str
+        default: United Kingdom
