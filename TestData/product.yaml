@@ -7,8 +7,8 @@ definitions:
       categoryId: i32
       name: str
       description: str?
-      #parentCategory: Category?
-      #subCategories: list<Category>
+      parentCategory: Category?
+      subCategories: list<Category>
   Product:
     description: Represents a product.
     properties:
