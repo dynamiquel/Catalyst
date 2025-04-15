@@ -116,10 +116,6 @@ public class CSharpLanguageCompiler : LanguageCompiler
             case SetType:
                 file.Includes.Add(new("System.Collections.Generic"));
                 break;
-            case ObjectType userType:
-                if (userType.Namespace is not null) 
-                    file.Includes.Add(new(userType.Namespace.ToPascalCase()));
-                break;
         }
     }
 

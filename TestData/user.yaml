@@ -12,7 +12,7 @@ definitions:
       email: str
       registrationDate: date
       shippingAddress: Catalyst.Tests.Common.Address
-      billingAddress: Catalyst.Tests.Common.Address?
+      billingAddress: Common.Address?   # example of child namespace
       roles: list<str>
       #preferences: map<str, any>
       lastLogin: date?

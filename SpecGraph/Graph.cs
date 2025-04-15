@@ -15,10 +15,29 @@ public class Graph
     {
         AddBuiltInPropertyTypes();
     }
-
-    public IPropertyType? FindPropertyType(string rawPropertyType)
+    
+    public IPropertyType? FindPropertyType(string typeName, string? currentNamespace = null)
     {
-        return PropertyTypes.FirstOrDefault(x => x.Name == rawPropertyType);
+        if (string.IsNullOrEmpty(currentNamespace))
+            return PropertyTypes.FirstOrDefault(x => x.Name == typeName);
+
+        string[] namespaceParts = currentNamespace.Split('.');
+    
+        // Check from most specific to the least specific namespace
+        for (int namespacePartIdx = namespaceParts.Length; namespacePartIdx >= 0; namespacePartIdx--)
+        {
+            var testNamespace = string.Join(".", namespaceParts.Take(namespacePartIdx));
+            var fullName = string.IsNullOrEmpty(testNamespace) 
+                ? typeName 
+                : $"{testNamespace}.{typeName}";
+
+            var type = PropertyTypes.FirstOrDefault(x => x.Name == fullName);
+            if (type is not null)
+                return type;
+        }
+
+        // Final check without any namespace
+        return PropertyTypes.FirstOrDefault(x => x.Name == typeName);
     }
     
     public void AddFileNode(FileNode fileNode)
@@ -50,10 +69,10 @@ public class Graph
         foreach (FileNode file in Files)
         foreach (KeyValuePair<string, DefinitionNode> definition in file.Definitions)
         foreach (KeyValuePair<string, PropertyNode> property in definition.Value.Properties)
-            BuildContainerPropertyType(property.Value, property.Value.UnBuiltType);
+            BuildContainerPropertyType(file, property.Value, property.Value.UnBuiltType);
     }
 
-    void BuildContainerPropertyType(PropertyNode propertyNode, string rawPropertyType)
+    void BuildContainerPropertyType(FileNode fileNode, PropertyNode propertyNode, string rawPropertyType)
     {
         // TODO: handle recursion. probably requires in -> out approach.
         
@@ -62,9 +81,9 @@ public class Graph
             string rawInnerPropertyType = IPropertyTemplate1Type.ExtractRawInnerType(rawPropertyType);
             string rawContainerPropertyType = $"list<{rawInnerPropertyType}>";
             
-            if (FindPropertyType(rawContainerPropertyType) is null)
+            if (FindPropertyType(rawContainerPropertyType, fileNode.Namespace) is null)
             {
-                IPropertyType? foundInnerPropertyType = FindPropertyType(rawInnerPropertyType);
+                IPropertyType? foundInnerPropertyType = FindPropertyType(rawInnerPropertyType, fileNode.Namespace);
                 if (foundInnerPropertyType is null)
                 {
                     throw new PropertyTypeNotFoundException
@@ -97,9 +116,9 @@ public class Graph
             string rawInnerPropertyType = IPropertyTemplate1Type.ExtractRawInnerType(rawPropertyType);
             string rawContainerPropertyType = $"set<{rawInnerPropertyType}>";
             
-            if (FindPropertyType(rawContainerPropertyType) is null)
+            if (FindPropertyType(rawContainerPropertyType, fileNode.Namespace) is null)
             {
-                IPropertyType? foundInnerPropertyType = FindPropertyType(rawInnerPropertyType);
+                IPropertyType? foundInnerPropertyType = FindPropertyType(rawInnerPropertyType, fileNode.Namespace);
                 if (foundInnerPropertyType is null)
                 {
                     throw new PropertyTypeNotFoundException
@@ -132,9 +151,9 @@ public class Graph
             Tuple<string, string> rawInnerPropertyTypes = IPropertyTemplate2Type.ExtractRawInnerTypes(rawPropertyType);
             string rawContainerPropertyType = $"set<{rawInnerPropertyTypes.Item1},{rawInnerPropertyTypes.Item2}>";
             
-            if (FindPropertyType(rawContainerPropertyType) is null)
+            if (FindPropertyType(rawContainerPropertyType, fileNode.Namespace) is null)
             {
-                IPropertyType? foundInnerAPropertyType = FindPropertyType(rawInnerPropertyTypes.Item1);
+                IPropertyType? foundInnerAPropertyType = FindPropertyType(rawInnerPropertyTypes.Item1, fileNode.Namespace);
                 if (foundInnerAPropertyType is null)
                 {
                     throw new PropertyTypeNotFoundException
@@ -144,7 +163,7 @@ public class Graph
                     };
                 }
                 
-                IPropertyType? foundInnerBPropertyType = FindPropertyType(rawInnerPropertyTypes.Item2);
+                IPropertyType? foundInnerBPropertyType = FindPropertyType(rawInnerPropertyTypes.Item2, fileNode.Namespace);
                 if (foundInnerBPropertyType is null)
                 {
                     throw new PropertyTypeNotFoundException
@@ -197,26 +216,17 @@ public class Graph
 
     void BuildTypeForProperty(FileNode fileNode, PropertyNode propertyNode)
     {
-        IPropertyType? foundPropertyType = FindPropertyType(propertyNode.UnBuiltType);
+        IPropertyType? foundPropertyType = FindPropertyType(propertyNode.UnBuiltType, fileNode.Namespace);
+
         if (foundPropertyType is null)
         {
-            // Property could be namespaced, check it.
-            if (!string.IsNullOrWhiteSpace(fileNode.Namespace))
+            throw new PropertyTypeNotFoundException
             {
-                string fullPropertyTypeName = $"{fileNode.Namespace}.{propertyNode.UnBuiltType}";
-                foundPropertyType = FindPropertyType(fullPropertyTypeName);
-            }
-
-            if (foundPropertyType is null)
-            {
-                throw new PropertyTypeNotFoundException
-                {
-                    ExpectedProperty = propertyNode.UnBuiltType,
-                    Node = propertyNode
-                };
-            }
+                ExpectedProperty = propertyNode.UnBuiltType,
+                Node = propertyNode
+            };
         }
-        
+    
         propertyNode.BuiltType = foundPropertyType;
     }
 
@@ -464,16 +474,6 @@ public class Graph
                 Namespace = fileNode.Namespace,
                 OwnedFile = fileNode
             };
-
-            IPropertyType? existingOptionalPropertyType = FindPropertyType(newOptionalObjectPropertyType.Name);
-            if (existingOptionalPropertyType is not null)
-            {
-                throw new PropertyTypeAlreadyExistsException
-                {
-                    ExistingPropertyType = existingOptionalPropertyType,
-                    NewPropertyType = newOptionalObjectPropertyType
-                };
-            }
 
             PropertyTypes.AddRange([newObjectPropertyType, newOptionalObjectPropertyType]);
         }
