@@ -36,6 +36,26 @@ public class PropertyTypeAlreadyExistsException : CatalystGraphException
     }
 }
 
+public class SimilarPropertyTypeAlreadyExistsException : CatalystGraphException
+{
+    public required IPropertyType ExistingPropertyType { get; set; }
+    public required IPropertyType NewPropertyType { get; set; }
+    public override string Message
+    {
+        get
+        {
+            var msg = $"Similar Property Type '{ExistingPropertyType.Name}' already exists in the SpecGraph";
+            if (ExistingPropertyType is ObjectType existingUserPropertyType)
+                msg += $" and is declared in '{existingUserPropertyType.OwnedFile.FullName}'";
+            
+            if (NewPropertyType is ObjectType newUserPropertyType)
+                msg += $". Cannot add the new one found in '{newUserPropertyType.OwnedFile.FullName}'";
+
+            return msg;
+        }
+    }
+}
+
 public class PropertyTypeNotFoundException : CatalystGraphException
 {
     public required string ExpectedProperty { get; set; }

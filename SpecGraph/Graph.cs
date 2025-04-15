@@ -216,7 +216,7 @@ public class Graph
                 };
             }
         }
-
+        
         propertyNode.BuiltType = foundPropertyType;
     }
 
@@ -437,6 +437,19 @@ public class Graph
             if (existingPropertyType is not null)
             {
                 throw new PropertyTypeAlreadyExistsException
+                {
+                    ExistingPropertyType = existingPropertyType,
+                    NewPropertyType = newObjectPropertyType
+                };
+            }
+            
+            // Ensure there isn't another property type with the same name but with different casing.
+            existingPropertyType = PropertyTypes.FirstOrDefault(x =>
+                string.Equals(x.Name, newObjectPropertyType.Name, StringComparison.CurrentCultureIgnoreCase));
+                
+            if (existingPropertyType is not null)
+            {
+                throw new SimilarPropertyTypeAlreadyExistsException
                 {
                     ExistingPropertyType = existingPropertyType,
                     NewPropertyType = newObjectPropertyType

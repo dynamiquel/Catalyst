@@ -10,7 +10,7 @@ public static class StringExtensions
             return input;
 
         var segments = input.Split(new[] { '.' }, StringSplitOptions.None)
-            .Select(s => ProcessSegment(s))
+            .Select(ProcessSegment)
             .ToArray();
 
         return string.Join(".", segments);
@@ -25,8 +25,8 @@ public static class StringExtensions
         string spaced = Regex.Replace(segment, @"([a-z0-9])([A-Z])", "$1 $2");
         spaced = Regex.Replace(spaced, @"[^a-zA-Z0-9]+", " ");
 
-        var words = spaced.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
-        var capitalizedWords = words.Select(word => CapitalizeFirstLetter(word));
+        var words = spaced.Split([' '], StringSplitOptions.RemoveEmptyEntries);
+        var capitalizedWords = words.Select(CapitalizeFirstLetter);
         
         return string.Concat(capitalizedWords);
     }

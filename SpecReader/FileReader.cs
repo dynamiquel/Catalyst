@@ -33,8 +33,8 @@ public class FileReader
         
         string? format = rawNode.ReadPropertyAsStr("format");
         if (format is not null)
-            fileNode.Format = format;
-        
+            fileNode.Format = format.ToLower();
+
         fileNode.Namespace = rawNode.ReadPropertyAsStr("namespace");
         
         ReadIncludes(rawNode, fileNode);
@@ -96,7 +96,7 @@ public class FileReader
         
         RawNode definitionsRawNode = rawNode.CreateChild(definitions, "definitions");
             
-        foreach (var definition in definitions)
+        foreach (KeyValuePair<object, object> definition in definitions)
         {
             string definitionName = ((string)definition.Key);
             Dictionary<object, object>? definitionValue = definition.Value as Dictionary<object, object>;
@@ -141,9 +141,9 @@ public class FileReader
         
         RawNode propertiesRawNode = definitionRawNode.CreateChild(properties, "properties");
         
-        foreach (var property in properties)
+        foreach (KeyValuePair<object, object> property in properties)
         {
-            string propertyName = (string)property.Key;
+            string propertyName = ((string)property.Key);
             ReadProperty(definitionNode, propertiesRawNode, propertyName, property.Value);
         }
         
@@ -179,8 +179,8 @@ public class FileReader
             }
             
             RawNode propertyRawNode = propertiesRawNode.CreateChild(propertyFullValue, propertyName);
-            
-            var propertyType = propertyRawNode.ReadPropertyAsStr("type");
+
+            string? propertyType = propertyRawNode.ReadPropertyAsStr("type");
             if (string.IsNullOrWhiteSpace(propertyType))
             {
                 throw new ExpectedTokenNotFoundException
