@@ -14,7 +14,7 @@ definitions:
       shippingAddress: Catalyst.Tests.Common.Address
       billingAddress: Common.Address?   # example of child namespace
       roles: list<str>
-      #preferences: map<str, any>
+      preferences: map<str, any>
       lastLogin: date?
       loginTime:
         type: time
