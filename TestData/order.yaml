@@ -15,10 +15,10 @@ definitions:
     description: Represents a customer order.
     properties:
       orderId: str
-      customer: Catalyst.Tests.UserManagement.User
+      customer: UserManagement.User
       orderDate: date
       items: list<OrderItem>    # example of same namespace
       totalAmount: f64
-      shippingAddress: Catalyst.Tests.Common.Address
+      shippingAddress: Common.Address
       orderStatus: str
       notes: str?
