@@ -18,6 +18,6 @@ definitions:
       category: Category
       price: f64
       isActive: bool
-      #attributes: map<str, str>
+      attributes: map<str, str>
       tags: set<str>
       releaseDate: date?

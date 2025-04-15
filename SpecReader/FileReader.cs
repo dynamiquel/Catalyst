@@ -157,6 +157,7 @@ public class FileReader
         // Short property declaration
         if (propertyValue is string propertyShortValue)
         {
+            propertyShortValue = propertyShortValue.Replace(" ", string.Empty);
             definitionNode.Properties.Add(propertyName, new PropertyNode
             {
                 Parent = definitionNode,
@@ -189,6 +190,8 @@ public class FileReader
                     TokenName = "type"
                 };
             }
+            
+            propertyType = propertyType.Replace(" ", string.Empty);
 
             UnBuiltValue? unBuiltValue = null;
             object? propertyDefaultValue = propertyRawNode.Internal.GetValueOrDefault("default");

@@ -149,7 +149,7 @@ public class Graph
         else if (rawPropertyType.StartsWith("map<"))
         {
             Tuple<string, string> rawInnerPropertyTypes = IPropertyTemplate2Type.ExtractRawInnerTypes(rawPropertyType);
-            string rawContainerPropertyType = $"set<{rawInnerPropertyTypes.Item1},{rawInnerPropertyTypes.Item2}>";
+            string rawContainerPropertyType = $"map<{rawInnerPropertyTypes.Item1},{rawInnerPropertyTypes.Item2}>";
             
             if (FindPropertyType(rawContainerPropertyType, fileNode.Namespace) is null)
             {
