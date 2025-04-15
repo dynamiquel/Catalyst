@@ -2,7 +2,7 @@ namespace: Catalyst.Tests.OrderProcessing
 
 includes:
   - user.yaml
-  - product.yaml
+  - product   # example of include path without extension (assumes .yaml)
 
 definitions:
   OrderItem:

@@ -1,7 +1,7 @@
 namespace: Catalyst.Tests.UserManagement
 
 includes:
-  - ./common/address.yaml
+  - ./common/address.yaml   # example of include path with ./ root.
 
 definitions:
   User:

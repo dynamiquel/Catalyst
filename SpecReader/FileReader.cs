@@ -65,6 +65,9 @@ public class FileReader
                 };
             }
             
+            if (!Path.HasExtension(includeSpecStr))
+                includeSpecStr += ".yaml";
+            
             string relativeIncludePath = Path.Combine(fileNode.FileInfo.DirectoryName ?? throw new InvalidOperationException(), includeSpecStr);
             
             if (!File.Exists(relativeIncludePath))
@@ -76,7 +79,7 @@ public class FileReader
                     IncludeFile = $"{includeSpecStr} (Full Path: {relativeIncludePath}"
                 };
             }
-                
+            
             fileNode.IncludeSpecs.Add(includeSpecStr);
         }
     }

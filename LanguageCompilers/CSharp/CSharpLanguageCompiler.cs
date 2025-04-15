@@ -3,7 +3,7 @@ using System.Text;
 using Catalyst.SpecGraph.Nodes;
 using Catalyst.SpecGraph.Properties;
 
-namespace Catalyst.LanguageCompilers.Cs;
+namespace Catalyst.LanguageCompilers.CSharp;
 
 // Just raw dog it for now.
 public class CSharpLanguageCompiler : LanguageCompiler

@@ -2,7 +2,7 @@
 
 using Catalyst;
 using Catalyst.LanguageCompilers;
-using Catalyst.LanguageCompilers.Cs;
+using Catalyst.LanguageCompilers.CSharp;
 using Catalyst.SpecGraph;
 using Catalyst.SpecGraph.Nodes;
 using Catalyst.SpecReader;
