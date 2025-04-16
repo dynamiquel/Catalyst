@@ -1,15 +1,23 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
-using Catalyst.LanguageCompilers;
 using Catalyst.SpecGraph.Nodes;
 using Catalyst.SpecGraph.Properties;
 
 namespace Catalyst.SpecGraph;
 
+/// <summary>
+/// Represents the entire Spec File Repository as a 'graph' full of Nodes.
+///
+/// FileNodes must first be added to the Graph and then the Graph must be
+/// 'built', at which point the Spec File Repository is ready to be compiled
+/// into desired program languages.
+/// </summary>
 public class Graph
 {
     public List<FileNode> Files { get; private set; } = [];
     public List<IPropertyType> PropertyTypes { get; private set; } = [];
+    
+    bool _bBuilt;
 
     public Graph()
     {
@@ -42,6 +50,9 @@ public class Graph
     
     public void AddFileNode(FileNode fileNode)
     {
+        if (_bBuilt)
+            throw new GraphAlreadyBuiltException();
+        
         if (Files.Contains(fileNode))
         {
             throw new FileAlreadyAddedException
@@ -57,11 +68,16 @@ public class Graph
 
     public void Build()
     {
+        if (_bBuilt)
+            throw new GraphAlreadyBuiltException();
+        
         // All definitions have been added at this point. It's safe to register container property types now.
         BuildContainerPropertyTypes();
         
         // All Property Types are now defined. Now let's build the Properties themselves with the new type info.
         BuildProperties();
+
+        _bBuilt = true;
     }
 
     void BuildContainerPropertyTypes()
@@ -78,7 +94,7 @@ public class Graph
         
         if (rawPropertyType.StartsWith("list<"))
         {
-            string rawInnerPropertyType = IPropertyTemplate1Type.ExtractRawInnerType(rawPropertyType);
+            string rawInnerPropertyType = IPropertyContainer1InnerType.ExtractRawInnerType(rawPropertyType);
             string rawContainerPropertyType = $"list<{rawInnerPropertyType}>";
             
             if (FindPropertyType(rawContainerPropertyType, fileNode.Namespace) is null)
@@ -113,7 +129,7 @@ public class Graph
         }
         else if (rawPropertyType.StartsWith("set<"))
         {
-            string rawInnerPropertyType = IPropertyTemplate1Type.ExtractRawInnerType(rawPropertyType);
+            string rawInnerPropertyType = IPropertyContainer1InnerType.ExtractRawInnerType(rawPropertyType);
             string rawContainerPropertyType = $"set<{rawInnerPropertyType}>";
             
             if (FindPropertyType(rawContainerPropertyType, fileNode.Namespace) is null)
@@ -148,7 +164,7 @@ public class Graph
         }
         else if (rawPropertyType.StartsWith("map<"))
         {
-            Tuple<string, string> rawInnerPropertyTypes = IPropertyTemplate2Type.ExtractRawInnerTypes(rawPropertyType);
+            Tuple<string, string> rawInnerPropertyTypes = IPropertyContainer2InnerTypes.ExtractRawInnerTypes(rawPropertyType);
             string rawContainerPropertyType = $"map<{rawInnerPropertyTypes.Item1},{rawInnerPropertyTypes.Item2}>";
             
             if (FindPropertyType(rawContainerPropertyType, fileNode.Namespace) is null)
@@ -193,10 +209,6 @@ public class Graph
                 }
             }
         }
-        else
-        {
-            return;
-        }
     }
 
     void BuildProperties()
@@ -238,10 +250,11 @@ public class Graph
         UnBuiltValue? unbuiltValue = propertyNode.Value as UnBuiltValue;
         if (unbuiltValue is null)
         {
-            // As of now, this should never happen but maybe in the future it could.
-            return;
+            throw new PropertyValueAlreadyBuiltException
+            {
+                PropertyNode = propertyNode
+            };
         }
-
         
         JsonNode? valueJsonNode = JsonNode.Parse(unbuiltValue.ValueJson);
         BuildJsonNode(propertyNode, propertyNode.BuiltType!, valueJsonNode, out IPropertyValue propertyValue);
@@ -276,7 +289,7 @@ public class Graph
                     };
                 }
 
-                IPropertyType innerType = ((propertyType as IPropertyTemplate1Type)?.InnerType ?? propertyType as AnyType) ?? throw new InvalidOperationException();
+                IPropertyType innerType = ((propertyType as IPropertyContainer1InnerType)?.InnerType ?? propertyType as AnyType) ?? throw new InvalidOperationException();
 
                 List<IPropertyValue> childValues = [];
                 foreach (JsonNode? childJsonNode in jsonArray)
@@ -353,7 +366,14 @@ public class Graph
                         else if (jsonValue.GetValueKind() == JsonValueKind.String)
                             boolValue = bool.Parse(jsonValue.GetValue<string>());
                         else
-                            throw new Exception("Invalid value format given for float");
+                        {
+                            throw new InvalidPropertyValueFormatException
+                            {
+                                PropertyNode = propertyNode,
+                                ExpectedPropertyType = propertyType,
+                                ReceivedValue = jsonValue.ToJsonString()
+                            };
+                        }
                         
                         propertyValue = new BooleanValue(boolValue);
                         break;
@@ -375,7 +395,14 @@ public class Graph
                         else if (jsonValue.GetValueKind() == JsonValueKind.String)
                             floatValue = double.Parse(jsonValue.GetValue<string>());
                         else
-                            throw new Exception("Invalid value format given for float");
+                        {
+                            throw new InvalidPropertyValueFormatException
+                            {
+                                PropertyNode = propertyNode,
+                                ExpectedPropertyType = propertyType,
+                                ReceivedValue = jsonValue.ToJsonString()
+                            };
+                        }
                         
                         propertyValue = new FloatValue(floatValue);
                         break;
@@ -388,7 +415,14 @@ public class Graph
                         else if (jsonValue.GetValueKind() == JsonValueKind.String)
                             intValue = int.Parse(jsonValue.GetValue<string>());
                         else
-                            throw new Exception("Invalid value format given for float");
+                        {
+                            throw new InvalidPropertyValueFormatException
+                            {
+                                PropertyNode = propertyNode,
+                                ExpectedPropertyType = propertyType,
+                                ReceivedValue = jsonValue.ToJsonString()
+                            };
+                        }
                         
                         propertyValue = new IntegerValue(intValue);
                         break;
@@ -409,7 +443,14 @@ public class Graph
                         else if (jsonValue.GetValueKind() == JsonValueKind.String)
                             seconds = double.Parse(jsonValue.GetValue<string>());
                         else
-                            throw new Exception("Invalid value format given for time");
+                        {
+                            throw new InvalidPropertyValueFormatException
+                            {
+                                PropertyNode = propertyNode,
+                                ExpectedPropertyType = propertyType,
+                                ReceivedValue = jsonValue.ToJsonString()
+                            };
+                        }
                         
                         propertyValue = new TimeValue(TimeSpan.FromSeconds(seconds));
                         break;
@@ -426,7 +467,7 @@ public class Graph
                 }
                 break;
             default:
-                throw new Exception();
+                throw new ArgumentOutOfRangeException();
         }
     }
 

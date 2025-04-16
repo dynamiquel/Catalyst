@@ -1,5 +1,12 @@
 namespace Catalyst.SpecReader;
 
+public class SpecFileDeserialiseException : Exception
+{
+    public required string FileName { get; set; }
+    public override string Message => $"Failed to derserialise spec file at {FileName}";
+
+}
+
 public class CatalystReaderException : Exception
 {
     public required RawNode RawNode;

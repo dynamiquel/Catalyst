@@ -114,7 +114,7 @@ public class CSharpLanguageCompiler : LanguageCompiler
             case ListType:
             case MapType:
             case SetType:
-                file.Includes.Add(new("System.Collections.Generic"));
+                file.Includes.Add(new Include("System.Collections.Generic"));
                 break;
         }
     }

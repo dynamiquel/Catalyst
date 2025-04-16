@@ -11,15 +11,19 @@ public class CatalystGraphException : Exception
 
 public class FileAlreadyAddedException : CatalystGraphException
 {
-    public required FileNode FileNode { get; set; }
+    public required FileNode FileNode { get; init; }
     public override string Message => $"File Node '{FileNode.Name}' already exists in the SpecGraph";
 }
 
+public class GraphAlreadyBuiltException : CatalystGraphException
+{
+    public override string Message => "The Graph has already been built. No modifications can be made";
+}
 
 public class PropertyTypeAlreadyExistsException : CatalystGraphException
 {
-    public required IPropertyType ExistingPropertyType { get; set; }
-    public required IPropertyType NewPropertyType { get; set; }
+    public required IPropertyType ExistingPropertyType { get; init; }
+    public required IPropertyType NewPropertyType { get; init; }
     public override string Message
     {
         get
@@ -38,8 +42,8 @@ public class PropertyTypeAlreadyExistsException : CatalystGraphException
 
 public class SimilarPropertyTypeAlreadyExistsException : CatalystGraphException
 {
-    public required IPropertyType ExistingPropertyType { get; set; }
-    public required IPropertyType NewPropertyType { get; set; }
+    public required IPropertyType ExistingPropertyType { get; init; }
+    public required IPropertyType NewPropertyType { get; init; }
     public override string Message
     {
         get
@@ -58,8 +62,8 @@ public class SimilarPropertyTypeAlreadyExistsException : CatalystGraphException
 
 public class PropertyTypeNotFoundException : CatalystGraphException
 {
-    public required string ExpectedProperty { get; set; }
-    public required Node Node { get; set; }
+    public required string ExpectedProperty { get; init; }
+    public required Node Node { get; init; }
     public override string Message
     {
         get
@@ -72,8 +76,8 @@ public class PropertyTypeNotFoundException : CatalystGraphException
 
 public class PropertyTypeMismatchException : CatalystGraphException
 {
-    public required PropertyNode Node { get; set; }
-    public required Type[] ExpectedPropertyTypes { get; set; }
+    public required PropertyNode Node { get; init; }
+    public required Type[] ExpectedPropertyTypes { get; init; }
 
     public override string Message
     {
@@ -88,4 +92,18 @@ public class PropertyTypeMismatchException : CatalystGraphException
             return sb.ToString();
         }
     }
+}
+
+public class PropertyValueAlreadyBuiltException : CatalystGraphException
+{
+    public required PropertyNode PropertyNode { get; init; }
+    public override string Message => $"Property '{PropertyNode.FullName}' value has already been built as a '{PropertyNode.Value?.GetType().Name}";
+}
+
+public class InvalidPropertyValueFormatException : CatalystGraphException
+{
+    public required PropertyNode PropertyNode { get; init; }
+    public required IPropertyType ExpectedPropertyType { get; init; }
+    public required object? ReceivedValue { get; init; }
+    public override string Message => $"Received an unexpected value format for Property '{PropertyNode.FullName}' of type '{ExpectedPropertyType.Name}: '{ReceivedValue}'";
 }

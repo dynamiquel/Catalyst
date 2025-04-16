@@ -5,18 +5,27 @@ using YamlDotNet.Serialization;
 
 namespace Catalyst.SpecReader;
 
+/// <summary>
+/// Responsible for reading a Spec File and converting it to a FileNode, which can be
+/// used to create a Spec Graph.
+/// </summary>
 public class FileReader
 {
     public async Task<RawFileNode> ReadRawSpec(FileInfo specFileInfo)
     {
-        var fileContent = await File.ReadAllTextAsync(specFileInfo.FullName);
+        string fileContent = await File.ReadAllTextAsync(specFileInfo.FullName);
         var deserializer = new DeserializerBuilder().Build();
 
         // Yaml will deserialise the object as a Dictionary<string, object> if no type specified.
         var deserialisedObject = deserializer.Deserialize(fileContent) as Dictionary<object, object>;
         if (deserialisedObject is null)
-            throw new Exception($"Could not deserialise spec file at {specFileInfo.FullName}");
-        
+        {
+            throw new SpecFileDeserialiseException
+            {
+                FileName = specFileInfo.FullName
+            };
+        }
+
         return new RawFileNode(specFileInfo, deserialisedObject);
     }
 
@@ -68,7 +77,7 @@ public class FileReader
             if (!Path.HasExtension(includeSpecStr))
                 includeSpecStr += ".yaml";
             
-            string relativeIncludePath = Path.Combine(fileNode.FileInfo.DirectoryName ?? throw new InvalidOperationException(), includeSpecStr);
+            string relativeIncludePath = Path.Combine(fileNode.FileInfo.DirectoryName ?? string.Empty, includeSpecStr);
             
             if (!File.Exists(relativeIncludePath))
             {

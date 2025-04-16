@@ -1,5 +1,8 @@
 namespace Catalyst.SpecGraph.Nodes;
 
+/// <summary>
+/// Represents a Spec File.
+/// </summary>
 public class FileNode : Node
 {
     public required FileInfo FileInfo;

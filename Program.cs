@@ -1,6 +1,4 @@
-﻿// See https://aka.ms/new-console-template for more information
-
-using Catalyst;
+﻿using Catalyst;
 using Catalyst.LanguageCompilers;
 using Catalyst.LanguageCompilers.CSharp;
 using Catalyst.SpecGraph;

@@ -1,5 +1,8 @@
 namespace Catalyst.SpecReader;
 
+/// <summary>
+/// Raw Node represents a 'node' within a Spec File that is still being read.
+/// </summary>
 public record RawNode(Dictionary<object, object> Internal, string FileName, RawNode? ParentNode, string[] Breadcrumbs);
 public record RawFileNode(FileInfo FileInfo, Dictionary<object, object> Internal) : RawNode(Internal, FileInfo.FullName, null, [FileInfo.Name]);
 
