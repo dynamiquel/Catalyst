@@ -50,13 +50,33 @@ switch (config.Language)
         throw new InvalidOperationException($"Language {config.Language} is not supported");
 }
 
-CompiledFiles compiledFiles = new();
-foreach (FileNode fileNode in graph.Files)
+Console.WriteLine($"Building Spec Graph using {compiler.GetType().Name} [{graph.Files.Count}] files]...");
+
+List<LanguageCompiler.File> builtFiles = [];
+for (var fileNodeIdx = 0; fileNodeIdx < graph.Files.Count; fileNodeIdx++)
 {
-    LanguageCompiler.File file = compiler.CreateFile(fileNode);
-    compiler.BuildFile(file, fileNode);
-    CompiledFile compiledFile = compiler.CompileFile(file);
+    FileNode fileNode = graph.Files[fileNodeIdx];
+    Console.WriteLine($"[{fileNodeIdx + 1}] Building Spec File '{fileNode.FullName}'...");
+    
+    LanguageCompiler.File file = compiler.BuildFile(fileNode);
+    builtFiles.Add(file);
+    
+    Console.WriteLine($"[{fileNodeIdx + 1}] Built Spec File '{fileNode.FullName}':\n{file}");
+}
+
+Console.WriteLine($"Compiling Spec Graph using {compiler.GetType().Name} [{graph.Files.Count}] files]...");
+
+CompiledFiles compiledFiles = new();
+for (var builtFileIdx = 0; builtFileIdx < builtFiles.Count; builtFileIdx++)
+{
+    LanguageCompiler.File builtFile = builtFiles[builtFileIdx];
+    
+    Console.WriteLine($"[{builtFileIdx + 1}] Compiling Built File '{builtFile.Name}'...");
+
+    CompiledFile compiledFile = compiler.CompileFile(builtFile);
     compiledFiles.AddFile(compiledFile);
+    
+    Console.WriteLine($"[{builtFileIdx + 1}] Compiled Built File '{builtFile.Name}':\n{compiledFile.FileContents}");
 }
 
 await compiledFiles.OutputFiles(baseInputDir, baseOutputDir);

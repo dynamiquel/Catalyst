@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Catalyst.SpecGraph;
 using Catalyst.SpecGraph.Nodes;
 using Catalyst.SpecGraph.Properties;
@@ -6,24 +7,57 @@ namespace Catalyst.LanguageCompilers;
 
 public abstract class LanguageCompiler
 {
+    public abstract record PropertyValue(string? Value);
+    protected record NoPropertyValue() : PropertyValue(Value: null);
+    protected record SomePropertyValue(string Value) : PropertyValue(Value);
+
     public record PropertyType(string Name);
+
     public record Include(string Path);
+
     public record Attribute(string Name, string? Arguments);
-    public record Property(string Name, string Type, string? Value, List<Attribute> Attributes);
+
+    public record Property(string Name, PropertyType Type, PropertyValue Value, List<Attribute> Attributes);
+
     public record Function(string Name, string ReturnType, bool Static, List<string> Parameters, string Body);
+
     public record Class(string Name, List<Property> Properties, List<Function> Functions);
-    public record File(string Name, List<Include> Includes, string? Namespace, List<Class> Classes);
 
+    public record File(string Name, List<Include> Includes, string? Namespace, List<Class> Classes)
+    {
+        public override string ToString()
+        {
+            return JsonSerializer.Serialize(this, new JsonSerializerOptions{ WriteIndented = true });
+        }
+    }
+    
+    public File BuildFile(FileNode fileNode)
+    {
+        File file = CreateFile(fileNode);
+        BuildFile(file, fileNode);
+        return file;
+    }
+    
     public abstract CompiledFile CompileFile(File file);
-    public abstract File CreateFile(FileNode fileNode);
+    
+    protected File CreateFile(FileNode fileNode)
+    {
+        File file = new(
+            Name: GetCompiledFilePath(fileNode),
+            Includes: [],
+            Namespace: GetCompiledNamespace(fileNode),
+            Classes: []);
+        
+        return file;
+    }
 
-    public void BuildFile(File file, FileNode fileNode)
+    protected void BuildFile(File file, FileNode fileNode)
     {
         HashSet<IPropertyType> usedPropertyTypes = [];
         
         foreach (KeyValuePair<string, DefinitionNode> definitionNode in fileNode.Definitions)
         {
-            AddDefinition(file, definitionNode.Value);
+            file.Classes.Add(CreateClass(file, definitionNode.Value));
             
             foreach (KeyValuePair<string, PropertyNode> propertyNode in definitionNode.Value.Properties)
             {
@@ -35,11 +69,58 @@ public abstract class LanguageCompiler
         }
 
         foreach (IPropertyType usedPropertyType in usedPropertyTypes)
-            AddPropertyType(file, usedPropertyType);
+            GetCompiledIncludeForPropertyType(file, usedPropertyType);
     }
     
-    protected abstract void AddPropertyType(File file, IPropertyType propertyType);
-    protected abstract void AddDefinition(File file, DefinitionNode definition);
-    protected abstract PropertyType GetPropertyType(IPropertyType propertyType);
-    protected abstract string GetDefaultValueForProperty(IPropertyValue propertyValue);
+    protected Class CreateClass(File file, DefinitionNode definitionNode)
+    {
+        List<Property> properties = [];
+        foreach (KeyValuePair<string, PropertyNode> propertyNode in definitionNode.Properties)
+        {
+            Property property = new Property(
+                Name: GetCompiledPropertyName(propertyNode.Value),
+                Type: GetCompiledPropertyType(propertyNode.Value.BuiltType!),
+                Value: GetCompiledPropertyValue(propertyNode.Value.BuiltType!, propertyNode.Value.Value),
+                Attributes: [/* TODO */]);
+            
+            properties.Add(property);
+        }
+        
+        List<Function> functions = [];
+        Function? serialiseFunction = CreateSerialiseFunction(file, definitionNode);
+        Function? deserializeFunction = CreateDeserialiseFunction(file, definitionNode);
+        if (serialiseFunction is not null)
+            functions.Add(serialiseFunction);
+        if (deserializeFunction is not null)
+            functions.Add(deserializeFunction);
+        
+        Class def = new Class(
+            Name: GetCompiledClassName(definitionNode),
+            Properties: properties,
+            Functions: functions);
+        
+        return def;
+    }
+
+    protected abstract string GetCompiledFilePath(FileNode fileNode);
+    protected abstract string? GetCompiledNamespace(FileNode fileNode);
+    protected abstract string GetCompiledClassName(DefinitionNode definitionNode);
+    protected abstract string GetCompiledPropertyName(PropertyNode propertyNode);
+
+    protected abstract Include? GetCompiledIncludeForPropertyType(File file, IPropertyType propertyType);
+    
+    protected abstract PropertyType GetCompiledPropertyType(IPropertyType propertyType);
+
+    protected PropertyValue GetCompiledPropertyValue(IPropertyType propertyType, IPropertyValue? propertyValue)
+    {
+        return propertyValue is null 
+            ? GetCompiledDefaultValueForPropertyType(propertyType) 
+            : GetCompiledDesiredPropertyValue(propertyValue);
+    }
+
+    protected abstract PropertyValue GetCompiledDefaultValueForPropertyType(IPropertyType propertyType);
+    protected abstract PropertyValue GetCompiledDesiredPropertyValue(IPropertyValue propertyValue);
+    
+    protected abstract Function? CreateSerialiseFunction(File file, DefinitionNode definitionNode);
+    protected abstract Function? CreateDeserialiseFunction(File file, DefinitionNode definitionNode);
 }

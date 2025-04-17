@@ -5,9 +5,20 @@ using Catalyst.SpecGraph.Properties;
 
 namespace Catalyst.LanguageCompilers.CSharp;
 
+public enum ClassType
+{
+    Class,
+    Record
+}
+
 // Just raw dog it for now.
 public class CSharpLanguageCompiler : LanguageCompiler
 {
+    public readonly bool bUseRequiredForNonOptional = false;
+    public readonly ClassType ClassType = ClassType.Record;
+    
+    string ClassTypeStr => ClassType == ClassType.Record ? "record" : "class";
+    
     public override CompiledFile CompileFile(File file)
     {
         StringBuilder sb = new();
@@ -31,7 +42,7 @@ public class CSharpLanguageCompiler : LanguageCompiler
 
         foreach (Class def in file.Classes)
         {
-            sb.AppendLine($"public class {def.Name}").AppendLine("{");
+            sb.AppendLine($"public {ClassTypeStr} {def.Name}").AppendLine("{");
 
             foreach (Property property in def.Properties)
             {
@@ -48,13 +59,13 @@ public class CSharpLanguageCompiler : LanguageCompiler
                 }
 
                 sb.Append("    public");
-                if (!property.Type.EndsWith("?") && string.IsNullOrWhiteSpace(property.Value))
+                if (bUseRequiredForNonOptional && !property.Type.Name.EndsWith("?") && property.Value is NoPropertyValue)
                     sb.Append(" required");
 
-                sb.Append($" {property.Type} {property.Name} {{ get; set; }}");
+                sb.Append($" {property.Type.Name} {property.Name} {{ get; set; }}");
                 
-                if (!string.IsNullOrWhiteSpace(property.Value))
-                    sb.Append($" = {property.Value};");
+                if (property.Value is not NoPropertyValue)
+                    sb.Append($" = {property.Value.Value};");
                 
                 sb.AppendLine();
                 sb.AppendLine();
@@ -93,75 +104,44 @@ public class CSharpLanguageCompiler : LanguageCompiler
         return new CompiledFile(file.Name, sb.ToString());
     }
 
-    public override File CreateFile(FileNode fileNode)
+    protected override string GetCompiledFilePath(FileNode fileNode)
     {
         string newFileName = fileNode.FileInfo.Name.Replace(fileNode.FileInfo.Extension, string.Empty).ToPascalCase() + ".cs";
         string newFilePath = Path.Combine(fileNode.FileInfo.DirectoryName ?? string.Empty, newFileName);
         
-        File file = new(
-            Name: newFilePath,
-            Includes: [],
-            Namespace: fileNode.Namespace.ToPascalCase(),
-            Classes: []);
-
-        return file;
+        return newFilePath;
     }
 
-    protected override void AddPropertyType(File file, IPropertyType propertyType)
+    protected override string? GetCompiledNamespace(FileNode fileNode)
+    {
+        return fileNode.Namespace.ToPascalCase();
+    }
+    
+    protected override string GetCompiledClassName(DefinitionNode definitionNode)
+    {
+        return definitionNode.Name.ToPascalCase();
+    }
+
+    protected override Include? GetCompiledIncludeForPropertyType(File file, IPropertyType propertyType)
     {
         switch (propertyType)
         {
             case ListType:
             case MapType:
             case SetType:
-                file.Includes.Add(new Include("System.Collections.Generic"));
-                break;
+                return new Include("System.Collections.Generic");
+            default:
+                return null;
         }
     }
+    
 
-    protected override void AddDefinition(File file, DefinitionNode definition)
+    protected override string GetCompiledPropertyName(PropertyNode propertyNode)
     {
-        List<Property> properties = [];
-        foreach (KeyValuePair<string, PropertyNode> propertyNode in definition.Properties)
-        {
-            PropertyType propertyType = GetPropertyType(propertyNode.Value.BuiltType!);
-
-            string? defaultValue = null;
-            if (propertyNode.Value.Value is not null)
-                defaultValue = GetDefaultValueForProperty(propertyNode.Value.Value);
-            
-            Property property = new Property(
-                Name: propertyNode.Value.Name.ToPascalCase(),
-                Type: propertyType.Name,
-                Value: defaultValue,
-                Attributes: [/* TODO */]);
-            
-            properties.Add(property);
-        }
-
-        Function serialiseFunc = new Function(
-            Name: "ToBytes",
-            ReturnType: "byte[]",
-            Static: true,
-            Parameters: [$"{definition.Name.ToPascalCase()} obj"],
-            Body: "return System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(obj);");
-        
-        Function deserialiseFunc = new Function(
-            Name: "FromBytes",
-            ReturnType: $"{definition.Name.ToPascalCase()}?",
-            Static: true,
-            Parameters: ["byte[] bytes"],
-            Body: $"return System.Text.Json.JsonSerializer.Deserialize<{definition.Name.ToPascalCase()}>(bytes);");
-        
-        Class def = new Class(
-            Name: definition.Name.ToPascalCase(),
-            Properties: properties,
-            Functions: [serialiseFunc, deserialiseFunc]);
-        
-        file.Classes.Add(def);
+        return propertyNode.Name.ToPascalCase();
     }
 
-    protected override PropertyType GetPropertyType(IPropertyType propertyType)
+    protected override PropertyType GetCompiledPropertyType(IPropertyType propertyType)
     {
         PropertyType genPropertyType;
         switch (propertyType)
@@ -182,16 +162,16 @@ public class CSharpLanguageCompiler : LanguageCompiler
                 genPropertyType = new PropertyType("int");
                 break;
             case ListType listType:
-                PropertyType innerListPropertyType = GetPropertyType(listType.InnerType);
+                PropertyType innerListPropertyType = GetCompiledPropertyType(listType.InnerType);
                 genPropertyType = new PropertyType($"List<{innerListPropertyType.Name}>");
                 break;
             case MapType mapType:
-                PropertyType innerKeyPropertyType = GetPropertyType(mapType.InnerTypeA);
-                PropertyType innerValuePropertyType = GetPropertyType(mapType.InnerTypeB);
+                PropertyType innerKeyPropertyType = GetCompiledPropertyType(mapType.InnerTypeA);
+                PropertyType innerValuePropertyType = GetCompiledPropertyType(mapType.InnerTypeB);
                 genPropertyType = new PropertyType($"Dictionary<{innerKeyPropertyType.Name}, {innerValuePropertyType.Name}>");
                 break;
             case SetType setType:
-                PropertyType innerSetPropertyType = GetPropertyType(setType.InnerType);
+                PropertyType innerSetPropertyType = GetCompiledPropertyType(setType.InnerType);
                 genPropertyType = new PropertyType($"HashSet<{innerSetPropertyType.Name}>");
                 break;
             case StringType:
@@ -212,43 +192,78 @@ public class CSharpLanguageCompiler : LanguageCompiler
 
         return genPropertyType;
     }
-    
-    protected override string GetDefaultValueForProperty(IPropertyValue propertyValue)
+
+    protected override PropertyValue GetCompiledDefaultValueForPropertyType(IPropertyType propertyType)
+    {
+        if (bUseRequiredForNonOptional)
+            return new NoPropertyValue();
+
+        return propertyType switch
+        {
+            IOptionalPropertyType => new NoPropertyValue(),
+            AnyType or ObjectType => new SomePropertyValue("new()"),
+            ListType or MapType or SetType => new SomePropertyValue("[]"),
+            StringType => new SomePropertyValue("string.Empty"),
+            _ => new NoPropertyValue()
+        };
+    }
+
+    protected override PropertyValue GetCompiledDesiredPropertyValue(IPropertyValue propertyValue)
     {
         switch (propertyValue)
         {
             case BooleanValue booleanValue:
-                return booleanValue.Value ? "true" : "false";
+                return new SomePropertyValue(booleanValue.Value ? "true" : "false");
             case DateValue dateValue:
-                return $"DateTime.Parse(\"{dateValue.Value:O}\")";
+                return new SomePropertyValue($"DateTime.Parse(\"{dateValue.Value:O}\")");
             case FloatValue floatValue:
-                return floatValue.Value.ToString(CultureInfo.InvariantCulture);
+                return new SomePropertyValue(floatValue.Value.ToString(CultureInfo.InvariantCulture));
             case IntegerValue integerValue:
-                return integerValue.Value.ToString(CultureInfo.InvariantCulture);
+                return new SomePropertyValue(integerValue.Value.ToString(CultureInfo.InvariantCulture));
             case ListValue listValue:
                 StringBuilder sb = new();
                 sb.Append('[');
                 for (int itemIdx = 0; itemIdx < listValue.Values.Count; itemIdx++)
                 {
                     IPropertyValue itemValue = listValue.Values[itemIdx];
-                    sb.Append(GetDefaultValueForProperty(itemValue));
+                    sb.Append(GetCompiledDesiredPropertyValue(itemValue));
                     if (itemIdx < listValue.Values.Count - 1)
                         sb.Append(", ");
                 }
                 sb.Append(']');
-                return sb.ToString();
+                return new SomePropertyValue(sb.ToString());
             case MapValue mapValue:
                 throw new NotImplementedException();
             case NullValue nullValue:
-                return "null";
+                return new SomePropertyValue("null");
             case ObjectValue objectValue:
                 throw new NotImplementedException();
             case StringValue stringValue:
-                return $"\"{stringValue.Value}\"";
+                return new SomePropertyValue($"\"{stringValue.Value}\"");
             case TimeValue timeValue:
-                return $"TimeSpan.FromSeconds({timeValue.Value.TotalSeconds.ToString(CultureInfo.InvariantCulture)})";
+                return new SomePropertyValue($"TimeSpan.FromSeconds({timeValue.Value.TotalSeconds.ToString(CultureInfo.InvariantCulture)})");
             default:
                 throw new ArgumentOutOfRangeException();
         }
+    }
+    
+    protected override Function? CreateSerialiseFunction(File file, DefinitionNode definitionNode)
+    {
+        return new Function(
+            Name: "ToBytes",
+            ReturnType: "byte[]",
+            Static: true,
+            Parameters: [$"{definitionNode.Name.ToPascalCase()} obj"],
+            Body: "return System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(obj);");
+    }
+
+    protected override Function? CreateDeserialiseFunction(File file, DefinitionNode definitionNode)
+    {
+        return new Function(
+            Name: "FromBytes",
+            ReturnType: $"{definitionNode.Name.ToPascalCase()}?",
+            Static: true,
+            Parameters: ["byte[] bytes"],
+            Body: $"return System.Text.Json.JsonSerializer.Deserialize<{definitionNode.Name.ToPascalCase()}>(bytes);");
     }
 }
