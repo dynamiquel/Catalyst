@@ -1,6 +1,7 @@
 ﻿using Catalyst;
 using Catalyst.LanguageCompilers;
 using Catalyst.LanguageCompilers.CSharp;
+using Catalyst.LanguageCompilers.Unreal;
 using Catalyst.SpecGraph;
 using Catalyst.SpecGraph.Nodes;
 using Catalyst.SpecReader;
@@ -45,6 +46,9 @@ switch (config.Language)
 {
     case "cs":
         compiler = new CSharpLanguageCompiler();
+        break;
+    case "unreal":
+        compiler = new UnrealLanguageCompiler();
         break;
     default:
         throw new InvalidOperationException($"Language {config.Language} is not supported");

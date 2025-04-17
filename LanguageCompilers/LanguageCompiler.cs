@@ -69,7 +69,11 @@ public abstract class LanguageCompiler
         }
 
         foreach (IPropertyType usedPropertyType in usedPropertyTypes)
-            GetCompiledIncludeForPropertyType(file, usedPropertyType);
+        {
+            Include? include = GetCompiledIncludeForPropertyType(file, usedPropertyType);
+            if (include is not null && !file.Includes.Contains(include))
+                file.Includes.Add(include);
+        }
     }
     
     protected Class CreateClass(File file, DefinitionNode definitionNode)
