@@ -118,7 +118,7 @@ public class UnrealLanguageCompiler : LanguageCompiler
         if (!string.IsNullOrEmpty(compilerOptions.Prefix))
             newFileName = compilerOptions.Prefix + newFileName;
         
-        string newFilePath = Path.Combine(fileNode.Directory ?? string.Empty, newFileName);
+        string newFilePath = Path.Combine(StringExtensions.FilePathToPascalCase(fileNode.Directory) ?? string.Empty, newFileName);
         
         return newFilePath;
     }

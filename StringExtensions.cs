@@ -38,4 +38,14 @@ public static class StringExtensions
 
         return char.ToUpper(word[0]) + word.Substring(1);
     }
+
+    [return: NotNullIfNotNull(nameof(filePath))]
+    public static string? FilePathToPascalCase(string? filePath)
+    {
+        if (string.IsNullOrEmpty(filePath))
+            return filePath;
+        
+        IEnumerable<string> split = filePath.Split('/', StringSplitOptions.RemoveEmptyEntries).Select(ToPascalCase)!;
+        return string.Join("/", split);
+    }
 }

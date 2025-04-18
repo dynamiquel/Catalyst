@@ -102,7 +102,7 @@ public class CSharpLanguageCompiler : LanguageCompiler
 
     protected override string GetCompiledFilePath(FileNode fileNode)
     {
-        string newFilePath = Path.Combine(fileNode.Directory ?? string.Empty, fileNode.FileName.ToPascalCase() + ".cs");
+        string newFilePath = StringExtensions.FilePathToPascalCase(fileNode.FilePath) + ".cs";
         return newFilePath;
     }
 
