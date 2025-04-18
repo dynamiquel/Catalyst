@@ -16,8 +16,15 @@ public abstract class LanguageCompiler
     public record Include(string Path);
     
     public record Property(string Name, PropertyType Type, PropertyValue Value, CompilerOptionsNode? CompilerOptions);
-
-    public record Function(string Name, string ReturnType, bool Static, List<string> Parameters, string Body);
+    
+    public enum FunctionFlags
+    {
+        None,
+        Const,
+        Static,
+    }
+    
+    public record Function(string Name, string ReturnType, FunctionFlags Flags, List<string> Parameters, string Body);
 
     public record Class(string Name, List<Property> Properties, List<Function> Functions, CompilerOptionsNode? CompilerOptions);
 
@@ -67,6 +74,17 @@ public abstract class LanguageCompiler
                     throw new NullReferenceException("Property Type should not be null at this point");
                 
                 usedPropertyTypes.Add(propertyNode.Value.BuiltType);
+                
+                switch (propertyNode.Value.BuiltType)
+                {
+                    case IPropertyContainer1InnerType propertyContainer1InnerType:
+                        usedPropertyTypes.Add(propertyContainer1InnerType.InnerType);
+                        break;
+                    case IPropertyContainer2InnerTypes propertyContainer2InnerTypes:
+                        usedPropertyTypes.Add(propertyContainer2InnerTypes.InnerTypeA);
+                        usedPropertyTypes.Add(propertyContainer2InnerTypes.InnerTypeB);
+                        break;
+                }
             }
         }
 
@@ -95,12 +113,10 @@ public abstract class LanguageCompiler
         }
         
         List<Function> functions = [];
-        Function? serialiseFunction = CreateSerialiseFunction(file, definitionNode);
-        Function? deserializeFunction = CreateDeserialiseFunction(file, definitionNode);
-        if (serialiseFunction is not null)
-            functions.Add(serialiseFunction);
-        if (deserializeFunction is not null)
-            functions.Add(deserializeFunction);
+        IEnumerable<Function> serialiseFunctions = CreateSerialiseFunction(file, definitionNode);
+        IEnumerable<Function> deserializeFunctions = CreateDeserialiseFunction(file, definitionNode);
+        functions.AddRange(serialiseFunctions);
+        functions.AddRange(deserializeFunctions);
         
         Class def = new Class(
             Name: GetCompiledClassName(definitionNode),
@@ -130,6 +146,6 @@ public abstract class LanguageCompiler
     protected abstract PropertyValue GetCompiledDefaultValueForPropertyType(IPropertyType propertyType);
     protected abstract PropertyValue GetCompiledDesiredPropertyValue(IPropertyValue propertyValue);
     
-    protected abstract Function? CreateSerialiseFunction(File file, DefinitionNode definitionNode);
-    protected abstract Function? CreateDeserialiseFunction(File file, DefinitionNode definitionNode);
+    protected abstract IEnumerable<Function> CreateSerialiseFunction(File file, DefinitionNode definitionNode);
+    protected abstract IEnumerable<Function> CreateDeserialiseFunction(File file, DefinitionNode definitionNode);
 }

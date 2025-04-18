@@ -21,14 +21,16 @@ public class UnrealLanguageCompiler : LanguageCompiler
         
         sb.AppendLine("#pragma once");
         sb.AppendLine();
+        
+        file.Includes.Add(new Include("JsonObjectConverter"));
+        file.Includes.Add(new Include("Templates/SharedPointer"));
 
         if (file.Includes.Count > 0)
         {
             foreach (Include include in file.Includes)
             {
-                string includePath = include.Path;
-                Path.ChangeExtension(includePath, ".h");
-                sb.AppendLine($"#include \"{include.Path}\";");
+                string includePath = Path.ChangeExtension(include.Path, ".h");
+                sb.AppendLine($"#include \"{includePath}\"");
             }
             sb.AppendLine();
         }
@@ -70,11 +72,13 @@ public class UnrealLanguageCompiler : LanguageCompiler
             foreach (Function function in def.Functions)
             {
                 sb.AppendLine();
-                
-                if (function.Static)
-                    sb.Append("static");
 
-                sb.Append($" {function.ReturnType} {function.Name}(");
+                sb.Append("    ");
+                
+                if (function.Flags is FunctionFlags.Static)
+                    sb.Append("static ");
+
+                sb.Append($"{function.ReturnType} {function.Name}(");
 
                 for (int parameterIdx = 0; parameterIdx < function.Parameters.Count; parameterIdx++)
                 {
@@ -83,11 +87,18 @@ public class UnrealLanguageCompiler : LanguageCompiler
                         sb.Append(", ");
                 }
                 
-                sb.AppendLine(")");
+                sb.Append(")");
+
+                if (function.Flags is FunctionFlags.Const)
+                    sb.Append(" const");
+
+                sb.AppendLine();
                 
                 sb.AppendLine("    {");
 
-                sb.AppendLine($"        {function.Body}");
+                string[] bodyLines = function.Body.Split(Environment.NewLine);
+                foreach (string line in bodyLines)
+                    sb.AppendLine($"        {line}");
                 
                 sb.AppendLine("    }");
             }
@@ -256,21 +267,105 @@ public class UnrealLanguageCompiler : LanguageCompiler
             case StringValue stringValue:
                 return new SomePropertyValue($"\"{stringValue.Value}\"");
             case TimeValue timeValue:
-                return new SomePropertyValue($"FTimeSpan::FromSeconds({timeValue.Value.TotalSeconds.ToString(CultureInfo.InvariantCulture)})");
+                return new SomePropertyValue($"FTimespan::FromSeconds({timeValue.Value.TotalSeconds.ToString(CultureInfo.InvariantCulture)})");
             default:
                 throw new ArgumentOutOfRangeException();
         }
     }
 
-    protected override Function? CreateSerialiseFunction(File file, DefinitionNode definitionNode)
+    protected override IEnumerable<Function> CreateSerialiseFunction(File file, DefinitionNode definitionNode)
     {
-        return null;
-        throw new NotImplementedException();
+        // This implementation could easily be templated for every definition but that 
+        // requires dependencies for the project, making it less portable.
+        
+        StringBuilder mainSerialiseFunc = new();
+        mainSerialiseFunc
+            .AppendLine("TRACE_CPUPROFILER_EVENT_SCOPE(Catalyst::ToJsonBytes)")
+            .AppendLine()
+            .AppendLine("TSharedPtr<FJsonObject> JsonObject = FJsonObjectConverter::UStructToJsonObject(Object);")
+            .AppendLine("if (!JsonObject)")
+            .AppendLine("{")
+            .AppendLine($"    UE_LOG(LogSerialization, Error, TEXT(\"Could not serialise object '{GetCompiledClassName(definitionNode)}' into a JSON object\"));")
+            .AppendLine("    return {};")
+            .AppendLine("}")
+            .AppendLine()
+            .AppendLine("TArray<uint8> Buffer;")
+            .AppendLine("FMemoryWriter MemoryWriter(Buffer);")
+            .AppendLine("TSharedRef<TJsonWriter<UTF8CHAR>> JsonWriter = TJsonWriterFactory<UTF8CHAR>::Create(&MemoryWriter);")
+            .AppendLine("if (!FJsonSerializer::Serialize(JsonObject.ToSharedRef(), JsonWriter))")
+            .AppendLine("{")
+            .AppendLine($"    UE_LOG(LogSerialization, Error, TEXT(\"Could not serialise JSON object '{GetCompiledClassName(definitionNode)}' into bytes\"));")
+            .AppendLine("    return {};")
+            .AppendLine("}")
+            .AppendLine()
+            .AppendLine("return Buffer;");
+        
+        return [
+            new Function(
+                Name: "ToBytes",
+                ReturnType: "TArray<uint8>",
+                Flags: FunctionFlags.Static,
+                Parameters: [$"const {GetCompiledClassName(definitionNode)}& Object"],
+                Body: mainSerialiseFunc.ToString()),
+            new Function(
+                Name: "ToBytes",
+                ReturnType: "TArray<uint8>",
+                Flags: FunctionFlags.Const,
+                Parameters: [],
+                Body: "return ToBytes(*this);"
+            )
+        ];
     }
 
-    protected override Function? CreateDeserialiseFunction(File file, DefinitionNode definitionNode)
+    protected override IEnumerable<Function> CreateDeserialiseFunction(File file, DefinitionNode definitionNode)
     {
-        return null;
-        throw new NotImplementedException();
+        // This implementation could easily be templated for every definition but that 
+        // requires dependencies for the project, making it less portable.
+        
+        StringBuilder sb = new();
+        sb
+            .AppendLine("TRACE_CPUPROFILER_EVENT_SCOPE(Catalyst::FromJsonBytes)")
+            .AppendLine()
+            .AppendLine("FMemoryReader MemoryReader(Bytes);")
+            .AppendLine()
+            .AppendLine("TSharedPtr<FJsonObject> JsonObject;")
+            .AppendLine("TSharedRef<TJsonReader<UTF8CHAR>> JsonReader = TJsonReaderFactory<UTF8CHAR>::Create(&MemoryReader);")
+            .AppendLine("if (!FJsonSerializer::Deserialize(JsonReader, JsonObject) || !JsonObject)")
+            .AppendLine("{")
+            .AppendLine($"    UE_LOG(LogSerialization, Error, TEXT(\"Could not deserialise the given bytes for '{GetCompiledClassName(definitionNode)}' into a JSON object\"));")
+            .AppendLine("    return {};")
+            .AppendLine("}")
+            .AppendLine()
+            .AppendLine($"{GetCompiledClassName(definitionNode)} DeserialisedObject;")
+            .AppendLine("FText FailReason;")
+            .AppendLine()
+            .AppendLine("bool bConvertedToStruct;")
+            .AppendLine("{")
+            .AppendLine("    FGCScopeGuard LockGC;")
+            .AppendLine($"    bConvertedToStruct = FJsonObjectConverter::JsonObjectToUStruct<{GetCompiledClassName(definitionNode)}>(")
+            .AppendLine("        JsonObject.ToSharedRef(),")
+            .AppendLine("        &DeserialisedObject,")
+            .AppendLine("        /* CheckFlags */ 0,")
+            .AppendLine("        /* SkipFlags */ 0,")
+            .AppendLine("        /* bStrictMode */ false,")
+            .AppendLine("        OUT &FailReason);")
+            .AppendLine("}")
+            .AppendLine()
+            .AppendLine("if (!bConvertedToStruct)")
+            .AppendLine("{")
+            .AppendLine($"    UE_LOG(LogSerialization, Error, TEXT(\"Could not deserialise the JSON object into an '{GetCompiledClassName(definitionNode)}' object. Reason: %s\"), *FailReason.ToString());")
+            .AppendLine("    return {};")
+            .AppendLine("}")
+            .AppendLine()
+            .Append("return DeserialisedObject;");
+
+        return  [
+            new Function(
+                Name: "FromBytes",
+                ReturnType: $"TOptional<{GetCompiledClassName(definitionNode)}>",
+                Flags: FunctionFlags.Static,
+                Parameters: ["const TArray<uint8>& Bytes"],
+                Body: sb.ToString())
+        ];
     }
 }

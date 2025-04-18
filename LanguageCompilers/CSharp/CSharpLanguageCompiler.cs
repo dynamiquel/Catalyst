@@ -71,12 +71,12 @@ public class CSharpLanguageCompiler : LanguageCompiler
             {
                 sb.AppendLine();
                 
-                sb.Append("    public");
+                sb.Append("    public ");
                 
-                if (function.Static)
-                    sb.Append(" static");
+                if (function.Flags is FunctionFlags.Static)
+                    sb.Append("static ");
 
-                sb.Append($" {function.ReturnType} {function.Name}(");
+                sb.Append($"{function.ReturnType} {function.Name}(");
 
                 for (int parameterIdx = 0; parameterIdx < function.Parameters.Count; parameterIdx++)
                 {
@@ -241,23 +241,27 @@ public class CSharpLanguageCompiler : LanguageCompiler
         }
     }
     
-    protected override Function? CreateSerialiseFunction(File file, DefinitionNode definitionNode)
+    protected override IEnumerable<Function> CreateSerialiseFunction(File file, DefinitionNode definitionNode)
     {
-        return new Function(
-            Name: "ToBytes",
-            ReturnType: "byte[]",
-            Static: true,
-            Parameters: [$"{definitionNode.Name.ToPascalCase()} obj"],
-            Body: "return System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(obj);");
+        return [
+            new Function(
+                Name: "ToBytes",
+                ReturnType: "byte[]",
+                Flags: FunctionFlags.Static,
+                Parameters: [$"{definitionNode.Name.ToPascalCase()} obj"],
+                Body: "return System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(obj);")
+        ];
     }
 
-    protected override Function? CreateDeserialiseFunction(File file, DefinitionNode definitionNode)
+    protected override IEnumerable<Function> CreateDeserialiseFunction(File file, DefinitionNode definitionNode)
     {
-        return new Function(
-            Name: "FromBytes",
-            ReturnType: $"{definitionNode.Name.ToPascalCase()}?",
-            Static: true,
-            Parameters: ["byte[] bytes"],
-            Body: $"return System.Text.Json.JsonSerializer.Deserialize<{definitionNode.Name.ToPascalCase()}>(bytes);");
+        return [
+            new Function(
+                Name: "FromBytes",
+                ReturnType: $"{definitionNode.Name.ToPascalCase()}?",
+                Flags: FunctionFlags.Static,
+                Parameters: ["byte[] bytes"],
+                Body: $"return System.Text.Json.JsonSerializer.Deserialize<{definitionNode.Name.ToPascalCase()}>(bytes);")
+        ];
     }
 }
