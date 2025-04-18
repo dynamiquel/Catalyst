@@ -5,7 +5,10 @@ namespace Catalyst.SpecGraph.Nodes;
 /// </summary>
 public class FileNode : Node, ICompilerOptions
 {
-    public required FileInfo FileInfo;
+    public required string FilePath;
+    public string? Directory => Path.GetDirectoryName(FilePath);
+    public string FileName => Path.GetFileName(FilePath);
+    
     public string Format = Formats.Json;
     public string? Namespace { get; set; }
     public List<string> IncludeSpecs { get; set; } = [];

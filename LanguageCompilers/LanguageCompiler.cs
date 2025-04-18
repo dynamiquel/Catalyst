@@ -76,6 +76,8 @@ public abstract class LanguageCompiler
             if (include is not null && !file.Includes.Contains(include))
                 file.Includes.Add(include);
         }
+        
+        file.Includes.Sort((x, y) => string.Compare(x.Path, y.Path, StringComparison.OrdinalIgnoreCase));
     }
     
     protected Class CreateClass(File file, DefinitionNode definitionNode)

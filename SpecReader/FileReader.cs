@@ -12,8 +12,18 @@ namespace Catalyst.SpecReader;
 /// </summary>
 public class FileReader
 {
+    public required DirectoryInfo BaseDir { get; init; }
     protected List<LanguageFileReader> LanguageFileReaders = [];
 
+    public string GetBuiltSpecFilePath(FileInfo fileInfo)
+    {
+        // Converts the actual spec file path to a more suitable built name.
+        // i.e. /home/project/specs/common/user.yaml -> common/user
+        string fileNodePath = Path.GetRelativePath(BaseDir.FullName, fileInfo.FullName);
+        fileNodePath = Path.ChangeExtension(fileNodePath, null);
+        return fileNodePath;
+    }
+    
     public void AddLanguageFileReader<T>() where T : LanguageFileReader, new()
     {
         if (LanguageFileReaders.Any(x => x.GetType() == typeof(T)))
@@ -43,12 +53,14 @@ public class FileReader
     public FileNode ReadFileFromSpec(RawFileNode rawFileNode)
     {
         Console.WriteLine($"[{rawFileNode.FileInfo.FullName}] Reading Spec File");
+
+        string builtFilePath = GetBuiltSpecFilePath(rawFileNode.FileInfo);
         
         FileNode fileNode = new()
         {
             Parent = null,
-            FileInfo = rawFileNode.FileInfo,
-            Name = rawFileNode.FileName
+            FilePath = builtFilePath,
+            Name = builtFilePath
         };
         
         string? format = rawFileNode.ReadPropertyAsStr("format");
@@ -89,15 +101,15 @@ public class FileReader
             if (!Path.HasExtension(includeSpecStr))
                 includeSpecStr += ".yaml";
             
-            string relativeIncludePath = Path.Combine(fileNode.FileInfo.DirectoryName ?? string.Empty, includeSpecStr);
-            
-            if (!File.Exists(relativeIncludePath))
+            string relativeIncludePath = Path.Combine(fileNode.Directory ?? string.Empty, includeSpecStr);
+            string absoluteIncludePath = Path.Combine(BaseDir.FullName, relativeIncludePath);
+            if (!File.Exists(absoluteIncludePath))
             {
                 throw new IncludeNotFoundException
                 {
                     RawNode = rawFileNode,
                     LeafName = "includes",
-                    IncludeFile = $"{includeSpecStr} (Full Path: {relativeIncludePath}"
+                    IncludeFile = $"{includeSpecStr} (Absolute Path: {absoluteIncludePath})"
                 };
             }
             

@@ -14,11 +14,11 @@ public class CompiledFiles
         Files.Add(file);
     }
 
-    public async Task OutputFiles(DirectoryInfo inputDir, DirectoryInfo outputDir, CancellationToken cancelToken = default)
+    public async Task OutputFiles(DirectoryInfo outputDir, CancellationToken cancelToken = default)
     {
         foreach (CompiledFile file in Files)
         {
-            string outputFilePath = file.FileName.Replace(inputDir.FullName, outputDir.FullName);
+            string outputFilePath = Path.Combine(outputDir.FullName, file.FileName);
             string? outputFileDir = Path.GetDirectoryName(outputFilePath);
             if (outputFileDir is not null)
                 Directory.CreateDirectory(outputFileDir);

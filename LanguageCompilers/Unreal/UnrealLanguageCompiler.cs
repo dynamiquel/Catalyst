@@ -25,7 +25,11 @@ public class UnrealLanguageCompiler : LanguageCompiler
         if (file.Includes.Count > 0)
         {
             foreach (Include include in file.Includes)
-                sb.AppendLine($"#include \"{include.Path}.h\";");
+            {
+                string includePath = include.Path;
+                Path.ChangeExtension(includePath, ".h");
+                sb.AppendLine($"#include \"{include.Path}\";");
+            }
             sb.AppendLine();
         }
 
@@ -96,14 +100,14 @@ public class UnrealLanguageCompiler : LanguageCompiler
 
     protected override string GetCompiledFilePath(FileNode fileNode)
     {
-        string newFileName = fileNode.FileInfo.Name.Replace(fileNode.FileInfo.Extension, string.Empty).ToPascalCase() + ".h";
+        string newFileName = fileNode.FileName.ToPascalCase() + ".h";
         
         // Add the File's Unreal prefix, if it has one.
         var compilerOptions = (UnrealFileCompilerOptionsNode)fileNode.FindCompilerOptions(CompilerName)!;
         if (!string.IsNullOrEmpty(compilerOptions.Prefix))
             newFileName = compilerOptions.Prefix + newFileName;
         
-        string newFilePath = Path.Combine(fileNode.FileInfo.DirectoryName ?? string.Empty, newFileName);
+        string newFilePath = Path.Combine(fileNode.Directory ?? string.Empty, newFileName);
         
         return newFilePath;
     }
@@ -143,8 +147,10 @@ public class UnrealLanguageCompiler : LanguageCompiler
                 return new Include("Misc/DateTime");
             case TimeType:
                 return new Include("Misc/Timespan");
-            case ObjectType:
-                // TODO: Figure this out. Requires better pathing.
+            case ObjectType objectType:
+                string compiledFileName = GetCompiledFilePath(objectType.OwnedFile);
+                if (compiledFileName != file.Name)
+                    return new Include(compiledFileName);
                 break;
         }
         

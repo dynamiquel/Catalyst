@@ -29,11 +29,11 @@ if (inputFiles.Length == 0)
 }
 
 
-var graph = new Graph
+Graph graph = new();
+FileReader specFileReader = new()
 {
-    BaseDir = baseInputDir.FullName
+    BaseDir = baseInputDir
 };
-var specFileReader = new FileReader();
 specFileReader.AddLanguageFileReader<CSharpLanguageReader>();
 specFileReader.AddLanguageFileReader<UnrealLanguageReader>();
 
@@ -89,7 +89,7 @@ for (var builtFileIdx = 0; builtFileIdx < builtFiles.Count; builtFileIdx++)
     Console.WriteLine($"[{builtFileIdx + 1}] Compiled Built File '{builtFile.Name}':\n{compiledFile.FileContents}");
 }
 
-await compiledFiles.OutputFiles(baseInputDir, baseOutputDir);
+await compiledFiles.OutputFiles(baseOutputDir);
 
 return 0;
 
@@ -148,9 +148,12 @@ async Task ReadSpecFilesRecursive(FileInfo[] specFiles)
     {
         foreach (string includeSpec in fileNode.IncludeSpecs)
         {
-            string includeSpecPath = Path.Combine(fileNode.FileInfo.DirectoryName!, includeSpec);
+            string includeSpecPath = Path.Combine(baseInputDir.FullName, fileNode.Directory ?? string.Empty, includeSpec);
             FileInfo fileInfo = new FileInfo(includeSpecPath);
-            if (graph.Files.Any(f => f.Name == fileInfo.FullName))
+            string includeSpecBuiltFilePath = specFileReader.GetBuiltSpecFilePath(fileInfo);
+
+            bool bFileAlreadyAdded = graph.Files.Any(f => f.FilePath == includeSpecBuiltFilePath);
+            if (bFileAlreadyAdded)
                 continue;
             
             includeFiles.Add(fileInfo);
