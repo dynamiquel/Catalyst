@@ -117,6 +117,14 @@ public class UnrealLanguageCompiler : LanguageCompiler
         var compilerOptions = (UnrealFileCompilerOptionsNode)fileNode.FindCompilerOptions(CompilerName)!;
         if (!string.IsNullOrEmpty(compilerOptions.Prefix))
             newFileName = compilerOptions.Prefix + newFileName;
+        else
+        {
+            // Add a prefix using the namespace as a fallback.
+            string? namespacePrefix = GetPrefixFromNamespace(fileNode);
+            if (!string.IsNullOrEmpty(namespacePrefix))
+                newFileName = namespacePrefix + newFileName;
+        }
+        
         
         string newFilePath = Path.Combine(StringExtensions.FilePathToPascalCase(fileNode.Directory) ?? string.Empty, newFileName);
         
@@ -138,6 +146,13 @@ public class UnrealLanguageCompiler : LanguageCompiler
         var compilerOptions = (UnrealDefinitionCompilerOptionsNode)definitionNode.FindCompilerOptions(CompilerName)!;
         if (!string.IsNullOrEmpty(compilerOptions.Prefix))
             propertyTypeName = compilerOptions.Prefix + propertyTypeName;
+        else
+        {
+            // Add a prefix using the namespace as a fallback.
+            string? namespacePrefix = GetPrefixFromNamespace(definitionNode.GetParentChecked<FileNode>());
+            if (!string.IsNullOrEmpty(namespacePrefix))
+                propertyTypeName = namespacePrefix + propertyTypeName;
+        }
 
         // Unreal requires structs to be prefixed with F.
         return $"F{propertyTypeName}";
@@ -298,7 +313,7 @@ public class UnrealLanguageCompiler : LanguageCompiler
             .AppendLine("    return {};")
             .AppendLine("}")
             .AppendLine()
-            .AppendLine("return Buffer;");
+            .Append("return Buffer;");
         
         return [
             new Function(
@@ -367,5 +382,11 @@ public class UnrealLanguageCompiler : LanguageCompiler
                 Parameters: ["const TArray<uint8>& Bytes"],
                 Body: sb.ToString())
         ];
+    }
+
+    string? GetPrefixFromNamespace(FileNode fileNode)
+    {
+        string? namespacePrefix = fileNode.Namespace.ToPascalCase()?.Replace(".", "");
+        return namespacePrefix;
     }
 }

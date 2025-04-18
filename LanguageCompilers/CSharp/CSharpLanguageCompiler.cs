@@ -247,9 +247,9 @@ public class CSharpLanguageCompiler : LanguageCompiler
             new Function(
                 Name: "ToBytes",
                 ReturnType: "byte[]",
-                Flags: FunctionFlags.Static,
-                Parameters: [$"{definitionNode.Name.ToPascalCase()} obj"],
-                Body: "return System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(obj);")
+                Flags: FunctionFlags.Const,
+                Parameters: [],
+                Body: "return System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(this);")
         ];
     }
 
@@ -260,7 +260,7 @@ public class CSharpLanguageCompiler : LanguageCompiler
                 Name: "FromBytes",
                 ReturnType: $"{definitionNode.Name.ToPascalCase()}?",
                 Flags: FunctionFlags.Static,
-                Parameters: ["byte[] bytes"],
+                Parameters: ["ReadOnlySpan<byte> bytes"],
                 Body: $"return System.Text.Json.JsonSerializer.Deserialize<{definitionNode.Name.ToPascalCase()}>(bytes);")
         ];
     }

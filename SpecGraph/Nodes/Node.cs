@@ -15,4 +15,18 @@ public abstract class Node
             return Name;
         }
     }
+
+    public T GetParentChecked<T>() where T : Node
+    {
+        if (Parent is null)
+            throw new ArgumentNullException();
+
+        Parent.TryGetTarget(out Node? parent);
+
+        T? parentCasted = parent as T;
+        if (parentCasted is null)
+            throw new InvalidOperationException();
+        
+        return parentCasted;
+    }
 }

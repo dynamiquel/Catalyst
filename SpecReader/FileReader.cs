@@ -161,27 +161,30 @@ public class FileReader
         Console.WriteLine($"[{fileNode.FullName}] Reading Definition '{definitionNode.Name}'");
 
         ReadDefinitionCompilerOptions(fileNode, definitionRawNode, definitionNode);
-        
-        Dictionary<object, object>? properties = definitionRawNode.ReadPropertyAsDictionary("properties");
-        if (properties is null)
+
+        if (definitionRawNode.Internal.Count > 0)
         {
-            throw new ExpectedTokenNotFoundException
+            Dictionary<object, object>? properties = definitionRawNode.ReadPropertyAsDictionary("properties");
+            if (properties is null)
             {
-                RawNode = definitionRawNode,
-                TokenName = "properties"
-            };
+                throw new ExpectedTokenNotFoundException
+                {
+                    RawNode = definitionRawNode,
+                    TokenName = "properties"
+                };
+            }
+
+            Console.WriteLine($"[{fileNode.FullName}] Found {properties.Count} Properties");
+
+            RawNode propertiesRawNode = definitionRawNode.CreateChild(properties, "properties");
+
+            foreach (KeyValuePair<object, object> property in properties)
+            {
+                string propertyName = ((string)property.Key);
+                ReadProperty(definitionNode, propertiesRawNode, propertyName, property.Value);
+            }
         }
-        
-        Console.WriteLine($"[{fileNode.FullName}] Found {properties.Count} Properties");
-        
-        RawNode propertiesRawNode = definitionRawNode.CreateChild(properties, "properties");
-        
-        foreach (KeyValuePair<object, object> property in properties)
-        {
-            string propertyName = ((string)property.Key);
-            ReadProperty(definitionNode, propertiesRawNode, propertyName, property.Value);
-        }
-        
+
         fileNode.Definitions.Add(definitionName, definitionNode);
     }
 
