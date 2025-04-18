@@ -3,7 +3,7 @@ namespace Catalyst.SpecGraph.Nodes;
 /// <summary>
 /// Represents a Spec File.
 /// </summary>
-public class FileNode : Node
+public class FileNode : Node, ICompilerOptions
 {
     public required FileInfo FileInfo;
     public string Format = Formats.Json;
@@ -11,4 +11,5 @@ public class FileNode : Node
     public List<string> IncludeSpecs { get; set; } = [];
     public Dictionary<string, DefinitionNode> Definitions { get; set; } = [];
     public Dictionary<string, ServiceNode> Services { get; set; } = [];
+    public Dictionary<string, CompilerOptionsNode> CompilerOptions { get; } = [];
 }

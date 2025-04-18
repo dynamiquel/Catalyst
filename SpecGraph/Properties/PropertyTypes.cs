@@ -206,6 +206,7 @@ public class ObjectType : IPropertyType
 {
     public required string Name { get; set; }
     public required string? Namespace { get; set; }
+    public required DefinitionNode OwnedDefinition { get; set; }
     public required FileNode OwnedFile { get; set; }
 }
 public class OptionalObjectType : ObjectType, IOptionalPropertyType;

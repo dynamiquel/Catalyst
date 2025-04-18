@@ -7,6 +7,8 @@ namespace Catalyst.LanguageCompilers.Unreal;
 
 public class UnrealLanguageCompiler : LanguageCompiler
 {
+    public override string CompilerName => UnrealLanguage.Name;
+
     public override CompiledFile CompileFile(File file)
     {
         StringBuilder sb = new();
@@ -40,7 +42,7 @@ public class UnrealLanguageCompiler : LanguageCompiler
             {
                 sb.AppendLine();
                 sb.Append("    UPROPERTY(EditAnywhere");
-                if (property.Attributes.Count > 0)
+                /*if (property.Attributes.Count > 0)
                 {
                     foreach (Attribute attribute in property.Attributes)
                     {
@@ -48,7 +50,7 @@ public class UnrealLanguageCompiler : LanguageCompiler
                         if (!string.IsNullOrWhiteSpace(attribute.Arguments))
                             sb.Append($" = {attribute.Arguments}");
                     }
-                }
+                }*/
                 sb.AppendLine(")");
 
                 sb.Append($"    {property.Type.Name} {property.Name}");
@@ -95,6 +97,12 @@ public class UnrealLanguageCompiler : LanguageCompiler
     protected override string GetCompiledFilePath(FileNode fileNode)
     {
         string newFileName = fileNode.FileInfo.Name.Replace(fileNode.FileInfo.Extension, string.Empty).ToPascalCase() + ".h";
+        
+        // Add the File's Unreal prefix, if it has one.
+        var compilerOptions = (UnrealFileCompilerOptionsNode)fileNode.FindCompilerOptions(CompilerName)!;
+        if (!string.IsNullOrEmpty(compilerOptions.Prefix))
+            newFileName = compilerOptions.Prefix + newFileName;
+        
         string newFilePath = Path.Combine(fileNode.FileInfo.DirectoryName ?? string.Empty, newFileName);
         
         return newFilePath;
@@ -108,8 +116,16 @@ public class UnrealLanguageCompiler : LanguageCompiler
 
     protected override string GetCompiledClassName(DefinitionNode definitionNode)
     {
+        // Get the Property Type Name without any namespace info.
+        string propertyTypeName = definitionNode.Name.ToPascalCase();
+                
+        // Add the Property Type's Unreal prefix, if it has one.
+        var compilerOptions = (UnrealDefinitionCompilerOptionsNode)definitionNode.FindCompilerOptions(CompilerName)!;
+        if (!string.IsNullOrEmpty(compilerOptions.Prefix))
+            propertyTypeName = compilerOptions.Prefix + propertyTypeName;
+
         // Unreal requires structs to be prefixed with F.
-        return $"F{definitionNode.Name.ToPascalCase()}";
+        return $"F{propertyTypeName}";
     }
 
     protected override string GetCompiledPropertyName(PropertyNode propertyNode)
@@ -175,7 +191,7 @@ public class UnrealLanguageCompiler : LanguageCompiler
                 genPropertyType = new PropertyType("FTimespan");
                 break;
             case ObjectType userType:
-                genPropertyType = new PropertyType($"F{userType.Name.ToPascalCase()}");
+                genPropertyType = new PropertyType(GetCompiledClassName(userType.OwnedDefinition));
                 break;
             default:
                 throw new ArgumentOutOfRangeException(nameof(propertyType));

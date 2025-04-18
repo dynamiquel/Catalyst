@@ -9,3 +9,5 @@ definitions:
       city: str
       postalCode: str
       country: str
+    cs:
+      type: class   # example of changing the C# definition type to a class instead of the default record

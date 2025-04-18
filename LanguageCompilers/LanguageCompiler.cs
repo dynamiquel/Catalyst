@@ -14,22 +14,23 @@ public abstract class LanguageCompiler
     public record PropertyType(string Name);
 
     public record Include(string Path);
-
-    public record Attribute(string Name, string? Arguments);
-
-    public record Property(string Name, PropertyType Type, PropertyValue Value, List<Attribute> Attributes);
+    
+    public record Property(string Name, PropertyType Type, PropertyValue Value, CompilerOptionsNode? CompilerOptions);
 
     public record Function(string Name, string ReturnType, bool Static, List<string> Parameters, string Body);
 
-    public record Class(string Name, List<Property> Properties, List<Function> Functions);
+    public record Class(string Name, List<Property> Properties, List<Function> Functions, CompilerOptionsNode? CompilerOptions);
 
-    public record File(string Name, List<Include> Includes, string? Namespace, List<Class> Classes)
+    public record File(string Name, List<Include> Includes, string? Namespace, List<Class> Classes, CompilerOptionsNode? CompilerOptions)
     {
         public override string ToString()
         {
             return JsonSerializer.Serialize(this, new JsonSerializerOptions{ WriteIndented = true });
         }
     }
+    
+    public abstract string CompilerName { get; }
+
     
     public File BuildFile(FileNode fileNode)
     {
@@ -46,7 +47,8 @@ public abstract class LanguageCompiler
             Name: GetCompiledFilePath(fileNode),
             Includes: [],
             Namespace: GetCompiledNamespace(fileNode),
-            Classes: []);
+            Classes: [],
+            CompilerOptions: fileNode.FindCompilerOptions(CompilerName));
         
         return file;
     }
@@ -85,7 +87,7 @@ public abstract class LanguageCompiler
                 Name: GetCompiledPropertyName(propertyNode.Value),
                 Type: GetCompiledPropertyType(propertyNode.Value.BuiltType!),
                 Value: GetCompiledPropertyValue(propertyNode.Value.BuiltType!, propertyNode.Value.Value),
-                Attributes: [/* TODO */]);
+                CompilerOptions: propertyNode.Value.FindCompilerOptions(CompilerName));
             
             properties.Add(property);
         }
@@ -101,7 +103,8 @@ public abstract class LanguageCompiler
         Class def = new Class(
             Name: GetCompiledClassName(definitionNode),
             Properties: properties,
-            Functions: functions);
+            Functions: functions,
+            CompilerOptions: definitionNode.FindCompilerOptions(CompilerName));
         
         return def;
     }

@@ -1,5 +1,8 @@
 namespace: Catalyst.Tests.UserManagement
 
+unreal:
+  prefix: CatalystTestEx    # example of an Unreal Engine class and file prefix due to no namespace support.
+
 includes:
   - ./common/address.yaml   # example of include path with ./ root.
 

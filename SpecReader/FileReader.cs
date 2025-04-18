@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Catalyst.LanguageCompilers;
 using Catalyst.SpecGraph.Nodes;
 using Catalyst.SpecGraph.Properties;
 using YamlDotNet.Serialization;
@@ -11,6 +12,16 @@ namespace Catalyst.SpecReader;
 /// </summary>
 public class FileReader
 {
+    protected List<LanguageFileReader> LanguageFileReaders = [];
+
+    public void AddLanguageFileReader<T>() where T : LanguageFileReader, new()
+    {
+        if (LanguageFileReaders.Any(x => x.GetType() == typeof(T)))
+            throw new InvalidOperationException($"A Language File Reader of type {typeof(T).Name} already exists");
+        
+        LanguageFileReaders.Add(new T());
+    }
+    
     public async Task<RawFileNode> ReadRawSpec(FileInfo specFileInfo)
     {
         string fileContent = await File.ReadAllTextAsync(specFileInfo.FullName);
@@ -29,32 +40,33 @@ public class FileReader
         return new RawFileNode(specFileInfo, deserialisedObject);
     }
 
-    public FileNode ReadFileFromSpec(RawFileNode rawNode)
+    public FileNode ReadFileFromSpec(RawFileNode rawFileNode)
     {
-        Console.WriteLine($"[{rawNode.FileInfo.FullName}] Reading Spec File");
+        Console.WriteLine($"[{rawFileNode.FileInfo.FullName}] Reading Spec File");
         
         FileNode fileNode = new()
         {
             Parent = null,
-            FileInfo = rawNode.FileInfo,
-            Name = rawNode.FileName
+            FileInfo = rawFileNode.FileInfo,
+            Name = rawFileNode.FileName
         };
         
-        string? format = rawNode.ReadPropertyAsStr("format");
+        string? format = rawFileNode.ReadPropertyAsStr("format");
         if (format is not null)
             fileNode.Format = format.ToLower();
 
-        fileNode.Namespace = rawNode.ReadPropertyAsStr("namespace");
+        fileNode.Namespace = rawFileNode.ReadPropertyAsStr("namespace");
         
-        ReadIncludes(rawNode, fileNode);
-        ReadDefinitions(rawNode, fileNode);
-
+        ReadIncludes(rawFileNode, fileNode);
+        ReadFileCompilerOptions(rawFileNode, fileNode);
+        ReadDefinitions(rawFileNode, fileNode);
+        
         return fileNode;
     }
 
-    void ReadIncludes(RawFileNode rawNode, FileNode fileNode)
+    void ReadIncludes(RawFileNode rawFileNode, FileNode fileNode)
     {
-        List<object>? includeSpecs = rawNode.ReadPropertyAsList("includes");
+        List<object>? includeSpecs = rawFileNode.ReadPropertyAsList("includes");
         if (includeSpecs is null) 
             return;
         
@@ -67,7 +79,7 @@ public class FileReader
             {
                 throw new UnexpectedTypeException
                 {
-                    RawNode = rawNode,
+                    RawNode = rawFileNode,
                     LeafName = "includes",
                     ExpectedType = nameof(String),
                     ReceivedType = includeSpec.GetType().Name
@@ -83,7 +95,7 @@ public class FileReader
             {
                 throw new IncludeNotFoundException
                 {
-                    RawNode = rawNode,
+                    RawNode = rawFileNode,
                     LeafName = "includes",
                     IncludeFile = $"{includeSpecStr} (Full Path: {relativeIncludePath}"
                 };
@@ -93,17 +105,17 @@ public class FileReader
         }
     }
     
-    void ReadDefinitions(RawFileNode rawNode, FileNode fileNode)
+    void ReadDefinitions(RawFileNode rawFileNode, FileNode fileNode)
     {
         Console.WriteLine($"[{fileNode.FullName}] Reading Definitions");
 
-        Dictionary<object, object>? definitions = rawNode.ReadPropertyAsDictionary("definitions");
+        Dictionary<object, object>? definitions = rawFileNode.ReadPropertyAsDictionary("definitions");
         if (definitions is null) 
             return;
         
         Console.WriteLine($"[{fileNode.FullName}] Found {definitions.Count} Definitions");
         
-        RawNode definitionsRawNode = rawNode.CreateChild(definitions, "definitions");
+        RawNode definitionsRawNode = rawFileNode.CreateChild(definitions, "definitions");
             
         foreach (KeyValuePair<object, object> definition in definitions)
         {
@@ -129,12 +141,14 @@ public class FileReader
     {
         DefinitionNode definitionNode = new()
         {
-            Parent = fileNode,
+            Parent = new WeakReference<Node>(fileNode),
             Name = definitionName,
             Description = definitionRawNode.ReadPropertyAsStr("description")
         };
         
         Console.WriteLine($"[{fileNode.FullName}] Reading Definition '{definitionNode.Name}'");
+
+        ReadDefinitionCompilerOptions(fileNode, definitionRawNode, definitionNode);
         
         Dictionary<object, object>? properties = definitionRawNode.ReadPropertyAsDictionary("properties");
         if (properties is null)
@@ -163,21 +177,22 @@ public class FileReader
     {
         Console.WriteLine($"[{definitionNode.FullName}] Reading Property '{propertyName}'");
 
-        // Short property declaration
+        Dictionary<object, object>? propertyObjectValue;
+        
         if (propertyValue is string propertyShortValue)
         {
+            // Short property declaration was used, where only a type is specified.
+            // Convert this to the standard property schema so it's easier to parse.
             propertyShortValue = propertyShortValue.Replace(" ", string.Empty);
-            definitionNode.Properties.Add(propertyName, new PropertyNode
+            propertyObjectValue = new Dictionary<object, object>
             {
-                Parent = definitionNode,
-                Name = propertyName,
-                UnBuiltType = propertyShortValue
-            });
+                ["type"] = propertyShortValue
+            };
         }
         else
         {
-            Dictionary<object, object>? propertyFullValue = propertyValue as Dictionary<object, object>;
-            if (propertyFullValue is null)
+            propertyObjectValue = propertyValue as Dictionary<object, object>;
+            if (propertyObjectValue is null)
             {
                 throw new UnexpectedTypeException
                 {
@@ -187,38 +202,77 @@ public class FileReader
                     ReceivedType = propertyValue.GetType().Name
                 };
             }
-            
-            RawNode propertyRawNode = propertiesRawNode.CreateChild(propertyFullValue, propertyName);
+        }
+        
+        RawNode propertyRawNode = propertiesRawNode.CreateChild(propertyObjectValue, propertyName);
 
-            string? propertyType = propertyRawNode.ReadPropertyAsStr("type");
-            if (string.IsNullOrWhiteSpace(propertyType))
+        string? propertyType = propertyRawNode.ReadPropertyAsStr("type");
+        if (string.IsNullOrWhiteSpace(propertyType))
+        {
+            throw new ExpectedTokenNotFoundException
             {
-                throw new ExpectedTokenNotFoundException
-                {
-                    RawNode = propertyRawNode,
-                    TokenName = "type"
-                };
-            }
-            
-            propertyType = propertyType.Replace(" ", string.Empty);
+                RawNode = propertyRawNode,
+                TokenName = "type"
+            };
+        }
+        
+        propertyType = propertyType.Replace(" ", string.Empty);
 
-            UnBuiltValue? unBuiltValue = null;
-            object? propertyDefaultValue = propertyRawNode.Internal.GetValueOrDefault("default");
-            if (propertyDefaultValue is not null)
-            {
-                unBuiltValue = new UnBuiltValue(JsonSerializer.Serialize(
-                    propertyDefaultValue, 
-                    new JsonSerializerOptions{ WriteIndented = true }));
-            }
-            
-            definitionNode.Properties.Add(propertyName, new PropertyNode
-            {
-                Parent = definitionNode,
-                Name = propertyName,
-                UnBuiltType = propertyType,
-                Description = propertyRawNode.ReadPropertyAsStr("description"),
-                Value = unBuiltValue
-            });
+        UnBuiltValue? unBuiltValue = null;
+        object? propertyDefaultValue = propertyRawNode.Internal.GetValueOrDefault("default");
+        if (propertyDefaultValue is not null)
+        {
+            unBuiltValue = new UnBuiltValue(JsonSerializer.Serialize(
+                propertyDefaultValue, 
+                new JsonSerializerOptions{ WriteIndented = true }));
+        }
+
+        PropertyNode propertyNode = new()
+        {
+            Parent = new WeakReference<Node>(definitionNode),
+            Name = propertyName,
+            UnBuiltType = propertyType,
+            Description = propertyRawNode.ReadPropertyAsStr("description"),
+            Value = unBuiltValue
+        };
+        
+        ReadPropertyCompilerOptions(definitionNode, propertyRawNode, propertyNode);
+        
+        definitionNode.Properties.Add(propertyName, propertyNode);
+    }
+
+    void ReadFileCompilerOptions(RawFileNode rawFileNode, FileNode fileNode)
+    {
+        foreach (var languageFileReader in LanguageFileReaders)
+        {
+            RawNode? rawCompilerOptions = languageFileReader.GetRawCompilerOptions(rawFileNode);
+            CompilerOptionsNode? compilerOptions = languageFileReader.ReadFileOptions(fileNode, rawCompilerOptions);
+            if (compilerOptions is not null)
+                fileNode.CompilerOptions.Add(compilerOptions.Name, compilerOptions);
+        }
+    }
+    
+    void ReadDefinitionCompilerOptions(FileNode fileNode, RawNode rawDefinitionNode, DefinitionNode definitionNode)
+    {
+        foreach (var languageFileReader in LanguageFileReaders)
+        {
+            RawNode? rawCompilerOptions = languageFileReader.GetRawCompilerOptions(rawDefinitionNode);
+            CompilerOptionsNode? parentCompilerOptions = languageFileReader.GetCompilerOptions(fileNode);
+            CompilerOptionsNode? compilerOptions = languageFileReader.ReadDefinitionOptions(definitionNode, parentCompilerOptions, rawCompilerOptions);
+            if (compilerOptions is not null)
+                definitionNode.CompilerOptions.Add(compilerOptions.Name, compilerOptions);
+        }
+    }
+    
+    void ReadPropertyCompilerOptions(DefinitionNode definitionNode, RawNode rawPropertyNode, PropertyNode propertyNode)
+    {
+        foreach (var languageFileReader in LanguageFileReaders)
+        {
+            RawNode? rawCompilerOptions = languageFileReader.GetRawCompilerOptions(rawPropertyNode);
+            CompilerOptionsNode? parentCompilerOptions = languageFileReader.GetCompilerOptions(definitionNode);
+            CompilerOptionsNode? compilerOptions = languageFileReader.ReadPropertyOptions(propertyNode, parentCompilerOptions, rawCompilerOptions);
+            if (compilerOptions is not null)
+                definitionNode.CompilerOptions.Add(compilerOptions.Name, compilerOptions);
         }
     }
 }

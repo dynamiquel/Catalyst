@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using System.Text.Json.Serialization;
 using Catalyst.SpecGraph.Nodes;
 using Catalyst.SpecGraph.Properties;
 
@@ -14,6 +15,7 @@ namespace Catalyst.SpecGraph;
 /// </summary>
 public class Graph
 {
+    public required string BaseDir { get; set; }
     public List<FileNode> Files { get; private set; } = [];
     public List<IPropertyType> PropertyTypes { get; private set; } = [];
     
@@ -481,6 +483,7 @@ public class Graph
                     ? definitionPair.Key
                     : $"{fileNode.Namespace}.{definitionPair.Key}",
                 Namespace = fileNode.Namespace,
+                OwnedDefinition = definitionPair.Value,
                 OwnedFile = fileNode
             };
 
@@ -513,6 +516,7 @@ public class Graph
                     ? $"{definitionPair.Key}?"
                     : $"{fileNode.Namespace}.{definitionPair.Key}?",
                 Namespace = fileNode.Namespace,
+                OwnedDefinition = definitionPair.Value,
                 OwnedFile = fileNode
             };
 

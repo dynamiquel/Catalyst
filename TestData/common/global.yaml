@@ -1,0 +1,6 @@
+# example of a child global file that overrides any values set by a parent global file
+
+namespace: Catalyst.Tests.Common    # example of using a namespace from a global file
+
+unreal:
+  prefix: CatalystTestAd    # example of overriding a previously defined global Unreal Engine prefix

@@ -5,20 +5,15 @@ using Catalyst.SpecGraph.Properties;
 
 namespace Catalyst.LanguageCompilers.CSharp;
 
-public enum ClassType
-{
-    Class,
-    Record
-}
 
 // Just raw dog it for now.
 public class CSharpLanguageCompiler : LanguageCompiler
 {
+    public override string CompilerName => CSharpLanguage.Name;
+
     public readonly bool bUseRequiredForNonOptional = false;
-    public readonly ClassType ClassType = ClassType.Record;
-    
-    string ClassTypeStr => ClassType == ClassType.Record ? "record" : "class";
-    
+
+
     public override CompiledFile CompileFile(File file)
     {
         StringBuilder sb = new();
@@ -41,11 +36,13 @@ public class CSharpLanguageCompiler : LanguageCompiler
 
         foreach (Class def in file.Classes)
         {
-            sb.AppendLine($"public {ClassTypeStr} {def.Name}").AppendLine("{");
+            CSharpClassType classType = ((CSharpDefinitionCompilerOptionsNode)def.CompilerOptions!).Type;
+            string classTypeStr = classType == CSharpClassType.Class ? "class" : "record";
+            sb.AppendLine($"public {classTypeStr} {def.Name}").AppendLine("{");
 
             foreach (Property property in def.Properties)
             {
-                if (property.Attributes.Count > 0)
+                /*if (property.Attributes.Count > 0)
                 {
                     sb.Append("    ");
                     foreach (Attribute attribute in property.Attributes)
@@ -55,7 +52,7 @@ public class CSharpLanguageCompiler : LanguageCompiler
                             sb.Append($"({attribute.Arguments})");
                         sb.AppendLine("]");
                     }
-                }
+                }*/
 
                 sb.Append("    public");
                 if (bUseRequiredForNonOptional && !property.Type.Name.EndsWith("?") && property.Value is NoPropertyValue)

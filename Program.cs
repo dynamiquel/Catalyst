@@ -28,8 +28,14 @@ if (inputFiles.Length == 0)
     return 0;
 }
 
-var graph = new Graph();
+
+var graph = new Graph
+{
+    BaseDir = baseInputDir.FullName
+};
 var specFileReader = new FileReader();
+specFileReader.AddLanguageFileReader<CSharpLanguageReader>();
+specFileReader.AddLanguageFileReader<UnrealLanguageReader>();
 
 await ReadSpecFilesRecursive(inputFiles);
 
@@ -118,7 +124,7 @@ FileInfo[] GetInputFiles()
         IEnumerable<FileInfo> filesMatchingFilter = baseInputDir.EnumerateFiles(fileFilter, SearchOption.AllDirectories);
         foreach (var file in filesMatchingFilter)
         {
-            if (file.Extension != ".yaml" && file.Extension != ".yml")
+            if (file.Name.Contains("global") || (file.Extension != ".yaml" && file.Extension != ".yml"))
                 continue;
             
             files.Add(file);
