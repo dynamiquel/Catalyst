@@ -15,7 +15,7 @@ public abstract class LanguageCompiler
 
     public record Include(string Path);
     
-    public record Property(string Name, PropertyType Type, PropertyValue Value, CompilerOptionsNode? CompilerOptions);
+    public record Property(string Name, string? Description, PropertyType Type, PropertyValue Value, CompilerOptionsNode? CompilerOptions);
     
     public enum FunctionFlags
     {
@@ -26,7 +26,7 @@ public abstract class LanguageCompiler
     
     public record Function(string Name, string ReturnType, FunctionFlags Flags, List<string> Parameters, string Body);
 
-    public record Class(string Name, List<Property> Properties, List<Function> Functions, CompilerOptionsNode? CompilerOptions);
+    public record Class(string Name, string? Description, List<Property> Properties, List<Function> Functions, CompilerOptionsNode? CompilerOptions);
 
     public record File(string Name, List<Include> Includes, string? Namespace, List<Class> Classes, CompilerOptionsNode? CompilerOptions)
     {
@@ -105,6 +105,7 @@ public abstract class LanguageCompiler
         {
             Property property = new Property(
                 Name: GetCompiledPropertyName(propertyNode.Value),
+                Description: GetCompiledPropertyDescription(file, propertyNode.Value),
                 Type: GetCompiledPropertyType(propertyNode.Value.BuiltType!),
                 Value: GetCompiledPropertyValue(propertyNode.Value.BuiltType!, propertyNode.Value.Value),
                 CompilerOptions: propertyNode.Value.FindCompilerOptions(CompilerName));
@@ -120,6 +121,7 @@ public abstract class LanguageCompiler
         
         Class def = new Class(
             Name: GetCompiledClassName(definitionNode),
+            Description: GetCompiledDefinitionDescription(file, definitionNode),
             Properties: properties,
             Functions: functions,
             CompilerOptions: definitionNode.FindCompilerOptions(CompilerName));
@@ -148,4 +150,9 @@ public abstract class LanguageCompiler
     
     protected abstract IEnumerable<Function> CreateSerialiseFunction(File file, DefinitionNode definitionNode);
     protected abstract IEnumerable<Function> CreateDeserialiseFunction(File file, DefinitionNode definitionNode);
+
+    protected virtual string? GetCompiledDefinitionDescription(File file, DefinitionNode definitionNode) =>
+        definitionNode.Description;
+    protected virtual string? GetCompiledPropertyDescription(File file, PropertyNode propertyNode) =>
+        propertyNode.Description;
 }

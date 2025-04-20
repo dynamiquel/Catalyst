@@ -13,7 +13,9 @@ definitions:
       userId: i32
       username: str
       email: str
-      registrationDate: date
+      registrationDate:
+        type: date
+        description: This is the date the user created their account.   # Example of single-line description
       shippingAddress: Catalyst.Tests.Common.Address
       billingAddress: Common.Address?   # example of child namespace
       roles: list<str>
@@ -22,6 +24,10 @@ definitions:
       loginTime:
         type: time
         default: default
+        description: |    # Example of multi-line description  | is identical to |-
+          This is how long the user has been logged in for.
+          It doesn't include time the user hasn't been active.
+          Because that defeats the purpose.
   UserProfile:
     description: Additional profile information for a user.
     properties:

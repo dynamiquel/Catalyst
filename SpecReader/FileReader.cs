@@ -155,7 +155,7 @@ public class FileReader
         {
             Parent = new WeakReference<Node>(fileNode),
             Name = definitionName,
-            Description = definitionRawNode.ReadPropertyAsStr("description") ?? definitionRawNode.ReadPropertyAsStr("desc")
+            Description = (definitionRawNode.ReadPropertyAsStr("description") ?? definitionRawNode.ReadPropertyAsStr("desc"))?.TrimEnd()
         };
         
         Console.WriteLine($"[{fileNode.FullName}] Reading Definition '{definitionNode.Name}'");
@@ -248,7 +248,7 @@ public class FileReader
             Parent = new WeakReference<Node>(definitionNode),
             Name = propertyName,
             UnBuiltType = propertyType,
-            Description = propertyRawNode.ReadPropertyAsStr("description") ?? propertiesRawNode.ReadPropertyAsStr("desc"),
+            Description = (propertyRawNode.ReadPropertyAsStr("description") ?? propertiesRawNode.ReadPropertyAsStr("desc"))?.TrimEnd(),
             Value = unBuiltValue
         };
         

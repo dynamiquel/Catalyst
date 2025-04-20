@@ -33,6 +33,18 @@ public class CSharpLanguageCompiler : LanguageCompiler
 
         foreach (Class def in file.Classes)
         {
+            if (!string.IsNullOrEmpty(def.Description))
+            {
+                if (!string.IsNullOrEmpty(def.Description))
+                {
+                    sb.AppendLine("/// <summary>");
+                    string[] descLines = def.Description.Split('\n');
+                    foreach (string descLine in descLines)
+                        sb.AppendLine($"/// {descLine}");
+                    sb.AppendLine("/// </summary>");
+                }
+            }
+            
             CSharpClassType classType = ((CSharpDefinitionCompilerOptionsNode)def.CompilerOptions!).Type;
             string classTypeStr = classType == CSharpClassType.Class ? "class" : "record";
             sb.AppendLine($"public {classTypeStr} {def.Name}").AppendLine("{");
@@ -50,16 +62,25 @@ public class CSharpLanguageCompiler : LanguageCompiler
                         sb.AppendLine("]");
                     }
                 }*/
-                
-                var propertyCompilerOptiopns = (CSharpPropertyCompilerOptionsNode)property.CompilerOptions!;
 
+                if (!string.IsNullOrEmpty(property.Description))
+                {
+                    sb.AppendLine("    /// <summary>");
+                    string[] descLines = property.Description.Split('\n');
+                    foreach (string descLine in descLines)
+                        sb.AppendLine($"    /// {descLine}");
+                    sb.AppendLine("    /// </summary>");
+                }
+                
+                var propertyCompilerOptions = (CSharpPropertyCompilerOptionsNode)property.CompilerOptions!;
+                
                 sb.Append("    public");
-                if (propertyCompilerOptiopns.UseRequired && !property.Type.Name.EndsWith("?"))
+                if (propertyCompilerOptions.UseRequired && !property.Type.Name.EndsWith("?"))
                     sb.Append(" required");
 
                 sb.Append($" {property.Type.Name} {property.Name} {{ get; set; }}");
                 
-                if (!propertyCompilerOptiopns.UseRequired && property.Value is not NoPropertyValue)
+                if (!propertyCompilerOptions.UseRequired && property.Value is not NoPropertyValue)
                     sb.Append($" = {property.Value.Value};");
                 
                 sb.AppendLine();
