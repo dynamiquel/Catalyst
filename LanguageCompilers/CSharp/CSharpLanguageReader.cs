@@ -57,11 +57,15 @@ public class CSharpLanguageReader : LanguageFileReader
     public override CompilerOptionsNode? ReadPropertyOptions(PropertyNode propertyNode, CompilerOptionsNode? parentCompilerOptions, RawNode? rawCompilerOptions)
     {
         bool? useRequires = null;
+
+        // If property has been assigned a value then it can't be 'required'.
+        if (propertyNode.Value is not null)
+            useRequires = false;
         
         // Read from current options
         if (rawCompilerOptions is not null)
         {
-            useRequires = rawCompilerOptions.ReadPropertyAsBool("required");
+            useRequires ??= rawCompilerOptions.ReadPropertyAsBool("required");
         }
 
         // Read from parent options

@@ -88,7 +88,7 @@ public class OptionalTimeType : TimeType, IOptionalPropertyType
     public override string Name => "time?";
 }
 
-public class AnyType : IPropertyType
+public class AnyType : IPropertyType, IOptionalPropertyType
 {
     public string Name => "any";
 }
