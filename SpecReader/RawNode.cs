@@ -56,6 +56,31 @@ public static class RawNodeExtensions
         return null;
     }
     
+    public static bool? ReadPropertyAsBool(this RawNode rawNode, string propertyName)
+    {
+        if (rawNode.Internal.TryGetValue(propertyName, out object? obj))
+        {
+            if (obj is bool objBool)
+                return objBool;
+
+            if (obj is string objStr)
+            {
+                if (bool.TryParse(objStr, out objBool))
+                    return objBool;
+            }
+            
+            throw new UnexpectedTypeException
+            {
+                RawNode = rawNode,
+                LeafName = propertyName,
+                ExpectedType = nameof(Boolean),
+                ReceivedType = obj.GetType().Name
+            };
+        }
+
+        return null;
+    }
+    
     public static double? ReadPropertyAsFloat(this RawNode rawNode, string propertyName)
     {
         if (rawNode.Internal.TryGetValue(propertyName, out object? obj))

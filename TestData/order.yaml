@@ -9,12 +9,17 @@ definitions:
     description: Represents an item in an order.
     properties:
       product: ProductCatalog.Product   # example of sibling namespace
-      quantity: i32
+      quantity:
+        type: i32
+        default: 1    # example of setting a default value
       unitPrice: f64
   Order:
     description: Represents a customer order.
     properties:
-      orderId: str
+      orderId:
+        type: str
+        cs:
+          useRequired: true   # example of using the required keyword for C#
       customer: UserManagement.User
       orderDate: date
       items: list<OrderItem>    # example of same namespace

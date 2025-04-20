@@ -1,6 +1,5 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
-using System.Text.Json.Serialization;
 using Catalyst.SpecGraph.Nodes;
 using Catalyst.SpecGraph.Properties;
 
@@ -109,23 +108,19 @@ public class Graph
                         Node = propertyNode
                     };
                 }
-
-                if (IPropertyType.IsOptional(foundInnerPropertyType))
-                {
-                    PropertyTypes.Add(new OptionalListType
+                
+                PropertyTypes.AddRange([
+                    new ListType
                     {
                         Name = rawContainerPropertyType,
                         InnerType = foundInnerPropertyType
-                    });
-                }
-                else
-                {
-                    PropertyTypes.Add(new ListType
+                    },
+                    new OptionalListType
                     {
-                        Name = rawContainerPropertyType,
+                        Name = $"{rawContainerPropertyType}?",
                         InnerType = foundInnerPropertyType
-                    });
-                }
+                    }
+                ]);
             }
         }
         else if (rawPropertyType.StartsWith("set<"))
@@ -145,22 +140,18 @@ public class Graph
                     };
                 }
 
-                if (IPropertyType.IsOptional(foundInnerPropertyType))
-                {
-                    PropertyTypes.Add(new OptionalSetType
+                PropertyTypes.AddRange([
+                    new SetType
                     {
                         Name = rawContainerPropertyType,
                         InnerType = foundInnerPropertyType
-                    });
-                }
-                else
-                {
-                    PropertyTypes.Add(new SetType
+                    },
+                    new OptionalSetType
                     {
-                        Name = rawContainerPropertyType,
+                        Name = $"{rawContainerPropertyType}?",
                         InnerType = foundInnerPropertyType
-                    });
-                }
+                    }
+                ]);
             }
         }
         else if (rawPropertyType.StartsWith("map<"))
@@ -189,25 +180,21 @@ public class Graph
                         Node = propertyNode
                     };
                 }
-
-                if (IPropertyType.IsOptional(foundInnerBPropertyType))
-                {
-                    PropertyTypes.Add(new OptionalMapType
+                
+                PropertyTypes.AddRange([
+                    new MapType
                     {
                         Name = rawContainerPropertyType,
                         InnerTypeA = foundInnerAPropertyType,
                         InnerTypeB = foundInnerBPropertyType
-                    });
-                }
-                else
-                {
-                    PropertyTypes.Add(new MapType
+                    },
+                    new OptionalMapType
                     {
-                        Name = rawContainerPropertyType,
+                        Name = $"{rawContainerPropertyType}?",
                         InnerTypeA = foundInnerAPropertyType,
                         InnerTypeB = foundInnerBPropertyType
-                    });
-                }
+                    }
+                ]);
             }
         }
     }
@@ -265,7 +252,7 @@ public class Graph
     bool IsDefaultValue(JsonValue value)
     {
         value.TryGetValue(out string? result);
-        return result is "" or "default";
+        return result is "" or "default" and not "@default";
     }
 
     void BuildJsonNode(PropertyNode propertyNode, IPropertyType propertyType, JsonNode? jsonNode, out IPropertyValue propertyValue)
@@ -432,7 +419,14 @@ public class Graph
                         if (IsDefaultValue(jsonValue))
                             stringValue = string.Empty;
                         else
+                        {
                             stringValue = jsonValue.GetValue<string>();
+                            // Sometimes a user wants to specify "default" as a string. Allow this if the
+                            // user prefixed it with @.
+                            if (stringValue == "@default")
+                                stringValue = "default";
+                        }
+
                         propertyValue = new StringValue(stringValue);
                         break;
                     case TimeType:

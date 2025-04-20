@@ -11,9 +11,6 @@ public class CSharpLanguageCompiler : LanguageCompiler
 {
     public override string CompilerName => CSharpLanguage.Name;
 
-    public readonly bool bUseRequiredForNonOptional = false;
-
-
     public override CompiledFile CompileFile(File file)
     {
         StringBuilder sb = new();
@@ -53,14 +50,16 @@ public class CSharpLanguageCompiler : LanguageCompiler
                         sb.AppendLine("]");
                     }
                 }*/
+                
+                var propertyCompilerOptiopns = (CSharpPropertyCompilerOptionsNode)property.CompilerOptions!;
 
                 sb.Append("    public");
-                if (bUseRequiredForNonOptional && !property.Type.Name.EndsWith("?") && property.Value is NoPropertyValue)
+                if (propertyCompilerOptiopns.UseRequired && !property.Type.Name.EndsWith("?"))
                     sb.Append(" required");
 
                 sb.Append($" {property.Type.Name} {property.Name} {{ get; set; }}");
                 
-                if (property.Value is not NoPropertyValue)
+                if (!propertyCompilerOptiopns.UseRequired && property.Value is not NoPropertyValue)
                     sb.Append($" = {property.Value.Value};");
                 
                 sb.AppendLine();
@@ -189,9 +188,6 @@ public class CSharpLanguageCompiler : LanguageCompiler
 
     protected override PropertyValue GetCompiledDefaultValueForPropertyType(IPropertyType propertyType)
     {
-        if (bUseRequiredForNonOptional)
-            return new NoPropertyValue();
-
         return propertyType switch
         {
             IOptionalPropertyType => new NoPropertyValue(),

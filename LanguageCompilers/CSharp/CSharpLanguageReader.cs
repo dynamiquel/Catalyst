@@ -15,38 +15,67 @@ public class CSharpLanguageReader : LanguageFileReader
     public override CompilerOptionsNode? ReadFileOptions(FileNode fileNode, RawNode? rawCompilerOptions)
     {
         CSharpClassType classType = ParseClassType(rawCompilerOptions?.ReadPropertyAsStr("classType")) ?? CSharpClassType.Record;
+        bool useRequires = rawCompilerOptions?.ReadPropertyAsBool("useRequired") ?? false;
         
         return new CSharpFileCompilerOptionsNode
         {
             Parent = new WeakReference<Node>(fileNode),
             Name = SectionName,
-            ClassType = classType
+            ClassType = classType,
+            UseRequired = useRequires
         };
     }
 
     public override CompilerOptionsNode? ReadDefinitionOptions(DefinitionNode definitionNode, CompilerOptionsNode? parentCompilerOptions, RawNode? rawCompilerOptions)
     {
         CSharpClassType? classType = null;
+        bool? useRequires = null;
         
         // Read from current options
         if (rawCompilerOptions is not null)
+        {
             classType = ParseClassType(rawCompilerOptions.ReadPropertyAsStr("type"));
-        
+            useRequires = rawCompilerOptions.ReadPropertyAsBool("useRequired");
+        }
+
         // Read from parent options
-        if (classType is null && parentCompilerOptions is not null)
-            classType = ((CSharpFileCompilerOptionsNode)parentCompilerOptions).ClassType;
+        if (parentCompilerOptions is not null)
+        {
+            classType ??= ((CSharpFileCompilerOptionsNode)parentCompilerOptions).ClassType;
+            useRequires ??= ((CSharpFileCompilerOptionsNode)parentCompilerOptions).UseRequired;
+        }
         
         return new CSharpDefinitionCompilerOptionsNode
         {
             Parent = new WeakReference<Node>(definitionNode),
             Name = SectionName,
-            Type = classType ?? CSharpClassType.Record
+            Type = classType ?? CSharpClassType.Record,
+            UseRequired = useRequires ?? false
         };
     }
 
     public override CompilerOptionsNode? ReadPropertyOptions(PropertyNode propertyNode, CompilerOptionsNode? parentCompilerOptions, RawNode? rawCompilerOptions)
     {
-        return null;
+        bool? useRequires = null;
+        
+        // Read from current options
+        if (rawCompilerOptions is not null)
+        {
+            useRequires = rawCompilerOptions.ReadPropertyAsBool("required");
+        }
+
+        // Read from parent options
+        if (parentCompilerOptions is not null)
+        {
+            useRequires ??= ((CSharpDefinitionCompilerOptionsNode)parentCompilerOptions).UseRequired;
+        }
+        
+        return new CSharpPropertyCompilerOptionsNode
+        {
+            Parent = new WeakReference<Node>(propertyNode),
+            Name = SectionName,
+            UseRequired = useRequires ?? false
+        };
     }
 
     static CSharpClassType? ParseClassType(string? classTypeStr)

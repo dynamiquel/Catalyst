@@ -155,7 +155,7 @@ public class FileReader
         {
             Parent = new WeakReference<Node>(fileNode),
             Name = definitionName,
-            Description = definitionRawNode.ReadPropertyAsStr("description")
+            Description = definitionRawNode.ReadPropertyAsStr("description") ?? definitionRawNode.ReadPropertyAsStr("desc")
         };
         
         Console.WriteLine($"[{fileNode.FullName}] Reading Definition '{definitionNode.Name}'");
@@ -165,6 +165,7 @@ public class FileReader
         if (definitionRawNode.Internal.Count > 0)
         {
             Dictionary<object, object>? properties = definitionRawNode.ReadPropertyAsDictionary("properties");
+            properties ??= definitionRawNode.ReadPropertyAsDictionary("props");
             if (properties is null)
             {
                 throw new ExpectedTokenNotFoundException
@@ -247,7 +248,7 @@ public class FileReader
             Parent = new WeakReference<Node>(definitionNode),
             Name = propertyName,
             UnBuiltType = propertyType,
-            Description = propertyRawNode.ReadPropertyAsStr("description"),
+            Description = propertyRawNode.ReadPropertyAsStr("description") ?? propertiesRawNode.ReadPropertyAsStr("desc"),
             Value = unBuiltValue
         };
         
@@ -287,7 +288,7 @@ public class FileReader
             CompilerOptionsNode? parentCompilerOptions = languageFileReader.GetCompilerOptions(definitionNode);
             CompilerOptionsNode? compilerOptions = languageFileReader.ReadPropertyOptions(propertyNode, parentCompilerOptions, rawCompilerOptions);
             if (compilerOptions is not null)
-                definitionNode.CompilerOptions.Add(compilerOptions.Name, compilerOptions);
+                propertyNode.CompilerOptions.Add(compilerOptions.Name, compilerOptions);
         }
     }
 }

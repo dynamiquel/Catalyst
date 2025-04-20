@@ -12,19 +12,22 @@ public enum CSharpClassType
 public class CSharpGlobalCompilerOptionsNode : CompilerOptionsNode
 {
     public required CSharpClassType ClassType { get; set; }
+    public required bool UseRequired { get; set; }
 }
 
 public class CSharpFileCompilerOptionsNode : CompilerOptionsNode
 {
     public required CSharpClassType ClassType { get; set; }
+    public required bool UseRequired { get; set; }
 }
 
 public class CSharpDefinitionCompilerOptionsNode : CompilerOptionsNode
 {
     public required CSharpClassType Type { get; set; }
+    public required bool UseRequired { get; set; }
 }
 
 public class CSharpPropertyCompilerOptionsNode : CompilerOptionsNode
 {
-    
+    public required bool UseRequired { get; set; }
 }
