@@ -3,6 +3,7 @@ using Catalyst.LanguageCompilers;
 using Catalyst.SpecGraph.Nodes;
 using Catalyst.SpecGraph.Properties;
 using YamlDotNet.Serialization;
+using HttpMethod = Catalyst.SpecGraph.Nodes.HttpMethod;
 
 namespace Catalyst.SpecReader;
 
@@ -368,26 +369,32 @@ public class FileReader
         }
         responseType = responseType.Replace(" ", string.Empty);
 
-        string? httpMethod = endpointRawNode.ReadPropertyAsStr("method");
-        httpMethod ??= "POST";
-        httpMethod = httpMethod.ToUpperInvariant();
-        if (httpMethod is not ("GET" or "POST" or "PUT" or "DELETE" or "OPTIONS" or "PATCH" or "HEAD"))
+        string? httpMethodStr = endpointRawNode.ReadPropertyAsStr("method");
+        httpMethodStr ??= "POST";
+
+        HttpMethod httpMethod;
+
+        try
+        {
+            httpMethod = Enum.Parse<HttpMethod>(httpMethodStr, true);
+        }
+        catch (OverflowException e)
         {
             throw new UnexpectedTokenException
             {
                 RawNode = endpointRawNode,
-                TokenName = httpMethod
+                TokenName = httpMethodStr
             };
         }
 
         string path = endpointRawNode.ReadPropertyAsUri("path") ?? $"/{endpointName}";
         if (!path.StartsWith('/'))
             path = '/' + path;
-        
+
         // Traditional REST spec, where the endpoint is just a method with no explicit path.
-        if (endpointName is "GET" or "POST" or "PUT" or "DELETE" or "OPTIONS" or "PATCH" or "HEAD")
+        if (Enum.TryParse(endpointName, true, out HttpMethod endpointNameMethod))
         {
-            httpMethod = endpointName;
+            httpMethod = endpointNameMethod;
             path = string.Empty;
         }
         

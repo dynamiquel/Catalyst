@@ -2,12 +2,23 @@ using Catalyst.SpecGraph.Properties;
 
 namespace Catalyst.SpecGraph.Nodes;
 
+public enum HttpMethod
+{
+    Get,
+    Post,
+    Put,
+    Patch,
+    Delete,
+    Options,
+    Trace
+}
+
 /// <summary>
 /// Represents an Endpoint within a Service.
 /// </summary>
 public class EndpointNode : Node, ICompilerOptions
 {
-    public required string Method { get; set; }
+    public required HttpMethod Method { get; set; }
     public required string Path { get; set; }
     public required string UnBuiltRequestType { get; set; }
     public required string UnBuiltResponseType { get; set; }

@@ -114,7 +114,7 @@ public class UnrealLanguageCompiler : LanguageCompiler
         string newFileName = fileNode.FileName.ToPascalCase() + ".h";
         
         // Add the File's Unreal prefix, if it has one.
-        var compilerOptions = (UnrealFileCompilerOptionsNode)fileNode.FindCompilerOptions(CompilerName)!;
+        var compilerOptions = fileNode.FindCompilerOptions<UnrealFileCompilerOptionsNode>()!;
         if (!string.IsNullOrEmpty(compilerOptions.Prefix))
             newFileName = compilerOptions.Prefix + newFileName;
         else
@@ -143,7 +143,7 @@ public class UnrealLanguageCompiler : LanguageCompiler
         string propertyTypeName = definitionNode.Name.ToPascalCase();
                 
         // Add the Property Type's Unreal prefix, if it has one.
-        var compilerOptions = (UnrealDefinitionCompilerOptionsNode)definitionNode.FindCompilerOptions(CompilerName)!;
+        var compilerOptions = definitionNode.FindCompilerOptions<UnrealDefinitionCompilerOptionsNode>()!;
         if (!string.IsNullOrEmpty(compilerOptions.Prefix))
             propertyTypeName = compilerOptions.Prefix + propertyTypeName;
         else

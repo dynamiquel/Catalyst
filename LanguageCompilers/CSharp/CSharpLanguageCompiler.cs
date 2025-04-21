@@ -1,8 +1,8 @@
 using System.Globalization;
-using System.Runtime.InteropServices.Marshalling;
 using System.Text;
 using Catalyst.SpecGraph.Nodes;
 using Catalyst.SpecGraph.Properties;
+using HttpMethod = Catalyst.SpecGraph.Nodes.HttpMethod;
 
 namespace Catalyst.LanguageCompilers.CSharp;
 
@@ -32,16 +32,16 @@ public class CSharpLanguageCompiler : LanguageCompiler
 
         foreach (Class def in file.Definitions)
         {
-            if (!string.IsNullOrEmpty(def.Description))
+            if (!string.IsNullOrEmpty(def.Node.Description))
             {
                 sb.AppendLine("/// <summary>");
-                string[] descLines = def.Description.Split('\n');
+                string[] descLines = def.Node.Description.Split('\n');
                 foreach (string descLine in descLines)
                     sb.AppendLine($"/// {descLine}");
                 sb.AppendLine("/// </summary>");
             }
             
-            CSharpClassType classType = ((CSharpDefinitionCompilerOptionsNode)def.CompilerOptions!).Type;
+            CSharpClassType classType = def.Node.FindCompilerOptions<CSharpDefinitionCompilerOptionsNode>()!.Type;
             string classTypeStr = classType == CSharpClassType.Class ? "class" : "record";
             sb.AppendLine($"public {classTypeStr} {def.Name}").AppendLine("{");
 
@@ -59,24 +59,24 @@ public class CSharpLanguageCompiler : LanguageCompiler
                     }
                 }*/
 
-                if (!string.IsNullOrEmpty(property.Description))
+                if (!string.IsNullOrEmpty(property.Node.Description))
                 {
                     sb.AppendLine("    /// <summary>");
-                    string[] descLines = property.Description.Split('\n');
+                    string[] descLines = property.Node.Description.Split('\n');
                     foreach (string descLine in descLines)
                         sb.AppendLine($"    /// {descLine}");
                     sb.AppendLine("    /// </summary>");
                 }
-                
-                var propertyCompilerOptions = (CSharpPropertyCompilerOptionsNode)property.CompilerOptions!;
+
+                bool useRequired = property.Node.FindCompilerOptions<CSharpPropertyCompilerOptionsNode>()!.UseRequired;
                 
                 sb.Append("    public");
-                if (propertyCompilerOptions.UseRequired && !property.Type.Name.EndsWith("?"))
+                if (useRequired && !property.Type.Name.EndsWith("?"))
                     sb.Append(" required");
 
                 sb.Append($" {property.Type.Name} {property.Name} {{ get; set; }}");
                 
-                if (!propertyCompilerOptions.UseRequired && property.Value is not NoPropertyValue)
+                if (!useRequired && property.Value is not NoPropertyValue)
                     sb.Append($" = {property.Value.Value};");
                 
                 sb.AppendLine();
@@ -123,10 +123,10 @@ public class CSharpLanguageCompiler : LanguageCompiler
             sb.AppendLine("}");
             sb.AppendLine("");
 
-            if (!string.IsNullOrEmpty(service.Description))
+            if (!string.IsNullOrEmpty(service.Node.Description))
             {
                 sb.AppendLine("/// <summary>");
-                string[] descLines = service.Description.Split('\n');
+                string[] descLines = service.Node.Description.Split('\n');
                 foreach (string descLine in descLines)
                     sb.AppendLine($"/// {descLine}");
                 sb.AppendLine("/// </summary>");
@@ -142,25 +142,12 @@ public class CSharpLanguageCompiler : LanguageCompiler
                 if (!nullableResponseType.EndsWith("?"))
                     nullableResponseType += "?";
 
-                string httpMethod = endpoint.Method switch
-                {
-                    "GET" => "HttpMethod.Get",
-                    "POST" => "HttpMethod.Post",
-                    "PUT" => "HttpMethod.Put",
-                    "DELETE" => "HttpMethod.Delete",
-                    "HEAD" => "HttpMethod.Head",
-                    "OPTIONS" => "HttpMethod.Options",
-                    "TRACE" => "HttpMethod.Trace",
-                    "PATCH" => "HttpMethod.Patch",
-                    _ => throw new ArgumentOutOfRangeException()
-                };
-
                 sb.AppendLine($"    public async Task<{endpoint.ResponseType.Name}> {endpoint.Name}({endpoint.ResponseType.Name} request)");
                 sb.AppendLine("    {");
                 sb.AppendLine("        HttpRequestMessage httpRequest = new()");
                 sb.AppendLine("        {");
-                sb.AppendLine($"            Method = {httpMethod},");
-                sb.AppendLine($"            RequestUri = new Uri(options.Url + \"{service.Path}\" + \"{endpoint.Path}\"),");
+                sb.AppendLine($"            Method = HttpMethod.{endpoint.Node.Method},");
+                sb.AppendLine($"            RequestUri = new Uri(options.Url + \"{service.Node.Path}\" + \"{endpoint.Node.Path}\"),");
                 sb.AppendLine("            Content = new ByteArrayContent(request.ToBytes()),");
                 sb.AppendLine("            Headers = { {\"Content-Type\", \"application/json; charset=utf-8\" }}");
                 sb.AppendLine("        };");
@@ -173,6 +160,7 @@ public class CSharpLanguageCompiler : LanguageCompiler
                 sb.AppendLine($"        {nullableResponseType} response = {endpoint.ResponseType.Name}.FromBytes(responseBytes);");
                 sb.AppendLine("        return response;");
                 sb.AppendLine("    }");
+                sb.AppendLine();
             }
             sb.AppendLine("}");
         }
@@ -189,20 +177,19 @@ public class CSharpLanguageCompiler : LanguageCompiler
 
             foreach (Endpoint endpoint in service.Endpoints)
             {
-                string httpMethodAttribute = endpoint.Method switch
+                string httpMethodAttribute = endpoint.Node.Method switch
                 {
-                    "GET" => "HttpGet",
-                    "POST" => "HttpPost",
-                    "PUT" => "HttpPut",
-                    "DELETE" => "HttpDelete",
-                    "HEAD" => "HttpHead",
-                    "OPTIONS" => "HttpOptions",
-                    "TRACE" => "HttpTrace",
-                    "PATCH" => "HttpPatch",
+                    HttpMethod.Get => "HttpGet",
+                    HttpMethod.Post => "HttpPost",
+                    HttpMethod.Put => "HttpPut",
+                    HttpMethod.Patch => "HttpPatch",
+                    HttpMethod.Delete => "HttpDelete",
+                    HttpMethod.Options => "HttpOptions",
+                    HttpMethod.Trace => "HttpTrace",
                     _ => throw new ArgumentOutOfRangeException()
                 };
 
-                sb.AppendLine($"    [{httpMethodAttribute}(\"{endpoint.Path.TrimStart('/')}\", Name = \"{endpoint.Name}\")]");
+                sb.AppendLine($"    [{httpMethodAttribute}(\"{endpoint.Node.Path.TrimStart('/')}\", Name = \"{endpoint.Name}\")]");
                 sb.AppendLine($"    public abstract Task<ActionResult<{endpoint.ResponseType.Name}>> {endpoint.Name}({endpoint.ResponseType.Name} request);");
                 sb.AppendLine();
             }

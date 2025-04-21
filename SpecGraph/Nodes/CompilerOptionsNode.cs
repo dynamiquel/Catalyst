@@ -28,4 +28,9 @@ public static class CompilerOptionsExtensions
         compilerOptionsContainer.CompilerOptions.TryGetValue(compilerName, out CompilerOptionsNode? compilerOptions);
         return compilerOptions;
     }
+
+    public static T? FindCompilerOptions<T>(this ICompilerOptions compilerOptionsContainer) where T : CompilerOptionsNode
+    {
+        return (T?)compilerOptionsContainer.CompilerOptions.FirstOrDefault(x => x.Value is T).Value;
+    }
 }
