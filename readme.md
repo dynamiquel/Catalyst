@@ -51,6 +51,115 @@ OpenAPI is also a fairly complex specification and is likely overkill and too ve
 
 Catalyst is designed with specific principles and preferences in mind. Its structured nature and focus on code generation for consistency mean it might not be the ideal solution for every API development scenario. If you require extreme flexibility in your API design or prefer a more "hands-on" approach to client and server implementation across all languages, Catalyst's opinionated nature might feel restrictive.
 
+## How about an example?
+
+Sure, here's a simple example of an API defined with Catalyst:
+```yaml
+definitions:
+  Credentials:
+    properties:
+      email: str
+      password: str? 
+  UserResponse:
+    description: Represents a user in the system.
+    properties:
+      username: str
+      dateOfBirth: date
+      status: str?
+      reputation: f64
+  CreateUserRequest:
+    properties:
+      username: str
+      credentials: Credentials  
+
+endpoints:
+  createUser:
+    description: Creates a new user.
+    request: CreateUserRequest
+    response: UserResponse
+  getUser:
+    description: Gets a user by username.
+    request: str
+    response: UserResponse
+```
+
+### More property info?
+Sure, what was shown above was just the simple way to do it, but you can further elaborate on your Properties by expanding it to the full spec.
+```yaml
+definitions:
+  Credentials:
+    properties:
+      email:
+        description: Email address of the user.
+        type: str
+        default: default@email.com
+      password: 
+        description: Password of the user.
+        type: str? 
+```
+
+### Categorise Endpoints?
+Of course, Endpoints can be grouped into a **Service**, which has its own properties and collection of Endpoints.
+```yaml
+services:
+  Users:
+    endpoints:
+      createUser:
+        description: Creates a new user.
+        request: CreateUserRequest
+        response: UserResponse
+      getUser:
+        description: Gets a user by username.
+        request: str
+        response: UserResponse
+```
+
+### More control over Endpoints?
+Catalyst is simple by design, and thus it automatically structures your API for you, this includes the HTTP method it uses as well as the URLs. But of course, you can override this behaviour.
+```yaml
+services:
+  Users:
+    url: /users
+    endpoints:
+      createUser:
+        url: /create
+        description: Creates a new user.
+        method: POST
+        request: CreateUserRequest
+        response: UserResponse
+      getUser:
+        url: /get
+        description: Gets a user by username.
+        method: GET
+        request: str
+        response: UserResponse
+```
+This now explicitly maps:
+- createUser to `POST /users/create`
+- getUser to `GET /users/get`
+
+Alternatively, if you want to have more traditional REST, where you simply map:
+- createUser to `POST /user`
+- getUser to `GET /user`
+
+you can do:
+```yaml
+services:
+  User:
+    endpoints:
+      POST:
+        description: Creates a new user.
+        request: CreateUserRequest
+        response: UserResponse
+      GET:
+        description: Gets a user by username.
+        request: str
+        response: UserResponse
+```
+
+
+This is only a subset of what Catalyst can do, you can find more examples under [TestData](./TestData).
+
 ## Learn More About the Schema
 
 For a detailed understanding of how to define your API using the Catalyst IDL, please refer to the [Schema Rules](./schema/general.md).
