@@ -119,16 +119,16 @@ Catalyst is simple by design, and thus it automatically structures your API for 
 ```yaml
 services:
   Users:
-    url: /users
+    path: /users
     endpoints:
       createUser:
-        url: /create
+        path: /create
         description: Creates a new user.
         method: POST
         request: CreateUserRequest
         response: UserResponse
       getUser:
-        url: /get
+        path: /get
         description: Gets a user by username.
         method: GET
         request: str

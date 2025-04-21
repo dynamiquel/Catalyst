@@ -137,4 +137,29 @@ public static class RawNodeExtensions
 
         return null;
     }
+
+    public static string? ReadDescription(this RawNode rawNode)
+    {
+        return (rawNode.ReadPropertyAsStr("description") ?? rawNode.ReadPropertyAsStr("desc"))?.TrimEnd();
+    }
+
+    public static string? ReadPropertyAsUri(this RawNode rawNode, string propertyName)
+    {
+        string? uriStr = rawNode.ReadPropertyAsStr(propertyName);
+        if (uriStr is null)
+            return null;
+
+        if (!Uri.IsWellFormedUriString(uriStr, UriKind.Relative))
+        {
+            throw new UnexpectedTypeException
+            {
+                RawNode = rawNode,
+                LeafName = propertyName,
+                ExpectedType = nameof(Uri),
+                ReceivedType = nameof(String)
+            };
+        }
+        
+        return uriStr;
+    }
 }

@@ -28,7 +28,10 @@ public abstract class LanguageCompiler
 
     public record Class(string Name, string? Description, List<Property> Properties, List<Function> Functions, CompilerOptionsNode? CompilerOptions);
 
-    public record File(string Name, List<Include> Includes, string? Namespace, List<Class> Classes, CompilerOptionsNode? CompilerOptions)
+    public record Endpoint(string Name, string? Description, string Path, string Method, PropertyType RequestType, PropertyType ResponseType, CompilerOptionsNode? CompilerOptions);
+    public record Service(string Name, string? Description, string Path, List<Endpoint> Endpoints, CompilerOptionsNode? CompilerOptions);
+    
+    public record File(string Name, List<Include> Includes, string? Namespace, List<Class> Definitions, List<Service> Services, CompilerOptionsNode? CompilerOptions)
     {
         public override string ToString()
         {
@@ -54,7 +57,8 @@ public abstract class LanguageCompiler
             Name: GetCompiledFilePath(fileNode),
             Includes: [],
             Namespace: GetCompiledNamespace(fileNode),
-            Classes: [],
+            Definitions: [],
+            Services: [],
             CompilerOptions: fileNode.FindCompilerOptions(CompilerName));
         
         return file;
@@ -66,7 +70,7 @@ public abstract class LanguageCompiler
         
         foreach (KeyValuePair<string, DefinitionNode> definitionNode in fileNode.Definitions)
         {
-            file.Classes.Add(CreateClass(file, definitionNode.Value));
+            file.Definitions.Add(CreateDefinition(file, definitionNode.Value));
             
             foreach (KeyValuePair<string, PropertyNode> propertyNode in definitionNode.Value.Properties)
             {
@@ -94,16 +98,21 @@ public abstract class LanguageCompiler
             if (include is not null && !file.Includes.Contains(include))
                 file.Includes.Add(include);
         }
+
+        foreach (KeyValuePair<string, ServiceNode> serviceNode in fileNode.Services)
+        {
+            file.Services.Add(CreateService(file, serviceNode.Value));
+        }
         
         file.Includes.Sort((x, y) => string.Compare(x.Path, y.Path, StringComparison.OrdinalIgnoreCase));
     }
     
-    protected Class CreateClass(File file, DefinitionNode definitionNode)
+    protected Class CreateDefinition(File file, DefinitionNode definitionNode)
     {
         List<Property> properties = [];
         foreach (KeyValuePair<string, PropertyNode> propertyNode in definitionNode.Properties)
         {
-            Property property = new Property(
+            Property property = new(
                 Name: GetCompiledPropertyName(propertyNode.Value),
                 Description: GetCompiledPropertyDescription(file, propertyNode.Value),
                 Type: GetCompiledPropertyType(propertyNode.Value.BuiltType!),
@@ -119,7 +128,7 @@ public abstract class LanguageCompiler
         functions.AddRange(serialiseFunctions);
         functions.AddRange(deserializeFunctions);
         
-        Class def = new Class(
+        Class def = new(
             Name: GetCompiledClassName(definitionNode),
             Description: GetCompiledDefinitionDescription(file, definitionNode),
             Properties: properties,
@@ -129,10 +138,40 @@ public abstract class LanguageCompiler
         return def;
     }
 
+    protected Service CreateService(File file, ServiceNode serviceNode)
+    {
+        List<Endpoint> endpoints = [];
+        foreach (KeyValuePair<string, EndpointNode> endpointNode in serviceNode.Endpoints)
+        {
+            Endpoint endpoint = new(
+                Name: GetCompiledEndpointName(endpointNode.Value),
+                Description: endpointNode.Value.Description,
+                Method: endpointNode.Value.Method,
+                Path: endpointNode.Value.Path,
+                RequestType: GetCompiledPropertyType(endpointNode.Value.BuiltRequestType!),
+                ResponseType: GetCompiledPropertyType(endpointNode.Value.BuiltResponseType!),
+                CompilerOptions: endpointNode.Value.FindCompilerOptions(CompilerName));
+            
+            endpoints.Add(endpoint);
+        }
+
+        Service service = new(
+            Name: GetCompiledServiceName(serviceNode),
+            Description: serviceNode.Description,
+            Path: serviceNode.Path,
+            Endpoints: endpoints,
+            CompilerOptions: serviceNode.FindCompilerOptions(CompilerName)
+        );
+        
+        return service;
+    }
+
     protected abstract string GetCompiledFilePath(FileNode fileNode);
     protected abstract string? GetCompiledNamespace(FileNode fileNode);
     protected abstract string GetCompiledClassName(DefinitionNode definitionNode);
     protected abstract string GetCompiledPropertyName(PropertyNode propertyNode);
+    protected abstract string GetCompiledServiceName(ServiceNode serviceNode);
+    protected abstract string GetCompiledEndpointName(EndpointNode endpointNode);
 
     protected abstract Include? GetCompiledIncludeForPropertyType(File file, IPropertyType propertyType);
     
@@ -155,4 +194,6 @@ public abstract class LanguageCompiler
         definitionNode.Description;
     protected virtual string? GetCompiledPropertyDescription(File file, PropertyNode propertyNode) =>
         propertyNode.Description;
+    protected virtual string? GetCompiledEndpointDescription(File file, EndpointNode endpointNode) =>
+        endpointNode.Description;
 }

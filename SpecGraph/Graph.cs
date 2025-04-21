@@ -62,6 +62,7 @@ public class Graph
         }
         
         RegisterFileDefinitions(fileNode);
+        RegisterFileServices(fileNode);
         
         Files.Add(fileNode);
     }
@@ -212,6 +213,11 @@ public class Graph
         foreach (KeyValuePair<string, DefinitionNode> definition in file.Definitions)
         foreach (KeyValuePair<string, PropertyNode> property in definition.Value.Properties)
             BuildValueForProperty(file, property.Value);
+        
+        foreach (FileNode file in Files)
+        foreach (KeyValuePair<string, ServiceNode> service in file.Services)
+        foreach (KeyValuePair<string, EndpointNode> endpoint in service.Value.Endpoints)
+            BuildTypesForEndpoint(file, endpoint.Value);
     }
 
     void BuildTypeForProperty(FileNode fileNode, PropertyNode propertyNode)
@@ -247,6 +253,33 @@ public class Graph
         JsonNode? valueJsonNode = JsonNode.Parse(unbuiltValue.ValueJson);
         BuildJsonNode(propertyNode, propertyNode.BuiltType!, valueJsonNode, out IPropertyValue propertyValue);
         propertyNode.Value = propertyValue;
+    }
+
+    void BuildTypesForEndpoint(FileNode fileNode, EndpointNode endpointNode)
+    {
+        IPropertyType? foundRequestType = FindPropertyType(endpointNode.UnBuiltRequestType, fileNode.Namespace);
+        IPropertyType? foundResponseType = FindPropertyType(endpointNode.UnBuiltResponseType, fileNode.Namespace);
+
+        if (foundRequestType is null)
+        {
+            throw new PropertyTypeNotFoundException
+            {
+                ExpectedProperty = endpointNode.UnBuiltRequestType,
+                Node = endpointNode
+            };
+        }
+        
+        if (foundResponseType is null)
+        {
+            throw new PropertyTypeNotFoundException
+            {
+                ExpectedProperty = endpointNode.UnBuiltResponseType,
+                Node = endpointNode
+            };
+        }
+    
+        endpointNode.BuiltRequestType = foundRequestType;
+        endpointNode.BuiltResponseType = foundResponseType;
     }
 
     bool IsDefaultValue(JsonValue value)
@@ -514,6 +547,42 @@ public class Graph
             };
 
             PropertyTypes.AddRange([newObjectPropertyType, newOptionalObjectPropertyType]);
+        }
+    }
+    
+    void RegisterFileServices(FileNode fileNode)
+    {
+        foreach (KeyValuePair<string, ServiceNode> servicePair in fileNode.Services)
+        {
+            foreach (FileNode file in Files)
+            {
+                foreach (KeyValuePair<string, ServiceNode> otherService in file.Services)
+                {
+                    // Ensure there isn't another service with the same name.
+                    if (otherService.Key == servicePair.Key)
+                    {
+                        throw new SimilarServiceAlreadyExistsException
+                        {
+                            ExistingService = otherService.Value,
+                            NewService = servicePair.Value,
+                        };
+                    }
+
+                    // Ensure there isn't another Endpoint with the same path.
+                    foreach (KeyValuePair<string, EndpointNode> otherEndpoint in otherService.Value.Endpoints)
+                    {
+                        EndpointNode? conflictingEndpoint = servicePair.Value.Endpoints.FirstOrDefault(e => e.Value.Path == otherEndpoint.Key).Value;
+                        if (conflictingEndpoint is not null)
+                        {
+                            throw new SimilarEndpointAlreadyExistsException
+                            {
+                                NewEndpoint = conflictingEndpoint,
+                                ExistingEndpoint = otherEndpoint.Value
+                            };
+                        }
+                    }
+                }
+            }
         }
     }
 

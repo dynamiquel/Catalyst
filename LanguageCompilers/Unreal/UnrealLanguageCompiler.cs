@@ -38,7 +38,7 @@ public class UnrealLanguageCompiler : LanguageCompiler
         sb.AppendLine($"#include \"{Path.GetFileNameWithoutExtension(file.Name)}.generated.h\"");
         sb.AppendLine();
         
-        foreach (Class def in file.Classes)
+        foreach (Class def in file.Definitions)
         {
             sb.AppendLine("USTRUCT(BlueprintType)");
             sb.AppendLine($"struct {def.Name}").AppendLine("{");
@@ -161,6 +161,16 @@ public class UnrealLanguageCompiler : LanguageCompiler
     protected override string GetCompiledPropertyName(PropertyNode propertyNode)
     {
         return propertyNode.Name.ToPascalCase();
+    }
+
+    protected override string GetCompiledServiceName(ServiceNode serviceNode)
+    {
+        return serviceNode.Name.ToPascalCase();
+    }
+
+    protected override string GetCompiledEndpointName(EndpointNode endpointNode)
+    {
+        return endpointNode.Name.ToPascalCase();
     }
 
     protected override Include? GetCompiledIncludeForPropertyType(File file, IPropertyType propertyType)

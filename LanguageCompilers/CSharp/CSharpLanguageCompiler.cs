@@ -1,12 +1,11 @@
 using System.Globalization;
+using System.Runtime.InteropServices.Marshalling;
 using System.Text;
 using Catalyst.SpecGraph.Nodes;
 using Catalyst.SpecGraph.Properties;
 
 namespace Catalyst.LanguageCompilers.CSharp;
 
-
-// Just raw dog it for now.
 public class CSharpLanguageCompiler : LanguageCompiler
 {
     public override string CompilerName => CSharpLanguage.Name;
@@ -31,18 +30,15 @@ public class CSharpLanguageCompiler : LanguageCompiler
         if (!string.IsNullOrWhiteSpace(file.Namespace))
             sb.AppendLine($"namespace {file.Namespace};").AppendLine();
 
-        foreach (Class def in file.Classes)
+        foreach (Class def in file.Definitions)
         {
             if (!string.IsNullOrEmpty(def.Description))
             {
-                if (!string.IsNullOrEmpty(def.Description))
-                {
-                    sb.AppendLine("/// <summary>");
-                    string[] descLines = def.Description.Split('\n');
-                    foreach (string descLine in descLines)
-                        sb.AppendLine($"/// {descLine}");
-                    sb.AppendLine("/// </summary>");
-                }
+                sb.AppendLine("/// <summary>");
+                string[] descLines = def.Description.Split('\n');
+                foreach (string descLine in descLines)
+                    sb.AppendLine($"/// {descLine}");
+                sb.AppendLine("/// </summary>");
             }
             
             CSharpClassType classType = ((CSharpDefinitionCompilerOptionsNode)def.CompilerOptions!).Type;
@@ -117,6 +113,103 @@ public class CSharpLanguageCompiler : LanguageCompiler
             sb.AppendLine("}").AppendLine();
         }
 
+        foreach (Service service in file.Services)
+        {
+            // Generate Client
+            
+            sb.AppendLine($"public class {service.Name}ClientOptions");
+            sb.AppendLine("{");
+            sb.AppendLine("    public required string Url { get; set; }");
+            sb.AppendLine("}");
+            sb.AppendLine("");
+
+            if (!string.IsNullOrEmpty(service.Description))
+            {
+                sb.AppendLine("/// <summary>");
+                string[] descLines = service.Description.Split('\n');
+                foreach (string descLine in descLines)
+                    sb.AppendLine($"/// {descLine}");
+                sb.AppendLine("/// </summary>");
+            }
+
+            sb.AppendLine($"public class {service.Name}Client(");
+            sb.AppendLine("    HttpClient httpClient,");
+            sb.AppendLine($"    {service.Name}ClientOptions options)");
+            sb.AppendLine("{");
+            foreach (Endpoint endpoint in service.Endpoints)
+            {
+                string nullableResponseType = endpoint.ResponseType.Name;
+                if (!nullableResponseType.EndsWith("?"))
+                    nullableResponseType += "?";
+
+                string httpMethod = endpoint.Method switch
+                {
+                    "GET" => "HttpMethod.Get",
+                    "POST" => "HttpMethod.Post",
+                    "PUT" => "HttpMethod.Put",
+                    "DELETE" => "HttpMethod.Delete",
+                    "HEAD" => "HttpMethod.Head",
+                    "OPTIONS" => "HttpMethod.Options",
+                    "TRACE" => "HttpMethod.Trace",
+                    "PATCH" => "HttpMethod.Patch",
+                    _ => throw new ArgumentOutOfRangeException()
+                };
+
+                sb.AppendLine($"    public async Task<{endpoint.ResponseType.Name}> {endpoint.Name}({endpoint.ResponseType.Name} request)");
+                sb.AppendLine("    {");
+                sb.AppendLine("        HttpRequestMessage httpRequest = new()");
+                sb.AppendLine("        {");
+                sb.AppendLine($"            Method = {httpMethod},");
+                sb.AppendLine($"            RequestUri = new Uri(options.Url + \"{service.Path}\" + \"{endpoint.Path}\"),");
+                sb.AppendLine("            Content = new ByteArrayContent(request.ToBytes()),");
+                sb.AppendLine("            Headers = { {\"Content-Type\", \"application/json; charset=utf-8\" }}");
+                sb.AppendLine("        };");
+                sb.AppendLine();
+                sb.AppendLine("        HttpResponseMessage httpResponse = await httpClient.SendAsync(httpRequest).ConfigureAwait(false);");
+                sb.AppendLine("        if (!httpResponse.IsSuccessStatusCode)");
+                sb.AppendLine("            throw new Exception(httpResponse.ReasonPhrase);");
+                sb.AppendLine();
+                sb.AppendLine("        byte[] responseBytes = await httpResponse.Content.ReadAsByteArrayAsync().ConfigureAwait(false);");
+                sb.AppendLine($"        {nullableResponseType} response = {endpoint.ResponseType.Name}.FromBytes(responseBytes);");
+                sb.AppendLine("        return response;");
+                sb.AppendLine("    }");
+            }
+            sb.AppendLine("}");
+        }
+
+        foreach (Service service in file.Services)
+        {
+            // Generate Server Controller
+            sb
+                .AppendLine()
+                .AppendLine("[ApiController]")
+                .AppendLine($"[Route(\"{service.Name}\")]")
+                .AppendLine($"public abstract class {service.Name}ControllerBase : ControllerBase")
+                .AppendLine("{");
+
+            foreach (Endpoint endpoint in service.Endpoints)
+            {
+                string httpMethodAttribute = endpoint.Method switch
+                {
+                    "GET" => "HttpGet",
+                    "POST" => "HttpPost",
+                    "PUT" => "HttpPut",
+                    "DELETE" => "HttpDelete",
+                    "HEAD" => "HttpHead",
+                    "OPTIONS" => "HttpOptions",
+                    "TRACE" => "HttpTrace",
+                    "PATCH" => "HttpPatch",
+                    _ => throw new ArgumentOutOfRangeException()
+                };
+
+                sb.AppendLine($"    [{httpMethodAttribute}(\"{endpoint.Path.TrimStart('/')}\", Name = \"{endpoint.Name}\")]");
+                sb.AppendLine($"    public abstract Task<ActionResult<{endpoint.ResponseType.Name}>> {endpoint.Name}({endpoint.ResponseType.Name} request);");
+                sb.AppendLine();
+            }
+
+            sb.AppendLine("}");
+        }
+
         return new CompiledFile(file.Name, sb.ToString());
     }
 
@@ -136,6 +229,11 @@ public class CSharpLanguageCompiler : LanguageCompiler
         return definitionNode.Name.ToPascalCase();
     }
 
+    protected override string GetCompiledEndpointName(EndpointNode endpointNode)
+    {
+        return endpointNode.Name.ToPascalCase();
+    }
+
     protected override Include? GetCompiledIncludeForPropertyType(File file, IPropertyType propertyType)
     {
         switch (propertyType)
@@ -153,6 +251,11 @@ public class CSharpLanguageCompiler : LanguageCompiler
     protected override string GetCompiledPropertyName(PropertyNode propertyNode)
     {
         return propertyNode.Name.ToPascalCase();
+    }
+
+    protected override string GetCompiledServiceName(ServiceNode serviceNode)
+    {
+        return serviceNode.Name.ToPascalCase();
     }
 
     protected override PropertyType GetCompiledPropertyType(IPropertyType propertyType)

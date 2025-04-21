@@ -72,6 +72,7 @@ public class FileReader
         ReadIncludes(rawFileNode, fileNode);
         ReadFileCompilerOptions(rawFileNode, fileNode);
         ReadDefinitions(rawFileNode, fileNode);
+        ReadServices(rawFileNode, fileNode);
         
         return fileNode;
     }
@@ -256,10 +257,159 @@ public class FileReader
         
         definitionNode.Properties.Add(propertyName, propertyNode);
     }
+    
+    void ReadServices(RawFileNode rawFileNode, FileNode fileNode)
+    {
+        Console.WriteLine($"[{fileNode.FullName}] Reading Services");
+
+        Dictionary<object, object>? services = rawFileNode.ReadPropertyAsDictionary("services");
+        if (services is null) 
+            return;
+        
+        Console.WriteLine($"[{fileNode.FullName}] Found {services.Count} Services");
+        
+        RawNode servicesRawNode = rawFileNode.CreateChild(services, "services");
+            
+        foreach (KeyValuePair<object, object> service in services)
+        {
+            string seriveName = ((string)service.Key);
+            Dictionary<object, object>? serviceValue = service.Value as Dictionary<object, object>;
+            if (serviceValue is null)
+            {
+                throw new UnexpectedTypeException
+                {
+                    RawNode = servicesRawNode,
+                    LeafName = seriveName,
+                    ExpectedType = nameof(Dictionary<object, object>),
+                    ReceivedType = service.Value.GetType().Name
+                };
+            }
+
+            RawNode serviceRawNode = servicesRawNode.CreateChild(serviceValue, seriveName);
+            ReadService(fileNode, seriveName, serviceRawNode);
+        }
+    }
+
+    void ReadService(FileNode fileNode, string serviceName, RawNode serviceRawNode)
+    {
+        Console.WriteLine($"[{fileNode.FullName}] Reading Service '{serviceName}'");
+
+        string path = serviceRawNode.ReadPropertyAsUri("path") ?? $"/{serviceName}";
+        if (!path.StartsWith('/'))
+            path = '/' + path;
+        
+        ServiceNode serviceNode = new()
+        {
+            Parent = new WeakReference<Node>(fileNode),
+            Name = serviceName,
+            Description = serviceRawNode.ReadDescription(),
+            Path = path
+        };
+        
+        //TODO ReadServiceCompilerOptions(fileNode, serviceRawNode, serviceNode);
+        
+        Dictionary<object, object>? endpoints = serviceRawNode.ReadPropertyAsDictionary("endpoints");
+        if (endpoints is null)
+        {
+            throw new ExpectedTokenNotFoundException
+            {
+                RawNode = serviceRawNode,
+                TokenName = "endpoints"
+            };
+        }
+
+        Console.WriteLine($"[{fileNode.FullName}] Found {endpoints.Count} Endpoints");
+        
+        foreach (KeyValuePair<object, object> endpoint in endpoints)
+        {
+            string endpointName = ((string)endpoint.Key);
+            Dictionary<object, object>? endpointValue = endpoint.Value as Dictionary<object, object>;
+            if (endpointValue is null)
+            {
+                throw new UnexpectedTypeException
+                {
+                    RawNode = serviceRawNode,
+                    LeafName = endpointName,
+                    ExpectedType = nameof(Dictionary<object, object>),
+                    ReceivedType = endpoint.Value.GetType().Name
+                };
+            }
+
+            RawNode endpointRawNode = serviceRawNode.CreateChild(endpointValue, endpointName);
+            ReadEndpoint(serviceNode, endpointName, endpointRawNode);
+        }
+
+        fileNode.Services.Add(serviceName, serviceNode);
+    }
+    
+    void ReadEndpoint(ServiceNode serviceNode, string endpointName, RawNode endpointRawNode)
+    {
+        Console.WriteLine($"[{serviceNode.FullName}] Reading Endpoint '{endpointName}'");
+        
+        string? requestType = endpointRawNode.ReadPropertyAsStr("request");
+        if (string.IsNullOrWhiteSpace(requestType))
+        {
+            throw new ExpectedTokenNotFoundException
+            {
+                RawNode = endpointRawNode,
+                TokenName = "request"
+            };
+        }
+        requestType = requestType.Replace(" ", string.Empty);
+        
+        string? responseType = endpointRawNode.ReadPropertyAsStr("response");
+        if (string.IsNullOrWhiteSpace(responseType))
+        {
+            throw new ExpectedTokenNotFoundException
+            {
+                RawNode = endpointRawNode,
+                TokenName = "response"
+            };
+        }
+        responseType = responseType.Replace(" ", string.Empty);
+
+        string? httpMethod = endpointRawNode.ReadPropertyAsStr("method");
+        httpMethod ??= "POST";
+        httpMethod = httpMethod.ToUpperInvariant();
+        if (httpMethod is not ("GET" or "POST" or "PUT" or "DELETE" or "OPTIONS" or "PATCH" or "HEAD"))
+        {
+            throw new UnexpectedTokenException
+            {
+                RawNode = endpointRawNode,
+                TokenName = httpMethod
+            };
+        }
+
+        string path = endpointRawNode.ReadPropertyAsUri("path") ?? $"/{endpointName}";
+        if (!path.StartsWith('/'))
+            path = '/' + path;
+        
+        // Traditional REST spec, where the endpoint is just a method with no explicit path.
+        if (endpointName is "GET" or "POST" or "PUT" or "DELETE" or "OPTIONS" or "PATCH" or "HEAD")
+        {
+            httpMethod = endpointName;
+            path = string.Empty;
+        }
+        
+        EndpointNode endpointNode = new()
+        {
+            Parent = new WeakReference<Node>(serviceNode),
+            Name = endpointName,
+            Method = httpMethod,
+            Path = path,
+            UnBuiltRequestType = requestType,
+            UnBuiltResponseType = responseType,
+            Description = endpointRawNode.ReadDescription(),
+        };
+        
+        // TODO: ReadEndpointCompilerOptions(definitionNode, propertyRawNode, propertyNode);
+        
+        serviceNode.Endpoints.Add(endpointName, endpointNode);
+    }
 
     void ReadFileCompilerOptions(RawFileNode rawFileNode, FileNode fileNode)
     {
-        foreach (var languageFileReader in LanguageFileReaders)
+        foreach (LanguageFileReader languageFileReader in LanguageFileReaders)
         {
             RawNode? rawCompilerOptions = languageFileReader.GetRawCompilerOptions(rawFileNode);
             CompilerOptionsNode? compilerOptions = languageFileReader.ReadFileOptions(fileNode, rawCompilerOptions);
@@ -270,7 +420,7 @@ public class FileReader
     
     void ReadDefinitionCompilerOptions(FileNode fileNode, RawNode rawDefinitionNode, DefinitionNode definitionNode)
     {
-        foreach (var languageFileReader in LanguageFileReaders)
+        foreach (LanguageFileReader languageFileReader in LanguageFileReaders)
         {
             RawNode? rawCompilerOptions = languageFileReader.GetRawCompilerOptions(rawDefinitionNode);
             CompilerOptionsNode? parentCompilerOptions = languageFileReader.GetCompilerOptions(fileNode);
@@ -282,7 +432,7 @@ public class FileReader
     
     void ReadPropertyCompilerOptions(DefinitionNode definitionNode, RawNode rawPropertyNode, PropertyNode propertyNode)
     {
-        foreach (var languageFileReader in LanguageFileReaders)
+        foreach (LanguageFileReader languageFileReader in LanguageFileReaders)
         {
             RawNode? rawCompilerOptions = languageFileReader.GetRawCompilerOptions(rawPropertyNode);
             CompilerOptionsNode? parentCompilerOptions = languageFileReader.GetCompilerOptions(definitionNode);

@@ -1,0 +1,24 @@
+namespace: Catalyst.Tests.Services
+
+definitions:
+  GetUserRequest:
+    props:
+      userId: str
+  GetUserResponse:
+    props:
+      user: UserManagement.User
+  CreateUserRequest:
+    props:
+      username: str
+      email: str
+
+services:
+  User:
+    endpoints:
+      getUser:
+        request: GetUserRequest
+        response: GetUserResponse
+      createUser:
+        path: /create
+        request: CreateUserRequest
+        response: GetUserResponse

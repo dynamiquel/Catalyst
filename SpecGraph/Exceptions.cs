@@ -107,3 +107,19 @@ public class InvalidPropertyValueFormatException : CatalystGraphException
     public required object? ReceivedValue { get; init; }
     public override string Message => $"Received an unexpected value format for Property '{PropertyNode.FullName}' of type '{ExpectedPropertyType.Name}: '{ReceivedValue}'";
 }
+
+public class SimilarServiceAlreadyExistsException : CatalystGraphException
+{
+    public required ServiceNode ExistingService { get; init; }
+    public required ServiceNode NewService { get; init; }
+    public override string Message  => 
+        $"Similar Service '{ExistingService.Name}' already exists in the SpecGraph under '{ExistingService.FullName}'. Cannot add the new one found under '{NewService.FullName}'";
+}
+
+public class SimilarEndpointAlreadyExistsException : CatalystGraphException
+{
+    public required EndpointNode ExistingEndpoint { get; init; }
+    public required EndpointNode NewEndpoint { get; init; }
+    public override string Message  => 
+        $"Similar Endpoint with Path '{ExistingEndpoint.Path}' already exists in the SpecGraph under '{ExistingEndpoint.FullName}'. Cannot add the new one found under '{NewEndpoint.FullName}'";
+}
