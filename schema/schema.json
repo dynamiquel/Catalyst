@@ -1,0 +1,108 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Catalyst API Specification Schema (Core)",
+  "type": "object",
+  "properties": {
+    "format": {
+      "type": "string",
+      "enum": [
+        "json"
+      ],
+      "default": "json",
+      "description": "Specifies the serialization format."
+    },
+    "namespace": {
+      "type": "string",
+      "description": "A logical grouping for the definitions."
+    },
+    "includes": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "description": "Path to another schema file to include."
+      },
+      "description": "List of schema files to include."
+    },
+    "definitions": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/definitions/definition"
+      },
+      "description": "Definitions of data structures."
+    }
+  },
+  "definitions": {
+    "definition": {
+      "type": "object",
+      "properties": {
+        "description": {
+          "type": "string",
+          "description": "Human-readable description of the data structure."
+        },
+        "desc": {
+          "type": "string",
+          "description": "Alias for description."
+        },
+        "properties": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/propertyDefinition"
+          },
+          "description": "Properties of the data structure."
+        },
+        "props": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/propertyDefinition"
+          },
+          "description": "Alias for properties."
+        }
+      },
+      "additionalProperties": true
+    },
+    "propertyDefinition": {
+      "oneOf": [
+        {
+          "type": "string",
+          "pattern": "^(str|i32|f64|bool|date|time|list<.+>|set<.+>|map<.+,.+>|[a-zA-Z0-9\\._]+)(\\?)?$",
+          "description": "Shorthand property type definition (allowing optional, containers, and references)."
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "pattern": "^(str|i32|f64|bool|date|time|list<.+>|set<.+>|map<.+,.+>|[a-zA-Z0-9\\._]+)(\\?)?$",
+              "description": "Data type of the property (allowing optional, containers, and references)."
+            },
+            "description": {
+              "type": "string",
+              "description": "Human-readable description of the property."
+            },
+            "desc": {
+              "type": "string",
+              "description": "Alias for description."
+            },
+            "default": {
+              "type": [
+                "string",
+                "number",
+                "boolean",
+                "null"
+              ],
+              "description": "Default value for the property."
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "additionalProperties": true
+        }
+      ],
+      "description": "Definition of a property, can be a string (shorthand) or an object, supporting optional, containers, and references."
+    }
+  },
+  "required": [
+    "definitions"
+  ]
+}
