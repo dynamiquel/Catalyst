@@ -263,8 +263,20 @@ public class FileReader
     {
         Console.WriteLine($"[{fileNode.FullName}] Reading Services");
 
-        Dictionary<object, object>? services = rawFileNode.ReadPropertyAsDictionary("services");
-        if (services is null) 
+        Dictionary<object, object> services = rawFileNode.ReadPropertyAsDictionary("services") ?? [];
+        Dictionary<object, object>? defaultEndpoints = rawFileNode.ReadPropertyAsDictionary("endpoints");
+        if (defaultEndpoints is not null)
+        {
+            Console.WriteLine($"[{fileNode.FullName}] Found Default Service");
+            
+            string defaultServiceName = fileNode.FileName;
+            services.Add(defaultServiceName, new Dictionary<object, object>
+            {
+                { "endpoints", defaultEndpoints }
+            });
+        }
+        
+        if (services.Count == 0)
             return;
         
         Console.WriteLine($"[{fileNode.FullName}] Found {services.Count} Services");
@@ -273,21 +285,21 @@ public class FileReader
             
         foreach (KeyValuePair<object, object> service in services)
         {
-            string seriveName = ((string)service.Key);
+            string serviceName = ((string)service.Key);
             Dictionary<object, object>? serviceValue = service.Value as Dictionary<object, object>;
             if (serviceValue is null)
             {
                 throw new UnexpectedTypeException
                 {
                     RawNode = servicesRawNode,
-                    LeafName = seriveName,
+                    LeafName = serviceName,
                     ExpectedType = nameof(Dictionary<object, object>),
                     ReceivedType = service.Value.GetType().Name
                 };
             }
 
-            RawNode serviceRawNode = servicesRawNode.CreateChild(serviceValue, seriveName);
-            ReadService(fileNode, seriveName, serviceRawNode);
+            RawNode serviceRawNode = servicesRawNode.CreateChild(serviceValue, serviceName);
+            ReadService(fileNode, serviceName, serviceRawNode);
         }
     }
 

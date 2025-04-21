@@ -36,3 +36,12 @@ definitions:
       lastName: str
       birthDate: date?
       phoneNumbers: list<str>
+  
+endpoints:
+  getUser:
+    request: User
+    response: User
+  createUser:
+    path: /create
+    request: User
+    response: User

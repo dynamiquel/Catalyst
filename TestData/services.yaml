@@ -11,14 +11,13 @@ definitions:
     props:
       username: str
       email: str
-
+      
 services:
-  User:
+  User2:
     endpoints:
-      getUser:
+      GET:
         request: GetUserRequest
         response: GetUserResponse
-      createUser:
-        path: /create
+      POST:
         request: CreateUserRequest
         response: GetUserResponse
