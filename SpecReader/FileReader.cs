@@ -1,5 +1,5 @@
 using System.Text.Json;
-using Catalyst.LanguageCompilers;
+using Catalyst.Generators;
 using Catalyst.SpecGraph.Nodes;
 using Catalyst.SpecGraph.Properties;
 using YamlDotNet.Serialization;
@@ -14,7 +14,7 @@ namespace Catalyst.SpecReader;
 public class FileReader
 {
     public required DirectoryInfo BaseDir { get; init; }
-    protected List<LanguageFileReader> LanguageFileReaders = [];
+    protected List<OptionsReader> LanguageFileReaders = [];
 
     public string GetBuiltSpecFilePath(FileInfo fileInfo)
     {
@@ -25,7 +25,7 @@ public class FileReader
         return fileNodePath;
     }
     
-    public void AddLanguageFileReader<T>() where T : LanguageFileReader, new()
+    public void AddGeneratorOptionsReader<T>() where T : OptionsReader, new()
     {
         if (LanguageFileReaders.Any(x => x.GetType() == typeof(T)))
             throw new InvalidOperationException($"A Language File Reader of type {typeof(T).Name} already exists");
@@ -428,10 +428,10 @@ public class FileReader
 
     void ReadFileCompilerOptions(RawFileNode rawFileNode, FileNode fileNode)
     {
-        foreach (LanguageFileReader languageFileReader in LanguageFileReaders)
+        foreach (OptionsReader languageFileReader in LanguageFileReaders)
         {
             RawNode? rawCompilerOptions = languageFileReader.GetRawCompilerOptions(rawFileNode);
-            CompilerOptionsNode? compilerOptions = languageFileReader.ReadFileOptions(fileNode, rawCompilerOptions);
+            GeneratorOptionsNode? compilerOptions = languageFileReader.ReadFileOptions(fileNode, rawCompilerOptions);
             if (compilerOptions is not null)
                 fileNode.CompilerOptions.Add(compilerOptions.Name, compilerOptions);
         }
@@ -439,11 +439,11 @@ public class FileReader
     
     void ReadDefinitionCompilerOptions(FileNode fileNode, RawNode rawDefinitionNode, DefinitionNode definitionNode)
     {
-        foreach (LanguageFileReader languageFileReader in LanguageFileReaders)
+        foreach (OptionsReader languageFileReader in LanguageFileReaders)
         {
             RawNode? rawCompilerOptions = languageFileReader.GetRawCompilerOptions(rawDefinitionNode);
-            CompilerOptionsNode? parentCompilerOptions = languageFileReader.GetCompilerOptions(fileNode);
-            CompilerOptionsNode? compilerOptions = languageFileReader.ReadDefinitionOptions(definitionNode, parentCompilerOptions, rawCompilerOptions);
+            GeneratorOptionsNode? parentCompilerOptions = languageFileReader.GetCompilerOptions(fileNode);
+            GeneratorOptionsNode? compilerOptions = languageFileReader.ReadDefinitionOptions(definitionNode, parentCompilerOptions, rawCompilerOptions);
             if (compilerOptions is not null)
                 definitionNode.CompilerOptions.Add(compilerOptions.Name, compilerOptions);
         }
@@ -451,11 +451,11 @@ public class FileReader
     
     void ReadPropertyCompilerOptions(DefinitionNode definitionNode, RawNode rawPropertyNode, PropertyNode propertyNode)
     {
-        foreach (LanguageFileReader languageFileReader in LanguageFileReaders)
+        foreach (OptionsReader languageFileReader in LanguageFileReaders)
         {
             RawNode? rawCompilerOptions = languageFileReader.GetRawCompilerOptions(rawPropertyNode);
-            CompilerOptionsNode? parentCompilerOptions = languageFileReader.GetCompilerOptions(definitionNode);
-            CompilerOptionsNode? compilerOptions = languageFileReader.ReadPropertyOptions(propertyNode, parentCompilerOptions, rawCompilerOptions);
+            GeneratorOptionsNode? parentCompilerOptions = languageFileReader.GetCompilerOptions(definitionNode);
+            GeneratorOptionsNode? compilerOptions = languageFileReader.ReadPropertyOptions(propertyNode, parentCompilerOptions, rawCompilerOptions);
             if (compilerOptions is not null)
                 propertyNode.CompilerOptions.Add(compilerOptions.Name, compilerOptions);
         }

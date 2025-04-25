@@ -8,4 +8,7 @@ public class Config
     public required string Language { get; set; }
     public bool Client { get; set; } = true;
     public bool Server { get; set; } = false;
+    public string DefinitionBuilder { get; set; } = "default";
+    public string? ClientBuilder { get; set; } = "default";
+    public string? ServerBuilder { get; set; } = "default";
 }

@@ -1,7 +1,8 @@
-﻿using Catalyst;
-using Catalyst.LanguageCompilers;
-using Catalyst.LanguageCompilers.CSharp;
-using Catalyst.LanguageCompilers.Unreal;
+﻿using System.Text;
+using Catalyst;
+using Catalyst.Generators;
+using Catalyst.Generators.CSharp;
+using Catalyst.Generators.Unreal;
 using Catalyst.SpecGraph;
 using Catalyst.SpecGraph.Nodes;
 using Catalyst.SpecReader;
@@ -20,6 +21,11 @@ DirectoryInfo baseOutputDir = new DirectoryInfo(config.BaseOutputDir);
 Console.WriteLine($"BaseInputDir: {baseInputDir.FullName}");
 Console.WriteLine($"BaseOutputDir: {baseOutputDir.FullName}");
 
+CompilerOptions compilerOptions = new(
+    DefinitionBuilderName: config.DefinitionBuilder,
+    ClientServiceBuilderName: config.ClientBuilder,
+    ServerServiceBuilderName: config.ServerBuilder);
+
 FileInfo[] inputFiles = GetInputFiles();
 
 if (inputFiles.Length == 0)
@@ -34,8 +40,8 @@ FileReader specFileReader = new()
 {
     BaseDir = baseInputDir
 };
-specFileReader.AddLanguageFileReader<CSharpLanguageReader>();
-specFileReader.AddLanguageFileReader<UnrealLanguageReader>();
+specFileReader.AddGeneratorOptionsReader<CSharpOptionsReader>();
+specFileReader.AddGeneratorOptionsReader<UnrealOptionsReader>();
 
 await ReadSpecFilesRecursive(inputFiles);
 
@@ -47,43 +53,53 @@ graph.Build();
 Console.WriteLine("Spec Graph built");
 Console.WriteLine(graph);
 
-LanguageCompiler compiler;
+if (graph.Files.Count == 0)
+    return 0;
+
+Compiler compiler;
 switch (config.Language)
 {
     case "cs":
-        compiler = new CSharpLanguageCompiler();
+        compiler = new CSharpCompiler(compilerOptions);
         break;
-    case "unreal":
-        compiler = new UnrealLanguageCompiler();
-        break;
+    /*case "unreal":
+        compiler = new UnrealCompiler(compilerOptions);
+        break;*/
     default:
         throw new InvalidOperationException($"Language {config.Language} is not supported");
 }
 
-Console.WriteLine($"Building Spec Graph using {compiler.GetType().Name} [{graph.Files.Count}] files]...");
+Console.WriteLine($"Building Spec Graph using {compiler.GetType().Name} ({graph.Files.Count}] files)...");
 
-List<LanguageCompiler.File> builtFiles = [];
+List<BuiltFile> builtFiles = [];
 for (var fileNodeIdx = 0; fileNodeIdx < graph.Files.Count; fileNodeIdx++)
 {
     FileNode fileNode = graph.Files[fileNodeIdx];
     Console.WriteLine($"[{fileNodeIdx + 1}] Building Spec File '{fileNode.FullName}'...");
     
-    LanguageCompiler.File file = compiler.BuildFile(fileNode);
-    builtFiles.Add(file);
+    IEnumerable<BuiltFile> builtFilesForFile = compiler.Build(fileNode);
+    builtFiles.AddRange(builtFilesForFile);
     
-    Console.WriteLine($"[{fileNodeIdx + 1}] Built Spec File '{fileNode.FullName}':\n{file}");
+    StringBuilder sb = new($"[{fileNodeIdx + 1}] Built Spec File '{fileNode.FullName}' into files: ");
+    foreach (BuiltFile builtFile in builtFilesForFile)
+        sb.Append($"'{builtFile.Name}' ");
+
+    Console.WriteLine(sb.ToString());
 }
 
-Console.WriteLine($"Compiling Spec Graph using {compiler.GetType().Name} [{graph.Files.Count}] files]...");
+if (builtFiles.Count == 0)
+    throw new InvalidOperationException("No files were built. Something has gone wrong");
+
+Console.WriteLine($"Compiling Spec Graph using {compiler.GetType().Name} ({builtFiles.Count} files)...");
 
 CompiledFiles compiledFiles = new();
 for (var builtFileIdx = 0; builtFileIdx < builtFiles.Count; builtFileIdx++)
 {
-    LanguageCompiler.File builtFile = builtFiles[builtFileIdx];
+    BuiltFile builtFile = builtFiles[builtFileIdx];
     
     Console.WriteLine($"[{builtFileIdx + 1}] Compiling Built File '{builtFile.Name}'...");
 
-    CompiledFile compiledFile = compiler.CompileFile(builtFile);
+    CompiledFile compiledFile = compiler.Compile(builtFile);
     compiledFiles.AddFile(compiledFile);
     
     Console.WriteLine($"[{builtFileIdx + 1}] Compiled Built File '{builtFile.Name}':\n{compiledFile.FileContents}");
@@ -107,9 +123,21 @@ Config ReadConfiguration()
     
     if (foundConfig is null)
         throw new NullReferenceException("Could not deserialise configuration");
-    
+
     if (string.IsNullOrEmpty(foundConfig.BaseOutputDir))
         foundConfig.BaseOutputDir = Path.Combine(foundConfig.BaseInputDir, "output");
+
+    // If any Server Builder other than default was specified, implicitly enable server generation.
+    if (foundConfig.ServerBuilder is not null && !foundConfig.ServerBuilder.Equals("default"))
+        foundConfig.Server = true;
+    else if (foundConfig.Server is false)
+        foundConfig.ServerBuilder = null;
+    
+    // If any Client Builder other than default was specified, implicitly enable client generation.
+    if (foundConfig.ClientBuilder is not null && !foundConfig.ClientBuilder.Equals("default"))
+        foundConfig.Client = true;
+    else if (foundConfig.Client is false)
+        foundConfig.ClientBuilder = null;
     
     Console.WriteLine("Read configuration");
     

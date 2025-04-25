@@ -11,5 +11,5 @@ public class PropertyNode : Node, ICompilerOptions
     public IPropertyType? BuiltType { get; set; }
     public string? Description { get; set; }
     public IPropertyValue? Value { get; set; }
-    public Dictionary<string, CompilerOptionsNode> CompilerOptions { get; } = [];
+    public Dictionary<string, GeneratorOptionsNode> CompilerOptions { get; } = [];
 }

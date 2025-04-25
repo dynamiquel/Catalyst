@@ -7,5 +7,5 @@ public class DefinitionNode : Node, ICompilerOptions
 {
     public string? Description { get; set; }
     public Dictionary<string, PropertyNode> Properties { get; set; } = [];
-    public Dictionary<string, CompilerOptionsNode> CompilerOptions { get; } = [];
+    public Dictionary<string, GeneratorOptionsNode> CompilerOptions { get; } = [];
 }

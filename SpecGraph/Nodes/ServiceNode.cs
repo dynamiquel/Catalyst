@@ -8,5 +8,5 @@ public class ServiceNode : Node, ICompilerOptions
     public required string Path { get; set; }
     public string? Description { get; set; }
     public Dictionary<string, EndpointNode> Endpoints { get; set; } = [];
-    public Dictionary<string, CompilerOptionsNode> CompilerOptions { get; } = [];
+    public Dictionary<string, GeneratorOptionsNode> CompilerOptions { get; } = [];
 }

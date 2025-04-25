@@ -1,23 +1,23 @@
 using Catalyst.SpecGraph.Nodes;
 using Catalyst.SpecReader;
 
-namespace Catalyst.LanguageCompilers.CSharp;
+namespace Catalyst.Generators.CSharp;
 
-public class CSharpLanguageReader : LanguageFileReader
+public class CSharpOptionsReader : OptionsReader
 {
-    public override string SectionName => CSharpLanguage.Name;
+    public override string SectionName => CSharp.Name;
     
-    public override CompilerOptionsNode? ReadGlobalOptions()
+    public override GeneratorOptionsNode? ReadGlobalOptions()
     {
         throw new NotImplementedException();
     }
 
-    public override CompilerOptionsNode? ReadFileOptions(FileNode fileNode, RawNode? rawCompilerOptions)
+    public override GeneratorOptionsNode? ReadFileOptions(FileNode fileNode, RawNode? rawCompilerOptions)
     {
         CSharpClassType classType = ParseClassType(rawCompilerOptions?.ReadPropertyAsStr("classType")) ?? CSharpClassType.Record;
         bool useRequires = rawCompilerOptions?.ReadPropertyAsBool("useRequired") ?? false;
         
-        return new CSharpFileCompilerOptionsNode
+        return new CSharpFileOptionsNode
         {
             Parent = new WeakReference<Node>(fileNode),
             Name = SectionName,
@@ -26,7 +26,7 @@ public class CSharpLanguageReader : LanguageFileReader
         };
     }
 
-    public override CompilerOptionsNode? ReadDefinitionOptions(DefinitionNode definitionNode, CompilerOptionsNode? parentCompilerOptions, RawNode? rawCompilerOptions)
+    public override GeneratorOptionsNode? ReadDefinitionOptions(DefinitionNode definitionNode, GeneratorOptionsNode? parentCompilerOptions, RawNode? rawCompilerOptions)
     {
         CSharpClassType? classType = null;
         bool? useRequires = null;
@@ -41,11 +41,11 @@ public class CSharpLanguageReader : LanguageFileReader
         // Read from parent options
         if (parentCompilerOptions is not null)
         {
-            classType ??= ((CSharpFileCompilerOptionsNode)parentCompilerOptions).ClassType;
-            useRequires ??= ((CSharpFileCompilerOptionsNode)parentCompilerOptions).UseRequired;
+            classType ??= ((CSharpFileOptionsNode)parentCompilerOptions).ClassType;
+            useRequires ??= ((CSharpFileOptionsNode)parentCompilerOptions).UseRequired;
         }
         
-        return new CSharpDefinitionCompilerOptionsNode
+        return new CSharpDefinitionOptionsNode
         {
             Parent = new WeakReference<Node>(definitionNode),
             Name = SectionName,
@@ -54,7 +54,7 @@ public class CSharpLanguageReader : LanguageFileReader
         };
     }
 
-    public override CompilerOptionsNode? ReadPropertyOptions(PropertyNode propertyNode, CompilerOptionsNode? parentCompilerOptions, RawNode? rawCompilerOptions)
+    public override GeneratorOptionsNode? ReadPropertyOptions(PropertyNode propertyNode, GeneratorOptionsNode? parentCompilerOptions, RawNode? rawCompilerOptions)
     {
         bool? useRequires = null;
 
@@ -71,10 +71,10 @@ public class CSharpLanguageReader : LanguageFileReader
         // Read from parent options
         if (parentCompilerOptions is not null)
         {
-            useRequires ??= ((CSharpDefinitionCompilerOptionsNode)parentCompilerOptions).UseRequired;
+            useRequires ??= ((CSharpDefinitionOptionsNode)parentCompilerOptions).UseRequired;
         }
         
-        return new CSharpPropertyCompilerOptionsNode
+        return new CSharpPropertyOptionsNode
         {
             Parent = new WeakReference<Node>(propertyNode),
             Name = SectionName,

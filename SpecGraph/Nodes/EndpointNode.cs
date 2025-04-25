@@ -25,5 +25,5 @@ public class EndpointNode : Node, ICompilerOptions
     public string? Description { get; set; }
     public IPropertyType? BuiltRequestType { get; set; }
     public IPropertyType? BuiltResponseType { get; set; }
-    public Dictionary<string, CompilerOptionsNode> CompilerOptions { get; } = [];
+    public Dictionary<string, GeneratorOptionsNode> CompilerOptions { get; } = [];
 }

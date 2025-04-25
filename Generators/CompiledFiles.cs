@@ -1,4 +1,4 @@
-namespace Catalyst.LanguageCompilers;
+namespace Catalyst.Generators;
 
 public record CompiledFile(string FileName, string FileContents);
 
@@ -16,6 +16,9 @@ public class CompiledFiles
 
     public async Task OutputFiles(DirectoryInfo outputDir, CancellationToken cancelToken = default)
     {
+        if (outputDir.Exists)
+            outputDir.Delete(true);
+        
         foreach (CompiledFile file in Files)
         {
             string outputFilePath = Path.Combine(outputDir.FullName, file.FileName);
