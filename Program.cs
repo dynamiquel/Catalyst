@@ -57,17 +57,12 @@ if (graph.Files.Count == 0)
     return 0;
 
 Compiler compiler;
-switch (config.Language)
-{
-    case "cs":
-        compiler = new CSharpCompiler(compilerOptions);
-        break;
-    /*case "unreal":
-        compiler = new UnrealCompiler(compilerOptions);
-        break;*/
-    default:
-        throw new InvalidOperationException($"Language {config.Language} is not supported");
-}
+if (config.Language == CSharp.Name)
+    compiler = new CSharpCompiler(compilerOptions);
+else if (config.Language == Unreal.Name)
+    compiler = new UnrealCompiler(compilerOptions);
+else
+    throw new InvalidOperationException($"Language {config.Language} is not supported");
 
 Console.WriteLine($"Building Spec Graph using {compiler.GetType().Name} ({graph.Files.Count}] files)...");
 

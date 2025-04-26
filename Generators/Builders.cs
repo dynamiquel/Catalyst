@@ -20,6 +20,8 @@ public interface IDefinitionBuilder
     
     BuiltPropertyValue GetCompiledDefaultValueForPropertyType(IPropertyType propertyType);
     BuiltPropertyValue GetCompiledDesiredPropertyValue(IPropertyValue propertyValue);
+    string GetCompiledClassName(DefinitionNode definitionNode);
+        
 
     IEnumerable<BuiltFunction> BuildSerialiseFunctions(BuildContext context, DefinitionNode definitionNode);
     IEnumerable<BuiltFunction> BuildDeserialiseFunctions(BuildContext context, DefinitionNode definitionNode);

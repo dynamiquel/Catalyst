@@ -20,8 +20,11 @@ public enum FunctionFlags
     Static,
     Async
 }
-    
-public record BuiltFunction(string Name, string ReturnType, FunctionFlags Flags, List<string> Parameters, string Body);
+
+public record BuiltFunction(string Name, string ReturnType, FunctionFlags Flags, List<string> Parameters, string? BodyInit)
+{
+    public string? Body { get; set; } = BodyInit;
+}
 
 public record BuiltDefinition(DefinitionNode Node, string Name, List<BuiltProperty> Properties, List<BuiltFunction> Functions);
 

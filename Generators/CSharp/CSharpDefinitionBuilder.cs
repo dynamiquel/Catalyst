@@ -39,7 +39,7 @@ public class CSharpDefinitionBuilder : IDefinitionBuilder<CSharpCompiler>
 
         BuiltDefinition definition = new(
             Node: definitionNode,
-            Name: Compiler.GetCompiledClassName(definitionNode.Name),
+            Name: GetCompiledClassName(definitionNode),
             Properties: properties,
             Functions: functions);
         
@@ -97,6 +97,11 @@ public class CSharpDefinitionBuilder : IDefinitionBuilder<CSharpCompiler>
         }
     }
 
+    public string GetCompiledClassName(DefinitionNode definitionNode)
+    {
+        return definitionNode.Name.ToPascalCase();
+    }
+
     public IEnumerable<BuiltFunction> BuildSerialiseFunctions(BuildContext context, DefinitionNode definitionNode)
     {
         return [
@@ -105,7 +110,7 @@ public class CSharpDefinitionBuilder : IDefinitionBuilder<CSharpCompiler>
                 ReturnType: "byte[]",
                 Flags: FunctionFlags.Const,
                 Parameters: [],
-                Body: "return System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(this);")
+                BodyInit: "return System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(this);")
         ];
     }
 
@@ -117,7 +122,7 @@ public class CSharpDefinitionBuilder : IDefinitionBuilder<CSharpCompiler>
                 ReturnType: $"{definitionNode.Name.ToPascalCase()}?",
                 Flags: FunctionFlags.Static,
                 Parameters: ["ReadOnlySpan<byte> bytes"],
-                Body: $"return System.Text.Json.JsonSerializer.Deserialize<{definitionNode.Name.ToPascalCase()}>(bytes);")
+                BodyInit: $"return System.Text.Json.JsonSerializer.Deserialize<{definitionNode.Name.ToPascalCase()}>(bytes);")
         ];
     }
 }
