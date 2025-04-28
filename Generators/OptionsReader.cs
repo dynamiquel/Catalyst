@@ -11,6 +11,7 @@ public abstract class OptionsReader
     public abstract GeneratorOptionsNode? ReadFileOptions(FileNode fileNode, RawNode? rawCompilerOptions);
     public abstract GeneratorOptionsNode? ReadDefinitionOptions(DefinitionNode definitionNode, GeneratorOptionsNode? parentCompilerOptions, RawNode? rawCompilerOptions);
     public abstract GeneratorOptionsNode? ReadPropertyOptions(PropertyNode propertyNode, GeneratorOptionsNode? parentCompilerOptions, RawNode? rawCompilerOptions);
+    public abstract GeneratorOptionsNode? ReadServiceOptions(ServiceNode serviceNode, GeneratorOptionsNode? parentCompilerOptions, RawNode? rawCompilerOptions);
 
     public RawNode? GetRawCompilerOptions(RawNode rawNode)
     {

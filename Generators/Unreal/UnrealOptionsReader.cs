@@ -41,4 +41,17 @@ public class UnrealOptionsReader : OptionsReader
     {
         return null;
     }
+    
+    public override GeneratorOptionsNode? ReadServiceOptions(ServiceNode serviceNode, GeneratorOptionsNode? parentCompilerOptions, RawNode? rawCompilerOptions)
+    {
+        string? prefix = rawCompilerOptions?.ReadPropertyAsStr("prefix");
+        prefix ??= ((UnrealFileOptionsNode?)parentCompilerOptions)?.Prefix;
+        
+        return new UnrealServiceOptionsNode
+        {
+            Parent = new WeakReference<Node>(serviceNode),
+            Name = SectionName,
+            Prefix = prefix
+        };
+    }
 }

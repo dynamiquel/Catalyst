@@ -319,7 +319,7 @@ public class FileReader
             Path = path
         };
         
-        //TODO ReadServiceCompilerOptions(fileNode, serviceRawNode, serviceNode);
+        ReadServiceCompilerOptions(fileNode, serviceRawNode, serviceNode);
         
         Dictionary<object, object>? endpoints = serviceRawNode.ReadPropertyAsDictionary("endpoints");
         if (endpoints is null)
@@ -458,6 +458,18 @@ public class FileReader
             GeneratorOptionsNode? compilerOptions = languageFileReader.ReadPropertyOptions(propertyNode, parentCompilerOptions, rawCompilerOptions);
             if (compilerOptions is not null)
                 propertyNode.CompilerOptions.Add(compilerOptions.Name, compilerOptions);
+        }
+    }
+    
+    void ReadServiceCompilerOptions(FileNode fileNode, RawNode rawServiceNode, ServiceNode serviceNode)
+    {
+        foreach (OptionsReader languageFileReader in LanguageFileReaders)
+        {
+            RawNode? rawCompilerOptions = languageFileReader.GetRawCompilerOptions(rawServiceNode);
+            GeneratorOptionsNode? parentCompilerOptions = languageFileReader.GetCompilerOptions(fileNode);
+            GeneratorOptionsNode? compilerOptions = languageFileReader.ReadServiceOptions(serviceNode, parentCompilerOptions, rawCompilerOptions);
+            if (compilerOptions is not null)
+                serviceNode.CompilerOptions.Add(compilerOptions.Name, compilerOptions);
         }
     }
 }

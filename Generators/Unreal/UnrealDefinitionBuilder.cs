@@ -14,8 +14,7 @@ public class UnrealDefinitionBuilder : IDefinitionBuilder<UnrealCompiler>
     public string GetBuiltFileName(BuildContext context, DefinitionNode definitionNode)
     {
         // One file for all definitions.
-        string? filePrefix = context.FileNode.FindCompilerOptions<UnrealFileOptionsNode>()?.Prefix;
-        string fileName = filePrefix + StringExtensions.FilePathToPascalCase(context.FileNode.FileName) + ".h";
+        string fileName = Compiler.GetFileName(context.FileNode) + ".h";
         
         return Path.Combine(
             StringExtensions.FilePathToPascalCase(context.FileNode.Directory) ?? string.Empty, 
@@ -25,8 +24,7 @@ public class UnrealDefinitionBuilder : IDefinitionBuilder<UnrealCompiler>
     public string GetBuiltSourceFileName(BuildContext context, DefinitionNode definitionNode)
     {
         // One file for all definitions.
-        string? filePrefix = context.FileNode.FindCompilerOptions<UnrealFileOptionsNode>()?.Prefix;
-        string fileName = filePrefix + StringExtensions.FilePathToPascalCase(context.FileNode.FileName) + ".cpp";
+        string fileName = Compiler.GetFileName(context.FileNode) + ".cpp";
         
         return Path.Combine(
             StringExtensions.FilePathToPascalCase(context.FileNode.Directory) ?? string.Empty, 

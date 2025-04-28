@@ -21,3 +21,8 @@ public class UnrealPropertyOptionsNode : GeneratorOptionsNode
 {
     
 }
+
+public class UnrealServiceOptionsNode : GeneratorOptionsNode
+{
+    public string? Prefix { get; set; }
+}

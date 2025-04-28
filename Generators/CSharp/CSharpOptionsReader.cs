@@ -82,6 +82,12 @@ public class CSharpOptionsReader : OptionsReader
         };
     }
 
+    public override GeneratorOptionsNode? ReadServiceOptions(ServiceNode serviceNode, GeneratorOptionsNode? parentCompilerOptions,
+        RawNode? rawCompilerOptions)
+    {
+        return null;
+    }
+
     static CSharpClassType? ParseClassType(string? classTypeStr)
     {
         if (string.IsNullOrEmpty(classTypeStr))

@@ -1,4 +1,5 @@
 using System.Text;
+using Catalyst.SpecGraph.Nodes;
 using Catalyst.SpecGraph.Properties;
 
 namespace Catalyst.Generators.Unreal;
@@ -97,8 +98,7 @@ public class UnrealCompiler : Compiler
 
     public override string? GetCompiledNamespace(string? namespaceName)
     {
-        // Unreal doesn't support namespaces for reflection-based classes and structs.
-        return null;
+        return namespaceName.ToPascalCase()?.Replace(".", "::");
     }
 
     public override string GetCompiledClassName(string className)
@@ -110,6 +110,25 @@ public class UnrealCompiler : Compiler
     public string? GetPrefixFromNamespace(string? namespaceName)
     {
         return namespaceName.ToPascalCase()?.Replace(".", "");
+    }
+
+    public string GetFileName(FileNode fileNode)
+    {
+        /*
+         * Looks a bit messy but essentially maps a file with:
+         *    namespace: Hello.World
+         *    fileName: World
+         *
+         * to Hello.World, rather than Hello.World.World
+         */
+        
+        string? filePrefix = fileNode.FindCompilerOptions<UnrealFileOptionsNode>()?.Prefix ?? GetPrefixFromNamespace(fileNode.Namespace);
+        string fileName = filePrefix ?? string.Empty;
+        string desiredFileName = StringExtensions.FilePathToPascalCase(fileNode.FileName);
+        if (!fileName.EndsWith(desiredFileName))
+            fileName += desiredFileName;
+        
+        return fileName;
     }
     
     CompiledFile CompileHeaderFile(BuiltFile file)
@@ -200,6 +219,12 @@ public class UnrealCompiler : Compiler
             sb.AppendLine("};").AppendLine();
         }
         
+        // TODO: Redo BuiltService and BuiltEndpoint. The implementation details should be generated
+        // in the Build stage, not the Compile stage.
+        if (ClientServiceBuilder is not null)
+            foreach (BuiltService service in file.Services)
+                ClientServiceBuilder.Compile(file, service, sb);
+        
         return new CompiledFile(file.Name, sb.ToString());
     }
     
@@ -245,6 +270,12 @@ public class UnrealCompiler : Compiler
                 sb.AppendLine("}");
             }
         }
+        
+        // TODO: Redo BuiltService and BuiltEndpoint. The implementation details should be generated
+        // in the Build stage, not the Compile stage.
+        if (ClientServiceBuilder is not null)
+            foreach (BuiltService service in file.Services)
+                ClientServiceBuilder.Compile(file, service, sb);
         
         return new CompiledFile(file.Name, sb.ToString());
     }

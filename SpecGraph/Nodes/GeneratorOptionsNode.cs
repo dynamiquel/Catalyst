@@ -14,6 +14,7 @@ namespace Catalyst.SpecGraph.Nodes;
 [JsonDerivedType(typeof(UnrealFileOptionsNode))]
 [JsonDerivedType(typeof(UnrealDefinitionOptionsNode))]
 [JsonDerivedType(typeof(UnrealPropertyOptionsNode))]
+[JsonDerivedType(typeof(UnrealServiceOptionsNode))]
 public abstract class GeneratorOptionsNode : Node;
 
 public interface ICompilerOptions
