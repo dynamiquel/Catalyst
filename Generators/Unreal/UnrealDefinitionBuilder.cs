@@ -92,30 +92,10 @@ public class UnrealDefinitionBuilder : IDefinitionBuilder<UnrealCompiler>
 
     public IEnumerable<BuiltFunction> BuildSerialiseFunctions(BuildContext context, DefinitionNode definitionNode)
     {
-        // This implementation could easily be templated for every definition but that 
-        // requires dependencies for the project, making it less portable.
-        
         StringBuilder mainSerialiseFunc = new();
         mainSerialiseFunc
-            .AppendLine("TRACE_CPUPROFILER_EVENT_SCOPE(Catalyst::ToJsonBytes)")
-            .AppendLine()
-            .AppendLine("TSharedPtr<FJsonObject> JsonObject = FJsonObjectConverter::UStructToJsonObject(Object);")
-            .AppendLine("if (!JsonObject)")
-            .AppendLine("{")
-            .AppendLine($"    UE_LOG(LogSerialization, Error, TEXT(\"Could not serialise object '{GetCompiledClassName(definitionNode)}' into a JSON object\"));")
-            .AppendLine("    return {};")
-            .AppendLine("}")
-            .AppendLine()
-            .AppendLine("TArray<uint8> Buffer;")
-            .AppendLine("FMemoryWriter MemoryWriter(Buffer);")
-            .AppendLine("TSharedRef<TJsonWriter<UTF8CHAR>> JsonWriter = TJsonWriterFactory<UTF8CHAR>::Create(&MemoryWriter);")
-            .AppendLine("if (!FJsonSerializer::Serialize(JsonObject.ToSharedRef(), JsonWriter))")
-            .AppendLine("{")
-            .AppendLine($"    UE_LOG(LogSerialization, Error, TEXT(\"Could not serialise JSON object '{GetCompiledClassName(definitionNode)}' into bytes\"));")
-            .AppendLine("    return {};")
-            .AppendLine("}")
-            .AppendLine()
-            .Append("return Buffer;");
+            .AppendLine("TSharedPtr<FJsonObject> JsonObject = Catalyst::Json::StructToJsonObject(Object);")
+            .Append("return JsonObject ? Catalyst::Json::JsonObjectToBytes(JsonObject.ToSharedRef()) : TArray<uint8>();");
         
         return [
             new BuiltFunction(
@@ -136,45 +116,10 @@ public class UnrealDefinitionBuilder : IDefinitionBuilder<UnrealCompiler>
 
     public IEnumerable<BuiltFunction> BuildDeserialiseFunctions(BuildContext context, DefinitionNode definitionNode)
     {
-        // This implementation could easily be templated for every definition but that 
-        // requires dependencies for the project, making it less portable.
-        
         StringBuilder sb = new();
         sb
-            .AppendLine("TRACE_CPUPROFILER_EVENT_SCOPE(Catalyst::FromJsonBytes)")
-            .AppendLine()
-            .AppendLine("FMemoryReader MemoryReader(Bytes);")
-            .AppendLine()
-            .AppendLine("TSharedPtr<FJsonObject> JsonObject;")
-            .AppendLine("TSharedRef<TJsonReader<UTF8CHAR>> JsonReader = TJsonReaderFactory<UTF8CHAR>::Create(&MemoryReader);")
-            .AppendLine("if (!FJsonSerializer::Deserialize(JsonReader, JsonObject) || !JsonObject)")
-            .AppendLine("{")
-            .AppendLine($"    UE_LOG(LogSerialization, Error, TEXT(\"Could not deserialise the given bytes for '{GetCompiledClassName(definitionNode)}' into a JSON object\"));")
-            .AppendLine("    return {};")
-            .AppendLine("}")
-            .AppendLine()
-            .AppendLine($"{GetCompiledClassName(definitionNode)} DeserialisedObject;")
-            .AppendLine("FText FailReason;")
-            .AppendLine()
-            .AppendLine("bool bConvertedToStruct;")
-            .AppendLine("{")
-            .AppendLine("    FGCScopeGuard LockGC;")
-            .AppendLine($"    bConvertedToStruct = FJsonObjectConverter::JsonObjectToUStruct<{GetCompiledClassName(definitionNode)}>(")
-            .AppendLine("        JsonObject.ToSharedRef(),")
-            .AppendLine("        &DeserialisedObject,")
-            .AppendLine("        /* CheckFlags */ 0,")
-            .AppendLine("        /* SkipFlags */ 0,")
-            .AppendLine("        /* bStrictMode */ false,")
-            .AppendLine("        OUT &FailReason);")
-            .AppendLine("}")
-            .AppendLine()
-            .AppendLine("if (!bConvertedToStruct)")
-            .AppendLine("{")
-            .AppendLine($"    UE_LOG(LogSerialization, Error, TEXT(\"Could not deserialise the JSON object into an '{GetCompiledClassName(definitionNode)}' object. Reason: %s\"), *FailReason.ToString());")
-            .AppendLine("    return {};")
-            .AppendLine("}")
-            .AppendLine()
-            .Append("return DeserialisedObject;");
+            .AppendLine("TSharedPtr<FJsonObject> JsonObject = Catalyst::Json::BytesToJsonObject(Bytes);")
+            .Append($"return JsonObject ? Catalyst::Json::JsonObjectToStruct<{GetCompiledClassName(definitionNode)}>(JsonObject.ToSharedRef()) : TOptional<{GetCompiledClassName(definitionNode)}>();");
 
         return [
             new BuiltFunction(
@@ -240,7 +185,7 @@ public class UnrealDefinitionBuilder : IDefinitionBuilder<UnrealCompiler>
         BuiltFile sourceFile = context.GetOrAddFile(Compiler, GetBuiltSourceFileName(context, definitionNode));
         sourceFile.Definitions.Add(sourceDefinition);
         sourceFile.Includes.AddRange([
-            new("JsonObjectConverter"), 
+            new("CatalystJson"), 
             new("Templates/SharedPointer")
         ]);
     }
