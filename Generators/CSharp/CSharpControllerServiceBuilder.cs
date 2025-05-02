@@ -74,7 +74,7 @@ public class CSharpControllerServiceBuilder : IServerServiceBuilder<CSharpCompil
             };
 
             fileStr
-                .AppendLine($"    [{httpMethodAttribute}(\"{endpoint.Node.Path.TrimStart('/')}\", Name = \"{endpoint.Name}\")]")
+                .AppendLine($"    [{httpMethodAttribute}(\"{endpoint.Node.Path.TrimStart('/')}\", Name = \"{service.Name}{endpoint.Name}\")]")
                 .AppendLine($"    public abstract Task<ActionResult<{endpoint.ResponseType.Name}>> {endpoint.Name.ToPascalCase()}({endpoint.RequestType.Name} request);");
                 
                 if (endpointIndex < service.Endpoints.Count - 1)

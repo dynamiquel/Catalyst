@@ -31,9 +31,11 @@ public class CSharpCompiler : Compiler
         
         if (!string.IsNullOrWhiteSpace(file.Namespace))
             sb.AppendLine($"namespace {file.Namespace};").AppendLine();
-        
-        foreach (BuiltDefinition def in file.Definitions)
+
+        for (var defIdx = 0; defIdx < file.Definitions.Count; defIdx++)
         {
+            BuiltDefinition def = file.Definitions[defIdx];
+            
             if (!string.IsNullOrEmpty(def.Node.Description))
             {
                 sb.AppendLine("/// <summary>");
@@ -42,7 +44,7 @@ public class CSharpCompiler : Compiler
                     sb.AppendLine($"/// {descLine}");
                 sb.AppendLine("/// </summary>");
             }
-            
+
             CSharpClassType classType = def.Node.FindCompilerOptions<CSharpDefinitionOptionsNode>()!.Type;
             string classTypeStr = classType == CSharpClassType.Class ? "class" : "record";
             sb.AppendLine($"public {classTypeStr} {def.Name}").AppendLine("{");
@@ -83,7 +85,7 @@ public class CSharpCompiler : Compiler
                     sb.Append($" = {property.Value.Value};");
 
                 sb.AppendLine();
-                
+
                 if (propertyIdx < def.Properties.Count - 1)
                     sb.AppendLine();
             }
@@ -91,9 +93,9 @@ public class CSharpCompiler : Compiler
             foreach (BuiltFunction function in def.Functions)
             {
                 sb.AppendLine();
-                
+
                 sb.Append("    public ");
-                
+
                 if (function.Flags is FunctionFlags.Static)
                     sb.Append("static ");
 
@@ -105,19 +107,22 @@ public class CSharpCompiler : Compiler
                     if (parameterIdx < function.Parameters.Count - 1)
                         sb.Append(", ");
                 }
-                
+
                 sb.AppendLine(")");
-                
+
                 sb.AppendLine("    {");
 
                 sb.AppendLine($"        {function.Body}");
-                
+
                 sb.AppendLine("    }");
             }
 
             sb.AppendLine("}");
+            
+            if (defIdx < file.Definitions.Count - 1)
+                sb.AppendLine();
         }
-        
+
         // TODO: Redo BuiltService and BuiltEndpoint. The implementation details should be generated
         // in the Build stage, not the Compile stage.
         if (ClientServiceBuilder is not null)
