@@ -404,7 +404,7 @@ public class FileReader
             path = '/' + path;
 
         // Traditional REST spec, where the endpoint is just a method with no explicit path.
-        if (Enum.TryParse(endpointName, true, out HttpMethod endpointNameMethod))
+        if (Enum.TryParse(endpointName, false, out HttpMethod endpointNameMethod))
         {
             httpMethod = endpointNameMethod;
             path = string.Empty;

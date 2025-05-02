@@ -13,7 +13,7 @@ public class CSharpControllerServiceBuilder : IServerServiceBuilder<CSharpCompil
     public string GetBuiltFileName(BuildContext context, ServiceNode serviceNode)
     {
         // One file for all services.
-        return StringExtensions.FilePathToPascalCase(context.FileNode.FilePath) + "Controller.cs";
+        return StringExtensions.FilePathToPascalCase(context.FileNode.FilePath) + "ControllerBase.cs";
     }
 
     public void Build(BuildContext context, ServiceNode serviceNode)
@@ -33,7 +33,7 @@ public class CSharpControllerServiceBuilder : IServerServiceBuilder<CSharpCompil
 
         BuiltService service = new(
             Node: serviceNode,
-            Name: Compiler.GetCompiledClassName(serviceNode.Name) + "Controller",
+            Name: Compiler.GetCompiledClassName(serviceNode.Name),
             Endpoints: endpoints
         );
 
@@ -47,13 +47,13 @@ public class CSharpControllerServiceBuilder : IServerServiceBuilder<CSharpCompil
         // TODO: Remove this Compile stage all together and make it part of the Build stage.
 
         // Hackyyyyy.
-        if (!file.Name.EndsWith("Controller.cs"))
+        if (!file.Name.EndsWith("ControllerBase.cs"))
             return;
         
         // Generate Server Controller
         fileStr
             .AppendLine("[ApiController]")
-            .AppendLine($"[Route(\"{service.Name}\")]")
+            .AppendLine($"[Route(\"{service.Node.Path.TrimStart('/')}\")]")
             .AppendLine($"public abstract class {service.Name}ControllerBase : ControllerBase")
             .AppendLine("{");
 
@@ -75,7 +75,7 @@ public class CSharpControllerServiceBuilder : IServerServiceBuilder<CSharpCompil
 
             fileStr
                 .AppendLine($"    [{httpMethodAttribute}(\"{endpoint.Node.Path.TrimStart('/')}\", Name = \"{endpoint.Name}\")]")
-                .AppendLine($"    public abstract Task<ActionResult<{endpoint.ResponseType.Name}>> {endpoint.Name.ToPascalCase()}({endpoint.ResponseType.Name} request);");
+                .AppendLine($"    public abstract Task<ActionResult<{endpoint.ResponseType.Name}>> {endpoint.Name.ToPascalCase()}({endpoint.RequestType.Name} request);");
                 
                 if (endpointIndex < service.Endpoints.Count - 1)
                     fileStr.AppendLine();
