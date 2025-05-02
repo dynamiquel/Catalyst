@@ -359,7 +359,7 @@ public class FileReader
     {
         Console.WriteLine($"[{serviceNode.FullName}] Reading Endpoint '{endpointName}'");
         
-        string? requestType = endpointRawNode.ReadPropertyAsStr("request");
+        string? requestType = endpointRawNode.ReadPropertyAsStr("request") ?? endpointRawNode.ReadPropertyAsStr("req");
         if (string.IsNullOrWhiteSpace(requestType))
         {
             throw new ExpectedTokenNotFoundException
@@ -370,7 +370,7 @@ public class FileReader
         }
         requestType = requestType.Replace(" ", string.Empty);
         
-        string? responseType = endpointRawNode.ReadPropertyAsStr("response");
+        string? responseType = endpointRawNode.ReadPropertyAsStr("response") ?? endpointRawNode.ReadPropertyAsStr("res");
         if (string.IsNullOrWhiteSpace(responseType))
         {
             throw new ExpectedTokenNotFoundException

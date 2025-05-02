@@ -43,5 +43,5 @@ endpoints:
     response: User
   createUser:
     path: /create
-    request: User
-    response: User
+    req: User
+    res: User
