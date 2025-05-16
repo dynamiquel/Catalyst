@@ -168,4 +168,4 @@ For a detailed understanding of how to define your API using the Catalyst IDL, p
 ### C#
 C# Client, C# Server via ASP.NET Controllers
 ### Unreal Engine 5
-Unreal Engine 5 Client (requires the Unreal Engine Catalyst Plugin)
+Unreal Engine 5 Client (requires the [Unreal Engine Catalyst Plugin](https://github.com/dynamiquel/Catalyst-UEPlugin)
