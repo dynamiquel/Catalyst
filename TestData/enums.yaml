@@ -1,0 +1,59 @@
+namespace: Catalyst.Tests.Enums
+
+enums:
+  # example of most basic enum definition
+  ProductType:
+    - Unspecified
+    - Household
+    - Commercial 
+    - Industrial
+    - Other
+      
+  # example of the more verbose enum definition
+  UserRole:
+    desc: Roles for the user
+    values:
+      - User: 0
+      # example of using the bitwise shift operator
+      # will implicitly enable flags for the enum
+      - Moderator: ^0
+      - HigherMod: ^1
+      - Admin: ^2
+      - God: ^3
+      # example of referencing previously declared values using strings
+      # will implicitly enable flags for the enum
+      - AllHumanlyPossible: User | Moderator | HigherMod | Admin
+      - All: AllHumanlyPossible | God
+        
+  # example of non-linear order
+  WindowOptions:
+    - None
+    - Windowed
+    - Borderless: 4
+    - Fullscreen
+    - Mirrored: 10
+    - Duplicated
+    
+  # example of explicitly setting the flags value, which in-turn causes values to implicitly be bit-shifted
+  SomeFlags:
+    flags: true
+    values:
+      - None
+      - One
+      - Two
+      - Four
+      - Eight
+      # example of All, which includes all flags
+      - All
+
+definitions:
+  EnumContainer:
+    props:
+      productType: ProductType
+      userRole: 
+        type: UserRole
+        default: Moderator | Admin
+      windowOptions:
+        type: WindowOptions
+        default: Fullscreen
+        

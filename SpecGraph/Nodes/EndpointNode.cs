@@ -16,7 +16,7 @@ public enum HttpMethod
 /// <summary>
 /// Represents an Endpoint within a Service.
 /// </summary>
-public class EndpointNode : Node, ICompilerOptions
+public class EndpointNode : Node, INodeDescription, ICompilerOptions
 {
     public required HttpMethod Method { get; set; }
     public required string Path { get; set; }

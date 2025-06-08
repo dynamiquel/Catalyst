@@ -8,10 +8,12 @@ namespace Catalyst.SpecGraph.Nodes;
 // This is only used for debugging any ways.
 [JsonDerivedType(typeof(CSharpGlobalOptionsNode))]
 [JsonDerivedType(typeof(CSharpFileOptionsNode))]
+[JsonDerivedType(typeof(CSharpEnumOptionsNode))]
 [JsonDerivedType(typeof(CSharpDefinitionOptionsNode))]
 [JsonDerivedType(typeof(CSharpPropertyOptionsNode))]
 [JsonDerivedType(typeof(UnrealGlobalOptionsNode))]
 [JsonDerivedType(typeof(UnrealFileOptionsNode))]
+[JsonDerivedType(typeof(UnrealEnumOptionsNode))]
 [JsonDerivedType(typeof(UnrealDefinitionOptionsNode))]
 [JsonDerivedType(typeof(UnrealPropertyOptionsNode))]
 [JsonDerivedType(typeof(UnrealServiceOptionsNode))]

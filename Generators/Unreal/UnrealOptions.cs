@@ -12,6 +12,11 @@ public class UnrealFileOptionsNode : GeneratorOptionsNode
     public string? Prefix { get; set; }
 }
 
+public class UnrealEnumOptionsNode : GeneratorOptionsNode
+{
+    public string? Prefix { get; set; }
+}
+
 public class UnrealDefinitionOptionsNode : GeneratorOptionsNode
 {
     public string? Prefix { get; set; }

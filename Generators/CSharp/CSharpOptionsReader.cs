@@ -26,6 +26,15 @@ public class CSharpOptionsReader : OptionsReader
         };
     }
 
+    public override GeneratorOptionsNode? ReadEnumOptions(EnumNode enumNode, GeneratorOptionsNode? parentCompilerOptions, RawNode? rawCompilerOptions)
+    {
+        return new CSharpEnumOptionsNode
+        {
+            Parent = new WeakReference<Node>(enumNode),
+            Name = SectionName,
+        };
+    }
+
     public override GeneratorOptionsNode? ReadDefinitionOptions(DefinitionNode definitionNode, GeneratorOptionsNode? parentCompilerOptions, RawNode? rawCompilerOptions)
     {
         CSharpClassType? classType = null;

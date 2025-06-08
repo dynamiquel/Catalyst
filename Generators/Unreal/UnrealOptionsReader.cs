@@ -24,6 +24,19 @@ public class UnrealOptionsReader : OptionsReader
         };
     }
 
+    public override GeneratorOptionsNode? ReadEnumOptions(EnumNode enumNode, GeneratorOptionsNode? parentCompilerOptions, RawNode? rawCompilerOptions)
+    {
+        string? prefix = rawCompilerOptions?.ReadPropertyAsStr("prefix");
+        prefix ??= ((UnrealFileOptionsNode?)parentCompilerOptions)?.Prefix;
+        
+        return new UnrealEnumOptionsNode
+        {
+            Parent = new WeakReference<Node>(enumNode),
+            Name = SectionName,
+            Prefix = prefix
+        };
+    }
+
     public override GeneratorOptionsNode? ReadDefinitionOptions(DefinitionNode definitionNode, GeneratorOptionsNode? parentCompilerOptions, RawNode? rawCompilerOptions)
     {
         string? prefix = rawCompilerOptions?.ReadPropertyAsStr("prefix");

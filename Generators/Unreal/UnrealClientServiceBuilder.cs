@@ -118,15 +118,8 @@ public class UnrealClientServiceBuilder : IClientServiceBuilder<UnrealCompiler>
         fileStr
             .AppendLine("}")
             .AppendLine();
-        
-        if (!string.IsNullOrEmpty(service.Node.Description))
-        {
-            fileStr.AppendLine("/**");
-            string[] descLines = service.Node.Description.Split('\n');
-            foreach (string descLine in descLines)
-                fileStr.AppendLine($" * {descLine}");
-            fileStr.AppendLine(" */");
-        }
+
+        Compiler.AppendDescriptionComment(fileStr, service.Node);
 
         fileStr
             .AppendLine("UCLASS(Config=Catalyst, DefaultConfig)")
@@ -142,6 +135,8 @@ public class UnrealClientServiceBuilder : IClientServiceBuilder<UnrealCompiler>
         {
             BuiltEndpoint endpoint = service.Endpoints[endpointIdx];
             string operationRef = $"TSharedRef<{serviceNamespace}::F{endpoint.Name}>";
+            
+            Compiler.AppendDescriptionComment(fileStr, endpoint.Node, 1);
 
             fileStr.AppendLine($"    {operationRef} {endpoint.Name}(")
                 .AppendLine($"        const {endpoint.RequestType.Name}& Request,")

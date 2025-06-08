@@ -17,6 +17,7 @@ namespace Catalyst.SpecGraph.Properties;
 [JsonDerivedType(typeof(ListValue))]
 [JsonDerivedType(typeof(MapValue))]
 [JsonDerivedType(typeof(ObjectValue))]
+[JsonDerivedType(typeof(EnumValue))]
 public interface IPropertyValue;
 
 /// <summary>
@@ -38,3 +39,5 @@ public record MapValue(Dictionary<IPropertyValue, IPropertyValue> Values) : IPro
 /// Represents a Property Value of a non-built-in Property Type, typically those generated from Spec Files.
 /// </summary>
 public record ObjectValue(IPropertyType Type, Dictionary<string, IPropertyValue> Values) : IPropertyValue;
+
+public record EnumValue(IPropertyType Type, string[] Values) : IPropertyValue;

@@ -8,7 +8,7 @@ namespace Catalyst.Generators.CSharp;
 
 public class CSharpDefinitionBuilder : IDefinitionBuilder<CSharpCompiler>
 {
-    public string Name => "default";
+    public string Name => Builder.Default;
     public required CSharpCompiler Compiler { get; init; }
     
     public string GetBuiltFileName(BuildContext context, DefinitionNode definitionNode)
@@ -82,6 +82,10 @@ public class CSharpDefinitionBuilder : IDefinitionBuilder<CSharpCompiler>
                 }
                 sb.Append(']');
                 return new SomePropertyValue(sb.ToString());
+            case EnumValue enumValue:
+                string enumPrefix = Compiler.GetCompiledPropertyType(enumValue.Type).Name;
+                string value = string.Join(" | ", enumValue.Values.Select(x => $"{enumPrefix}.{x}"));
+                return new SomePropertyValue(value);
             case MapValue mapValue:
                 throw new NotImplementedException();
             case NullValue nullValue:

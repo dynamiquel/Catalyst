@@ -8,9 +8,7 @@ public record NoPropertyValue() : BuiltPropertyValue(Value: null);
 public record SomePropertyValue(string Value) : BuiltPropertyValue(Value);
 
 public record BuiltPropertyType(string Name);
-
 public record BuiltInclude(string Path);
-    
 public record BuiltProperty(PropertyNode Node, string Name, BuiltPropertyType Type, BuiltPropertyValue Value);
     
 public enum FunctionFlags
@@ -26,8 +24,9 @@ public record BuiltFunction(string Name, string ReturnType, FunctionFlags Flags,
     public string? Body { get; set; } = BodyInit;
 }
 
+public record BuiltEnumValue(string Label, int Value);
+public record BuiltEnum(EnumNode Node, string Name, List<BuiltEnumValue> Values);
 public record BuiltDefinition(DefinitionNode Node, string Name, List<BuiltProperty> Properties, List<BuiltFunction> Functions);
-
 public record BuiltEndpoint(EndpointNode Node, string Name, BuiltPropertyType RequestType, BuiltPropertyType ResponseType);
 public record BuiltService(ServiceNode Node, string Name, List<BuiltEndpoint> Endpoints);
     
@@ -37,7 +36,15 @@ public enum FileFlags
     Header
 }
 
-public record BuiltFile(FileNode Node, string Name, FileFlags Flags, List<BuiltInclude> Includes, string? Namespace, List<BuiltDefinition> Definitions, List<BuiltService> Services)
+public record BuiltFile(
+    FileNode Node, 
+    string Name, 
+    FileFlags Flags, 
+    List<BuiltInclude> Includes, 
+    string? Namespace, 
+    List<BuiltEnum> Enums,
+    List<BuiltDefinition> Definitions, 
+    List<BuiltService> Services)
 {
     public override string ToString()
     {
@@ -56,6 +63,7 @@ public record BuildContext(FileNode FileNode, List<BuiltFile> Files)
             Files.Add(new BuiltFile(
                 Node: FileNode,
                 Name: fileName,
+                Enums: [],
                 Definitions: [],
                 Flags: fileFlags,
                 Includes: [],

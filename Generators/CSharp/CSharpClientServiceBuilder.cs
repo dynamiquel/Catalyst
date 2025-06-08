@@ -54,14 +54,7 @@ public class CSharpClientServiceBuilder : IClientServiceBuilder<CSharpCompiler>
             .AppendLine("}")
             .AppendLine();
 
-        if (!string.IsNullOrEmpty(service.Node.Description))
-        {
-            fileStr.AppendLine("/// <summary>");
-            string[] descLines = service.Node.Description.Split('\n');
-            foreach (string descLine in descLines)
-                fileStr.AppendLine($"/// {descLine}");
-            fileStr.AppendLine("/// </summary>");
-        }
+        Compiler.AppendDescriptionComment(fileStr, service.Node);
 
         fileStr
             .AppendLine($"public class {service.Name}(")
@@ -82,6 +75,8 @@ public class CSharpClientServiceBuilder : IClientServiceBuilder<CSharpCompiler>
             else
                 nullableResponseType += '?';
 
+            Compiler.AppendDescriptionComment(fileStr, endpoint.Node, 1);
+            
             fileStr
                 .AppendLine($"    public async Task<{endpoint.ResponseType.Name}> {endpoint.Name}({endpoint.RequestType.Name} request)")
                 .AppendLine("    {")

@@ -4,6 +4,11 @@ using Catalyst.SpecGraph.Properties;
 
 namespace Catalyst.Generators.Builders;
 
+public static class Builder
+{
+    public static readonly string Default = "default";
+}
+
 public interface IDefinitionBuilder
 {
     string Name { get; }
@@ -28,6 +33,19 @@ public interface IDefinitionBuilder
 }
 
 public interface IDefinitionBuilder<T> : IDefinitionBuilder where T : Compiler
+{
+    T Compiler { get; init; }
+}
+
+public interface IEnumBuilder
+{
+    string Name { get; }
+    string GetBuiltFileName(BuildContext context, EnumNode enumNode);
+    void Build(BuildContext context, EnumNode enumNode);
+    string GetCompiledEnumName(EnumNode enumNode);
+}
+
+public interface IEnumBuilder<T> : IEnumBuilder where T : Compiler
 {
     T Compiler { get; init; }
 }

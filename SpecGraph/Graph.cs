@@ -61,6 +61,7 @@ public class Graph
             };
         }
         
+        RegisterFileEnums(fileNode);
         RegisterFileDefinitions(fileNode);
         RegisterFileServices(fileNode);
         
@@ -482,6 +483,41 @@ public class Graph
                         
                         propertyValue = new TimeValue(TimeSpan.FromSeconds(seconds));
                         break;
+                    case EnumType enumType:
+                        string enumValueName;
+                        if (IsDefaultValue(jsonValue))
+                        {
+                            // Get the lowest value enum.
+                            enumValueName = enumType.OwnedEnum.Values.OrderBy(x => x.Value).First().Key;
+                            propertyValue = new EnumValue(enumType, [enumValueName]);
+                        }
+                        else if (jsonValue.GetValueKind() == JsonValueKind.String)
+                        {
+                            // Supports the use of flags.
+                            var enumValueStr = jsonValue.GetValue<string>();
+                            string[] enumFlags = enumValueStr.Split('|').Select(x => x.Trim()).ToArray();
+                            if (enumFlags.Any(enumFlag => !enumType.OwnedEnum.Values.ContainsKey(enumFlag)))
+                            {
+                                throw new InvalidEnumValueException
+                                {
+                                    PropertyNode = propertyNode,
+                                    ExpectedPropertyType = enumType,
+                                    ReceivedValue = jsonValue.ToJsonString()
+                                };
+                            }
+                            
+                            propertyValue = new EnumValue(enumType, enumFlags);
+                        }
+                        else
+                        {
+                            throw new InvalidPropertyValueFormatException
+                            {
+                                PropertyNode = propertyNode,
+                                ExpectedPropertyType = enumType,
+                                ReceivedValue = jsonValue.ToJsonString()
+                            };
+                        }
+                        break;
                     default:
                         throw new PropertyTypeMismatchException
                         {
@@ -489,13 +525,64 @@ public class Graph
                             ExpectedPropertyTypes =
                             [
                                 typeof(AnyType), typeof(BooleanType), typeof(DateType), typeof(FloatType),
-                                typeof(IntegerType), typeof(StringType), typeof(TimeType)
+                                typeof(IntegerType), typeof(StringType), typeof(TimeType), typeof(EnumType)
                             ]
                         };
                 }
                 break;
             default:
                 throw new ArgumentOutOfRangeException();
+        }
+    }
+    
+    void RegisterFileEnums(FileNode fileNode)
+    {
+        foreach (KeyValuePair<string, EnumNode> enumPair in fileNode.Enums)
+        {
+            EnumType newEnumPropertyType = new()
+            {
+                Name = string.IsNullOrEmpty(fileNode.Namespace)
+                    ? enumPair.Key
+                    : $"{fileNode.Namespace}.{enumPair.Key}",
+                Namespace = fileNode.Namespace,
+                OwnedEnum = enumPair.Value,
+                OwnedFile = fileNode
+            };
+
+            IPropertyType? existingPropertyType = FindPropertyType(newEnumPropertyType.Name);
+            if (existingPropertyType is not null)
+            {
+                throw new PropertyTypeAlreadyExistsException
+                {
+                    ExistingPropertyType = existingPropertyType,
+                    NewPropertyType = newEnumPropertyType
+                };
+            }
+            
+            // Ensure there isn't another property type with the same name but with different casing.
+            existingPropertyType = PropertyTypes.FirstOrDefault(x =>
+                string.Equals(x.Name, newEnumPropertyType.Name, StringComparison.CurrentCultureIgnoreCase));
+                
+            if (existingPropertyType is not null)
+            {
+                throw new SimilarPropertyTypeAlreadyExistsException
+                {
+                    ExistingPropertyType = existingPropertyType,
+                    NewPropertyType = newEnumPropertyType
+                };
+            }
+            
+            OptionalEnumType newOptionalEnumPropertyType = new()
+            {
+                Name = string.IsNullOrEmpty(fileNode.Namespace)
+                    ? $"{enumPair.Key}?"
+                    : $"{fileNode.Namespace}.{enumPair.Key}?",
+                Namespace = fileNode.Namespace,
+                OwnedEnum = enumPair.Value,
+                OwnedFile = fileNode
+            };
+
+            PropertyTypes.AddRange([newEnumPropertyType, newOptionalEnumPropertyType]);
         }
     }
 

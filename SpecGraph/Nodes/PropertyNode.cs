@@ -5,7 +5,7 @@ namespace Catalyst.SpecGraph.Nodes;
 /// <summary>
 /// Represents a Property within a Definition.
 /// </summary>
-public class PropertyNode : Node, ICompilerOptions
+public class PropertyNode : Node, INodeDescription, ICompilerOptions
 {
     public required string UnBuiltType { get; set; }
     public IPropertyType? BuiltType { get; set; }

@@ -22,6 +22,7 @@ Console.WriteLine($"BaseInputDir: {baseInputDir.FullName}");
 Console.WriteLine($"BaseOutputDir: {baseOutputDir.FullName}");
 
 CompilerOptions compilerOptions = new(
+    EnumBuilderName: config.EnumBuilder,
     DefinitionBuilderName: config.DefinitionBuilder,
     ClientServiceBuilderName: config.ClientBuilder,
     ServerServiceBuilderName: config.ServerBuilder);

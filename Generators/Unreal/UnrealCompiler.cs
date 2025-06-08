@@ -79,8 +79,11 @@ public class UnrealCompiler : Compiler
             case TimeType:
                 genPropertyType = new ("FTimespan");
                 break;
-            case ObjectType userType:
-                genPropertyType = new (DefinitionBuilder.GetCompiledClassName(userType.OwnedDefinition));
+            case ObjectType objectType:
+                genPropertyType = new (DefinitionBuilder.GetCompiledClassName(objectType.OwnedDefinition));
+                break;
+            case EnumType enumType:
+                genPropertyType = new(EnumBuilder.GetCompiledEnumName(enumType.OwnedEnum));
                 break;
             default:
                 throw new ArgumentOutOfRangeException(nameof(propertyType));
@@ -131,6 +134,30 @@ public class UnrealCompiler : Compiler
         return fileName;
     }
     
+    public StringBuilder AppendDescriptionComment(StringBuilder sb, INodeDescription node, int indentation = 0)
+    {
+        if (string.IsNullOrEmpty(node.Description)) 
+            return sb;
+
+        for (int indent = 0; indent < indentation; indent++)
+            sb.Append("    ");
+        sb.AppendLine("/**");
+        
+        string[] descLines = node.Description.Split('\n');
+        foreach (string descLine in descLines)
+        {
+            for (int indent = 0; indent < indentation; indent++)
+                sb.Append("    ");
+            sb.AppendLine($" * {descLine}");
+        }
+
+        for (int indent = 0; indent < indentation; indent++)
+            sb.Append("    ");
+        sb.AppendLine(" */");
+
+        return sb;
+    }
+    
     CompiledFile CompileHeaderFile(BuiltFile file)
     {
         StringBuilder sb = new();
@@ -143,17 +170,55 @@ public class UnrealCompiler : Compiler
         AddIncludes(file, sb);
         sb.AppendLine($"#include \"{Path.GetFileNameWithoutExtension(file.Name)}.generated.h\"");
         sb.AppendLine();
+
+        foreach (BuiltEnum builtEnum in file.Enums)
+        {
+            AppendDescriptionComment(sb, builtEnum.Node);
+
+            sb.Append("UENUM(BlueprintType");
+            if (builtEnum.Node.Flags == true)
+                sb.Append(", Meta=(Bitflags)");
+            
+            sb
+                .AppendLine(")")
+                .AppendLine($"enum class {builtEnum.Name} : int32")
+                .AppendLine("{");
+            
+            for (var enumValueIdx = 0; enumValueIdx < builtEnum.Values.Count; enumValueIdx++)
+            {
+                BuiltEnumValue builtEnumValue = builtEnum.Values[enumValueIdx];
+                sb.Append($"    {builtEnumValue.Label} = {builtEnumValue.Value}");
+
+                if (enumValueIdx < builtEnum.Values.Count - 1)
+                    sb.Append(',');
+                
+                sb.AppendLine();
+            }
+
+            sb.AppendLine("};");
+            
+            if (builtEnum.Node.Flags == true)
+                sb.AppendLine($"ENUM_CLASS_FLAGS({builtEnum.Name})");
+            
+            sb.AppendLine();
+        }
         
         foreach (BuiltDefinition def in file.Definitions)
         {
-            sb.AppendLine("USTRUCT(BlueprintType)");
-            sb.AppendLine($"struct {def.Name}").AppendLine("{");
-            sb.AppendLine("    GENERATED_BODY()");
-            sb.AppendLine();
+            AppendDescriptionComment(sb, def.Node);
+            
+            sb
+                .AppendLine("USTRUCT(BlueprintType)")
+                .AppendLine($"struct {def.Name}")
+                .AppendLine("{")
+                .AppendLine("    GENERATED_BODY()")
+                .AppendLine();
 
             for (int propertyIndex = 0; propertyIndex < def.Properties.Count; propertyIndex++)
             {
                 BuiltProperty property = def.Properties[propertyIndex];
+                
+                AppendDescriptionComment(sb, property.Node, 1);
                 
                 sb.Append("    UPROPERTY(EditAnywhere");
                 /*if (property.Attributes.Count > 0)

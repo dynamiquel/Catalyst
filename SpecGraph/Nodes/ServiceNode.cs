@@ -3,7 +3,7 @@ namespace Catalyst.SpecGraph.Nodes;
 /// <summary>
 /// Represents a Service within a Spec File.
 /// </summary>
-public class ServiceNode : Node, ICompilerOptions
+public class ServiceNode : Node, INodeDescription, ICompilerOptions
 {
     public required string Path { get; set; }
     public string? Description { get; set; }

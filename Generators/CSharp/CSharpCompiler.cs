@@ -32,18 +32,38 @@ public class CSharpCompiler : Compiler
         if (!string.IsNullOrWhiteSpace(file.Namespace))
             sb.AppendLine($"namespace {file.Namespace};").AppendLine();
 
+        foreach (var builtEnum in file.Enums)
+        {
+            AppendDescriptionComment(sb, builtEnum.Node);
+
+            if (builtEnum.Node.Flags == true)
+                sb.AppendLine("[Flags]");
+            
+            sb
+                .AppendLine($"[JsonConverter(typeof(JsonStringEnumConverter<{builtEnum.Name}>))]")
+                .AppendLine($"public enum {builtEnum.Name}")
+                .AppendLine("{");
+
+            for (var enumValueIdx = 0; enumValueIdx < builtEnum.Values.Count; enumValueIdx++)
+            {
+                BuiltEnumValue builtEnumValue = builtEnum.Values[enumValueIdx];
+                sb.Append($"    {builtEnumValue.Label} = {builtEnumValue.Value}");
+
+                if (enumValueIdx < builtEnum.Values.Count - 1)
+                    sb.Append(',');
+                
+                sb.AppendLine();
+            }
+
+            sb.AppendLine("}");
+            sb.AppendLine();
+        }
+
         for (var defIdx = 0; defIdx < file.Definitions.Count; defIdx++)
         {
             BuiltDefinition def = file.Definitions[defIdx];
             
-            if (!string.IsNullOrEmpty(def.Node.Description))
-            {
-                sb.AppendLine("/// <summary>");
-                string[] descLines = def.Node.Description.Split('\n');
-                foreach (string descLine in descLines)
-                    sb.AppendLine($"/// {descLine}");
-                sb.AppendLine("/// </summary>");
-            }
+            AppendDescriptionComment(sb, def.Node);
 
             CSharpClassType classType = def.Node.FindCompilerOptions<CSharpDefinitionOptionsNode>()!.Type;
             string classTypeStr = classType == CSharpClassType.Class ? "class" : "record";
@@ -51,7 +71,7 @@ public class CSharpCompiler : Compiler
 
             for (var propertyIdx = 0; propertyIdx < def.Properties.Count; propertyIdx++)
             {
-                var property = def.Properties[propertyIdx];
+                BuiltProperty property = def.Properties[propertyIdx];
                 /*if (property.Attributes.Count > 0)
                 {
                     sb.Append("    ");
@@ -64,14 +84,7 @@ public class CSharpCompiler : Compiler
                     }
                 }*/
 
-                if (!string.IsNullOrEmpty(property.Node.Description))
-                {
-                    sb.AppendLine("    /// <summary>");
-                    string[] descLines = property.Node.Description.Split('\n');
-                    foreach (string descLine in descLines)
-                        sb.AppendLine($"    /// {descLine}");
-                    sb.AppendLine("    /// </summary>");
-                }
+                AppendDescriptionComment(sb, property.Node, 1);
 
                 bool useRequired = property.Node.FindCompilerOptions<CSharpPropertyOptionsNode>()!.UseRequired;
 
@@ -138,15 +151,12 @@ public class CSharpCompiler : Compiler
 
     public override BuiltInclude? GetCompiledIncludeForType(BuiltFile file, IPropertyType propertyType)
     {
-        switch (propertyType)
+        return propertyType switch
         {
-            case ListType:
-            case MapType:
-            case SetType:
-                return new BuiltInclude("System.Collections.Generic");
-            default:
-                return null;
-        }
+            ListType or MapType or SetType => new BuiltInclude("System.Collections.Generic"),
+            EnumType => new BuiltInclude("System.Text.Json.Serialization"),
+            _ => null
+        };
     }
 
     public override BuiltPropertyType GetCompiledPropertyType(IPropertyType propertyType)
@@ -188,7 +198,7 @@ public class CSharpCompiler : Compiler
             case TimeType:
                 genPropertyType = new BuiltPropertyType("TimeSpan");
                 break;
-            case ObjectType userType:
+            case IUserPropertyType userType:
                 genPropertyType = new BuiltPropertyType(userType.Name.ToPascalCase());
                 break;
             default:
@@ -209,5 +219,29 @@ public class CSharpCompiler : Compiler
     public override string GetCompiledClassName(string className)
     {
         return className.ToPascalCase();
+    }
+    
+    public StringBuilder AppendDescriptionComment(StringBuilder sb, INodeDescription node, int indentation = 0)
+    {
+        if (string.IsNullOrEmpty(node.Description)) 
+            return sb;
+
+        for (int indent = 0; indent < indentation; indent++)
+            sb.Append("    ");
+        sb.AppendLine("/// <summary>");
+        
+        string[] descLines = node.Description.Split('\n');
+        foreach (string descLine in descLines)
+        {
+            for (int indent = 0; indent < indentation; indent++)
+                sb.Append("    ");
+            sb.AppendLine($"/// {descLine}");
+        }
+
+        for (int indent = 0; indent < indentation; indent++)
+            sb.Append("    ");
+        sb.AppendLine("/// </summary>");
+
+        return sb;
     }
 }

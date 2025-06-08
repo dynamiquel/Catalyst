@@ -28,6 +28,12 @@ public interface IPropertyType
 /// </summary>
 public interface IOptionalPropertyType;
 
+public interface IUserPropertyType : IPropertyType
+{
+    public string? Namespace { get; set; }
+    public FileNode OwnedFile { get; set; }
+}
+
 public class BooleanType : IPropertyType
 {
     public virtual string Name => "bool";
@@ -202,11 +208,21 @@ public class MapType : IPropertyContainer2InnerTypes
 }
 public class OptionalMapType : MapType, IOptionalPropertyType;
 
-public class ObjectType : IPropertyType
+public class ObjectType : IUserPropertyType
 {
     public required string Name { get; set; }
     public required string? Namespace { get; set; }
-    public required DefinitionNode OwnedDefinition { get; set; }
     public required FileNode OwnedFile { get; set; }
+    public required DefinitionNode OwnedDefinition { get; set; }
 }
 public class OptionalObjectType : ObjectType, IOptionalPropertyType;
+
+public class EnumType : IUserPropertyType
+{
+    public required string Name { get; set; }
+    public required string? Namespace { get; set; }
+    public required FileNode OwnedFile { get; set; }
+    public required EnumNode OwnedEnum { get; set; }
+}
+
+public class OptionalEnumType : EnumType, IOptionalPropertyType;

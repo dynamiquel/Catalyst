@@ -63,6 +63,10 @@ public class UnrealDefinitionBuilder : IDefinitionBuilder<UnrealCompiler>
                 return new SomePropertyValue(floatValue.Value.ToString(CultureInfo.InvariantCulture));
             case IntegerValue integerValue:
                 return new SomePropertyValue(integerValue.Value.ToString(CultureInfo.InvariantCulture));
+            case EnumValue enumValue:
+                string enumPrefix = Compiler.GetCompiledPropertyType(enumValue.Type).Name;
+                string value = string.Join(" | ", enumValue.Values.Select(x => $"{enumPrefix}.{x}"));
+                return new SomePropertyValue(value);
             case ListValue listValue:
                 StringBuilder sb = new();
                 sb.Append('[');

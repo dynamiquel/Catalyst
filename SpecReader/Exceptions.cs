@@ -49,3 +49,10 @@ public class ExpectedTokenNotFoundException : CatalystReaderException
     public required string TokenName { get; set; }
     public override string Message => $"Could not find expected token '{TokenName}' in '{RawNode.FileName}'. Breadcrumbs: {FileBreadcrumbString}";
 }
+
+public class ExistingEnumValueFoundException : CatalystReaderException
+{
+    public string EnumValueLabel { get; set; }
+
+    public override string Message => $"Enum '{LeafName}' already contains a value called '{EnumValueLabel}' in '{RawNode.FileName}. Breadcrumbs: {FileBreadcrumbString}";
+}

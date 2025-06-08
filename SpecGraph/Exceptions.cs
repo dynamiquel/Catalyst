@@ -29,10 +29,10 @@ public class PropertyTypeAlreadyExistsException : CatalystGraphException
         get
         {
             var msg = $"Property Type '{ExistingPropertyType.Name}' already exists in the SpecGraph";
-            if (ExistingPropertyType is ObjectType existingUserPropertyType)
+            if (ExistingPropertyType is IUserPropertyType existingUserPropertyType)
                 msg += $" and is declared in '{existingUserPropertyType.OwnedFile.FullName}'";
             
-            if (NewPropertyType is ObjectType newUserPropertyType)
+            if (NewPropertyType is IUserPropertyType newUserPropertyType)
                 msg += $". Cannot add the new one found in '{newUserPropertyType.OwnedFile.FullName}'";
 
             return msg;
@@ -49,10 +49,10 @@ public class SimilarPropertyTypeAlreadyExistsException : CatalystGraphException
         get
         {
             var msg = $"Similar Property Type '{ExistingPropertyType.Name}' already exists in the SpecGraph";
-            if (ExistingPropertyType is ObjectType existingUserPropertyType)
+            if (ExistingPropertyType is IUserPropertyType existingUserPropertyType)
                 msg += $" and is declared in '{existingUserPropertyType.OwnedFile.FullName}'";
             
-            if (NewPropertyType is ObjectType newUserPropertyType)
+            if (NewPropertyType is IUserPropertyType newUserPropertyType)
                 msg += $". Cannot add the new one found in '{newUserPropertyType.OwnedFile.FullName}'";
 
             return msg;
@@ -106,6 +106,14 @@ public class InvalidPropertyValueFormatException : CatalystGraphException
     public required IPropertyType ExpectedPropertyType { get; init; }
     public required object? ReceivedValue { get; init; }
     public override string Message => $"Received an unexpected value format for Property '{PropertyNode.FullName}' of type '{ExpectedPropertyType.Name}: '{ReceivedValue}'";
+}
+
+public class InvalidEnumValueException : CatalystGraphException
+{
+    public required PropertyNode PropertyNode { get; init; }
+    public required IPropertyType ExpectedPropertyType { get; init; }
+    public required object? ReceivedValue { get; init; }
+    public override string Message => $"Received an unexpected enum value for Property '{PropertyNode.FullName}' of type '{ExpectedPropertyType.Name}: '{ReceivedValue}'";
 }
 
 public class SimilarServiceAlreadyExistsException : CatalystGraphException

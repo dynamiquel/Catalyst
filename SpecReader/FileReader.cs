@@ -72,6 +72,7 @@ public class FileReader
         
         ReadIncludes(rawFileNode, fileNode);
         ReadFileCompilerOptions(rawFileNode, fileNode);
+        ReadEnums(rawFileNode, fileNode);
         ReadDefinitions(rawFileNode, fileNode);
         ReadServices(rawFileNode, fileNode);
         
@@ -117,6 +118,234 @@ public class FileReader
             
             fileNode.IncludeSpecs.Add(includeSpecStr);
         }
+    }
+    
+    void ReadEnums(RawFileNode rawFileNode, FileNode fileNode)
+    {
+        Console.WriteLine($"[{fileNode.FullName}] Reading Enums");
+
+        Dictionary<object, object>? enums = rawFileNode.ReadPropertyAsDictionary("enums");
+        if (enums is null) 
+            return;
+        
+        Console.WriteLine($"[{fileNode.FullName}] Found {enums.Count} Enums");
+        
+        RawNode enumsRawNode = rawFileNode.CreateChild(enums, "enums");
+            
+        foreach (KeyValuePair<object, object> enumKeyValue in enums)
+        {
+            string enumName = (string)enumKeyValue.Key;
+            Dictionary<object, object> enumObject;
+
+            if (enumKeyValue.Value is List<object> enumValuesList)
+            {
+                // Enums may be specified as a list of values rather than an object containing a values' field.
+                enumObject = new Dictionary<object, object>
+                {
+                    ["values"] = enumValuesList
+                };
+            }
+            else if (enumKeyValue.Value is Dictionary<object, object> enumObjectTest)
+            {
+                enumObject = enumObjectTest;
+            }
+            else
+            {
+                throw new UnexpectedTypeException
+                {
+                    RawNode = enumsRawNode,
+                    LeafName = enumName,
+                    ExpectedType = nameof(Dictionary<object, object>),
+                    ReceivedType = enumKeyValue.Value.GetType().Name
+                };
+            }
+            
+            RawNode enumRawNode = enumsRawNode.CreateChild(enumObject, enumName);
+            ReadEnum(fileNode, enumName, enumRawNode);
+        }
+    }
+
+    void ReadEnum(FileNode fileNode, string enumName, RawNode enumRawNode)
+    {
+        EnumNode enumNode = new()
+        {
+            Parent = new WeakReference<Node>(fileNode),
+            Name = enumName,
+            Description = (enumRawNode.ReadPropertyAsStr("description") ?? enumRawNode.ReadPropertyAsStr("desc"))?.TrimEnd(),
+            Flags = enumRawNode.ReadPropertyAsBool("flags")
+        };
+        
+        Console.WriteLine($"[{fileNode.FullName}] Reading Enum '{enumNode.Name}'");
+
+        ReadEnumCompilerOptions(fileNode, enumRawNode, enumNode);
+        
+        List<object>? enumValues = enumRawNode.ReadPropertyAsList("values");
+        if (enumValues is null)
+        {
+            throw new ExpectedTokenNotFoundException
+            {
+                RawNode = enumRawNode,
+                TokenName = "values"
+            };
+        }
+        
+        Console.WriteLine($"[{enumNode.FullName}] Found {enumValues.Count} Values");
+        
+        int prevIntegerValue = -1;
+        for (var valueIdx = 0; valueIdx < enumValues.Count; valueIdx++)
+        {
+            object enumValue = enumValues[valueIdx];
+            
+            string label;
+            int numericValue;
+
+            switch (enumValue)
+            {
+                case string valueStr:
+                    label = valueStr;
+
+                    if (valueIdx == enumValues.Count - 1)
+                    {
+                        if (enumNode.Flags == true && label.Equals("All", StringComparison.OrdinalIgnoreCase))
+                        {
+                            numericValue = ~0;
+                            break;
+                        }
+
+                        if (enumNode.Flags == false && label.Equals("Max", StringComparison.OrdinalIgnoreCase))
+                        {
+                            numericValue = enumNode.Values.OrderBy(x => x.Value).Last().Value;
+                            break;
+                        }
+                    }
+
+                    // Double the value if using flags and the previous value is a power of two.
+                    if (enumNode.Flags == true && prevIntegerValue != 0 &&
+                        (prevIntegerValue & (prevIntegerValue - 1)) == 0)
+                        numericValue = prevIntegerValue * 2;
+                    else
+                        numericValue = prevIntegerValue + 1;
+                    break;
+                // Yaml will make the map as a single entry, which will look like:
+                // enumValueLabel: enumValueInt.
+                case Dictionary<object, object> map when map.Count != 1:
+                    throw new UnexpectedTokenException
+                    {
+                        RawNode = enumRawNode,
+                        LeafName = enumName,
+                        TokenName = "enumValue"
+                    };
+                case Dictionary<object, object> map:
+                {
+                    KeyValuePair<object, object> enumValueKeyValue = map.First();
+                    if (enumValueKeyValue.Key is not string potentialLabel)
+                    {
+                        throw new UnexpectedTypeException
+                        {
+                            RawNode = enumRawNode,
+                            LeafName = enumName,
+                            ExpectedType = "string",
+                            ReceivedType = enumValueKeyValue.Key.GetType().Name
+                        };
+                    }
+
+                    if (enumValueKeyValue.Value is not int potentialNumericValue)
+                    {
+                        string? enumValueStr = enumValueKeyValue.Value as string;
+                        if (!string.IsNullOrEmpty(enumValueStr))
+                        {
+                            if (enumValueStr.StartsWith('^') && int.TryParse(enumValueStr[1..], out int shiftedValue))
+                            {
+                                // Determine integer value based on bitwise shift syntax.
+                                potentialNumericValue = 1 << shiftedValue;
+
+                                // Bitwise shift implies flags.
+                                enumNode.Flags ??= true;
+                            }
+                            else if (int.TryParse(enumValueKeyValue.Value as string, out int value))
+                            {
+                                // Sometimes Yaml parses an actual integer as a string for some reason.
+                                potentialNumericValue = value;
+                            }
+                            else
+                            {
+                                // Determine integer value based on string enum values, including flags.
+                                potentialNumericValue = 0;
+                                string[] enumFlags = enumValueStr.Split('|').Select(x => x.Trim()).ToArray();
+
+                                if (enumFlags.Length == 0)
+                                {
+                                    throw new UnexpectedTypeException
+                                    {
+                                        RawNode = enumRawNode,
+                                        LeafName = enumName,
+                                        ExpectedType = "int",
+                                        ReceivedType = enumValueKeyValue.Value.GetType().Name
+                                    };
+                                }
+
+                                if (enumFlags.Length > 1)
+                                {
+                                    // Multiple enum values implies flags.
+                                    enumNode.Flags ??= true;
+                                }
+
+                                foreach (string enumFlag in enumFlags)
+                                {
+                                    if (!enumNode.Values.TryGetValue(enumFlag, out int flagValue))
+                                    {
+                                        throw new UnexpectedTokenException
+                                        {
+                                            RawNode = enumRawNode,
+                                            LeafName = potentialLabel,
+                                            TokenName = enumFlag
+                                        };
+                                    }
+
+                                    potentialNumericValue |= flagValue;
+                                }
+                            }
+                        }
+                        else
+                        {
+                            throw new UnexpectedTypeException
+                            {
+                                RawNode = enumRawNode,
+                                LeafName = enumName,
+                                ExpectedType = "int",
+                                ReceivedType = enumValueKeyValue.Value.GetType().Name
+                            };
+                        }
+                    }
+
+                    label = potentialLabel;
+                    numericValue = potentialNumericValue;
+                    break;
+                }
+                default:
+                    throw new UnexpectedTypeException
+                    {
+                        RawNode = enumRawNode,
+                        LeafName = enumName,
+                        ExpectedType = nameof(Dictionary<object, object>),
+                        ReceivedType = enumValue.GetType().Name
+                    };
+            }
+
+            if (!enumNode.Values.TryAdd(label, numericValue))
+            {
+                throw new ExistingEnumValueFoundException
+                {
+                    RawNode = enumRawNode,
+                    LeafName = enumName,
+                    EnumValueLabel = label
+                };
+            }
+
+            prevIntegerValue = numericValue;
+        }
+
+        fileNode.Enums.Add(enumName, enumNode);
     }
     
     void ReadDefinitions(RawFileNode rawFileNode, FileNode fileNode)
@@ -177,7 +406,7 @@ public class FileReader
                 };
             }
 
-            Console.WriteLine($"[{fileNode.FullName}] Found {properties.Count} Properties");
+            Console.WriteLine($"[{definitionNode.FullName}] Found {properties.Count} Properties");
 
             RawNode propertiesRawNode = definitionRawNode.CreateChild(properties, "properties");
 
@@ -434,6 +663,18 @@ public class FileReader
             GeneratorOptionsNode? compilerOptions = languageFileReader.ReadFileOptions(fileNode, rawCompilerOptions);
             if (compilerOptions is not null)
                 fileNode.CompilerOptions.Add(compilerOptions.Name, compilerOptions);
+        }
+    }
+    
+    void ReadEnumCompilerOptions(FileNode fileNode, RawNode rawEnumNode, EnumNode enumNode)
+    {
+        foreach (OptionsReader languageFileReader in LanguageFileReaders)
+        {
+            RawNode? rawCompilerOptions = languageFileReader.GetRawCompilerOptions(rawEnumNode);
+            GeneratorOptionsNode? parentCompilerOptions = languageFileReader.GetCompilerOptions(fileNode);
+            GeneratorOptionsNode? compilerOptions = languageFileReader.ReadEnumOptions(enumNode, parentCompilerOptions, rawCompilerOptions);
+            if (compilerOptions is not null)
+                enumNode.CompilerOptions.Add(compilerOptions.Name, compilerOptions);
         }
     }
     

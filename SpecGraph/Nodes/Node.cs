@@ -30,3 +30,8 @@ public abstract class Node
         return parentCasted;
     }
 }
+
+public interface INodeDescription
+{
+    public string? Description { get; set; }
+}

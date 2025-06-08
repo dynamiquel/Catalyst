@@ -50,6 +50,8 @@ public class CSharpControllerServiceBuilder : IServerServiceBuilder<CSharpCompil
         if (!file.Name.EndsWith("ControllerBase.cs"))
             return;
         
+        Compiler.AppendDescriptionComment(fileStr, service.Node);
+        
         // Generate Server Controller
         fileStr
             .AppendLine("[ApiController]")
@@ -73,6 +75,8 @@ public class CSharpControllerServiceBuilder : IServerServiceBuilder<CSharpCompil
                 _ => throw new ArgumentOutOfRangeException()
             };
 
+            Compiler.AppendDescriptionComment(fileStr, endpoint.Node, 1);
+            
             fileStr
                 .AppendLine($"    [{httpMethodAttribute}(\"{endpoint.Node.Path.TrimStart('/')}\", Name = \"{service.Name}{endpoint.Name}\")]")
                 .AppendLine($"    public abstract Task<ActionResult<{endpoint.ResponseType.Name}>> {endpoint.Name.ToPascalCase()}({endpoint.RequestType.Name} request);");

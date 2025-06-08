@@ -12,6 +12,7 @@ public class FileNode : Node, ICompilerOptions
     public string Format = Formats.Json;
     public string? Namespace { get; set; }
     public List<string> IncludeSpecs { get; set; } = [];
+    public Dictionary<string, EnumNode> Enums { get; set; } = [];
     public Dictionary<string, DefinitionNode> Definitions { get; set; } = [];
     public Dictionary<string, ServiceNode> Services { get; set; } = [];
     public Dictionary<string, GeneratorOptionsNode> CompilerOptions { get; } = [];

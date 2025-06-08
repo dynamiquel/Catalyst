@@ -5,16 +5,22 @@ using Catalyst.SpecGraph.Properties;
 
 namespace Catalyst.Generators;
 
-public record CompilerOptions(string DefinitionBuilderName, string? ClientServiceBuilderName, string? ServerServiceBuilderName);
+public record CompilerOptions(
+    string EnumBuilderName, 
+    string DefinitionBuilderName, 
+    string? ClientServiceBuilderName, 
+    string? ServerServiceBuilderName);
 
 public abstract class Compiler
 {
     public abstract string Name { get; }
     
+    protected IEnumBuilder EnumBuilder { get; }
     protected IDefinitionBuilder DefinitionBuilder { get; }
     protected IClientServiceBuilder? ClientServiceBuilder { get; }
     protected IServerServiceBuilder? ServerServiceBuilder { get; }
-    
+
+    List<IEnumBuilder> AllEnumBuilders { get; } = [];
     List<IDefinitionBuilder> AllDefinitionBuilders { get; } = [];
     List<IClientServiceBuilder> AllClientServiceBuilders { get; } = [];
     List<IServerServiceBuilder> AllServerServiceBuilders { get; } = [];
@@ -22,6 +28,10 @@ public abstract class Compiler
     protected Compiler(CompilerOptions options)
     {
         FindAllBuildersForCompiler();
+        
+        EnumBuilder = 
+            AllEnumBuilders.Find(b => b.Name.Split(';').Contains(options.EnumBuilderName))
+            ?? throw new NullReferenceException($"Failed to find Enum Builder {options.EnumBuilderName}");
 
         DefinitionBuilder = 
             AllDefinitionBuilders.Find(b => b.Name.Split(';').Contains(options.DefinitionBuilderName)) 
@@ -40,7 +50,6 @@ public abstract class Compiler
             ServerServiceBuilder = 
                 AllServerServiceBuilders.Find(b => b.Name.Split(';').Contains(options.ServerServiceBuilderName))
                 ?? throw new NullReferenceException($"Failed to find Server Service Builder {options.ServerServiceBuilderName}");
-
         }
     }
 
@@ -66,6 +75,7 @@ public abstract class Compiler
 
     void FindAllBuildersForCompiler()
     {
+        Type enumBuilderInterface = typeof(IEnumBuilder<>).MakeGenericType(GetType());
         Type definitionBuilderInterface = typeof(IDefinitionBuilder<>).MakeGenericType(GetType());
         Type clientServiceBuilderInterface = typeof(IClientServiceBuilder<>).MakeGenericType(GetType());
         Type serverServiceBuilderInterface = typeof(IServerServiceBuilder<>).MakeGenericType(GetType());
@@ -73,7 +83,9 @@ public abstract class Compiler
         foreach (Assembly assembly in AppDomain.CurrentDomain.GetAssemblies())
         foreach (Type type in assembly.GetTypes())
         {
-            if (TryCreateBuilder<IDefinitionBuilder>(type, definitionBuilderInterface) is { } definitionBuilder)
+            if (TryCreateBuilder<IEnumBuilder>(type, enumBuilderInterface) is { } enumBuilder)
+                AllEnumBuilders.Add(enumBuilder);
+            else if (TryCreateBuilder<IDefinitionBuilder>(type, definitionBuilderInterface) is { } definitionBuilder)
                 AllDefinitionBuilders.Add(definitionBuilder);
             else if (TryCreateBuilder<IClientServiceBuilder>(type, clientServiceBuilderInterface) is { } clientBuilder)
                 AllClientServiceBuilders.Add(clientBuilder);
@@ -85,6 +97,9 @@ public abstract class Compiler
     public IEnumerable<BuiltFile> Build(FileNode fileNode)
     {
         BuildContext buildContext = new(fileNode, []);
+
+        foreach (KeyValuePair<string, EnumNode> enumNode in fileNode.Enums)
+            EnumBuilder.Build(buildContext, enumNode.Value);
         
         foreach (KeyValuePair<string, DefinitionNode> definitionNode in fileNode.Definitions)
             DefinitionBuilder.Build(buildContext, definitionNode.Value);
