@@ -78,7 +78,7 @@ public class CSharpClientServiceBuilder : IClientServiceBuilder<CSharpCompiler>
                 nullableResponseType += "?";
 
             fileStr
-                .AppendLine($"    public async Task<{endpoint.ResponseType.Name}> {endpoint.Name}({endpoint.ResponseType.Name} request)")
+                .AppendLine($"    public async Task<{endpoint.ResponseType.Name}> {endpoint.Name}({endpoint.RequestType.Name} request)")
                 .AppendLine("    {")
                 .AppendLine("        HttpRequestMessage httpRequest = new()")
                 .AppendLine("        {")
