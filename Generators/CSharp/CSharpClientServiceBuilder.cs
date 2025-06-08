@@ -48,7 +48,7 @@ public class CSharpClientServiceBuilder : IClientServiceBuilder<CSharpCompiler>
             return;
         
         fileStr
-            .AppendLine($"public class {service.Name}ClientOptions")
+            .AppendLine($"public class {service.Name}Options")
             .AppendLine("{")
             .AppendLine("    public required string Url { get; set; }")
             .AppendLine("}")
@@ -64,9 +64,9 @@ public class CSharpClientServiceBuilder : IClientServiceBuilder<CSharpCompiler>
         }
 
         fileStr
-            .AppendLine($"public class {service.Name}Client(")
+            .AppendLine($"public class {service.Name}(")
             .AppendLine("    HttpClient httpClient,")
-            .AppendLine($"    {service.Name}ClientOptions options)")
+            .AppendLine($"    {service.Name}Options options)")
             .AppendLine("{");
 
         for (int endpointIndex = 0; endpointIndex < service.Endpoints.Count; endpointIndex++)
