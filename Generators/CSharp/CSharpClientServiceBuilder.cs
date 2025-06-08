@@ -74,8 +74,13 @@ public class CSharpClientServiceBuilder : IClientServiceBuilder<CSharpCompiler>
             BuiltEndpoint endpoint = service.Endpoints[endpointIndex];
             
             string nullableResponseType = endpoint.ResponseType.Name;
-            if (!nullableResponseType.EndsWith("?"))
-                nullableResponseType += "?";
+            string notNullableResponseType = endpoint.ResponseType.Name;
+            bool isResponseTypeNullable = endpoint.ResponseType.Name.EndsWith('?');
+            
+            if (isResponseTypeNullable)
+                notNullableResponseType = endpoint.ResponseType.Name[..^1];
+            else
+                nullableResponseType += '?';
 
             fileStr
                 .AppendLine($"    public async Task<{endpoint.ResponseType.Name}> {endpoint.Name}({endpoint.RequestType.Name} request)")
@@ -89,11 +94,21 @@ public class CSharpClientServiceBuilder : IClientServiceBuilder<CSharpCompiler>
                 .AppendLine("        };")
                 .AppendLine()
                 .AppendLine("        HttpResponseMessage httpResponse = await httpClient.SendAsync(httpRequest).ConfigureAwait(false);")
-                .AppendLine("        if (!httpResponse.IsSuccessStatusCode)")
-                .AppendLine("            throw new Exception(httpResponse.ReasonPhrase);")
+                .AppendLine("        httpResponse.EnsureSuccessStatusCode();")
                 .AppendLine()
                 .AppendLine("        byte[] responseBytes = await httpResponse.Content.ReadAsByteArrayAsync().ConfigureAwait(false);")
-                .AppendLine($"        {nullableResponseType} response = {endpoint.ResponseType.Name}.FromBytes(responseBytes);")
+                .AppendLine($"        {nullableResponseType} response = {notNullableResponseType}.FromBytes(responseBytes);");
+
+            if (!isResponseTypeNullable)
+            {
+                fileStr
+                    .AppendLine()
+                    .AppendLine("        if (response is null)")
+                    .AppendLine($"            throw new NullReferenceException(\"Response of '{service.Name}/{endpoint.Name}' is null\");");
+            }
+            
+            fileStr
+                .AppendLine()
                 .AppendLine("        return response;")
                 .AppendLine("    }");
                 
