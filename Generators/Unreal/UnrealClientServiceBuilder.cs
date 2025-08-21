@@ -191,8 +191,16 @@ public class UnrealClientServiceBuilder : IClientServiceBuilder<UnrealCompiler>
     {
         var compilerOptions = serviceNode.FindCompilerOptions<UnrealServiceOptionsNode>()!;
         string? prefix = compilerOptions.Prefix ?? Compiler.GetPrefixFromNamespace(serviceNode.GetParentChecked<FileNode>().Namespace);
+       
+        string desiredServiceName = serviceNode.Name.ToPascalCase();
 
-        return $"U{prefix}{serviceNode.Name.ToPascalCase()}";
+        if (prefix is null)
+            return $"U{desiredServiceName}";
+
+        if (prefix.EndsWith(desiredServiceName))
+            return $"U{prefix}";
+
+        return $"U{prefix}{desiredServiceName}";
     }
 
     public string GetServiceNamespace(BuiltFile file, BuiltService service)
