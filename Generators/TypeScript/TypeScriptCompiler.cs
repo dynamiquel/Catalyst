@@ -22,6 +22,17 @@ public class TypeScriptCompiler : Compiler
         sb.AppendLine("//");
         sb.AppendLine();
 
+        // Emit imports for referenced user-defined types across files
+        var importMap = BuildTypeScriptImportMap(file);
+        foreach (var import in importMap.OrderBy(kvp => kvp.Key))
+        {
+            string importPath = ComputeRelativeImportPath(file.Name, import.Key);
+            string symbols = string.Join(", ", import.Value.OrderBy(x => x));
+            sb.AppendLine($"import {{ {symbols} }} from '{importPath}';");
+        }
+        if (importMap.Count > 0)
+            sb.AppendLine();
+
         foreach (var builtEnum in file.Enums)
         {
             AppendDescriptionComment(sb, builtEnum.Node);
@@ -179,7 +190,16 @@ public class TypeScriptCompiler : Compiler
                 genPropertyType = new BuiltPropertyType("number");
                 break;
             case IUserPropertyType userType:
-                genPropertyType = new BuiltPropertyType(userType.Name.ToPascalCase());
+                // For TS, emit only the simple identifier (no namespaces, no optional marker)
+                string typeName = userType.Name;
+                if (!string.IsNullOrEmpty(typeName) && typeName.EndsWith("?"))
+                    typeName = typeName[..^1];
+
+                int lastDotIdx = typeName.LastIndexOf('.');
+                if (lastDotIdx >= 0 && lastDotIdx < typeName.Length - 1)
+                    typeName = typeName[(lastDotIdx + 1)..];
+
+                genPropertyType = new BuiltPropertyType(typeName.ToPascalCase());
                 break;
             default:
                 throw new ArgumentOutOfRangeException(nameof(propertyType));
@@ -223,6 +243,100 @@ public class TypeScriptCompiler : Compiler
         sb.AppendLine(" */");
 
         return sb;
+    }
+
+    private Dictionary<string, HashSet<string>> BuildTypeScriptImportMap(BuiltFile file)
+    {
+        var map = new Dictionary<string, HashSet<string>>(StringComparer.OrdinalIgnoreCase);
+
+        // Collect from definitions
+        foreach (BuiltDefinition def in file.Definitions)
+        foreach (BuiltProperty prop in def.Properties)
+            CollectImportsForPropertyType(file, prop.Node.BuiltType!, map);
+
+        // Collect from services
+        foreach (BuiltService service in file.Services)
+        foreach (BuiltEndpoint endpoint in service.Endpoints)
+        {
+            CollectImportsForPropertyType(file, endpoint.Node.BuiltRequestType!, map);
+            CollectImportsForPropertyType(file, endpoint.Node.BuiltResponseType!, map);
+        }
+
+        return map;
+    }
+
+    private void CollectImportsForPropertyType(BuiltFile currentFile, IPropertyType type, Dictionary<string, HashSet<string>> map)
+    {
+        switch (type)
+        {
+            case ListType listType:
+                CollectImportsForPropertyType(currentFile, listType.InnerType, map);
+                break;
+            case SetType setType:
+                CollectImportsForPropertyType(currentFile, setType.InnerType, map);
+                break;
+            case MapType mapType:
+                CollectImportsForPropertyType(currentFile, mapType.InnerTypeA, map);
+                CollectImportsForPropertyType(currentFile, mapType.InnerTypeB, map);
+                break;
+            case IUserPropertyType userType:
+            {
+                string symbol = GetSimpleUserTypeName(userType);
+                string targetFile = GetBuiltFileNameForUserType(userType);
+                // Skip self-file
+                if (string.Equals(targetFile, currentFile.Name, StringComparison.OrdinalIgnoreCase))
+                    return;
+
+                if (!map.TryGetValue(targetFile, out var symbols))
+                {
+                    symbols = new HashSet<string>(StringComparer.Ordinal);
+                    map[targetFile] = symbols;
+                }
+                symbols.Add(symbol);
+                break;
+            }
+        }
+    }
+
+    private string GetSimpleUserTypeName(IUserPropertyType userType)
+    {
+        string typeName = userType.Name;
+        if (!string.IsNullOrEmpty(typeName) && typeName.EndsWith("?"))
+            typeName = typeName[..^1];
+        int lastDotIdx = typeName.LastIndexOf('.');
+        if (lastDotIdx >= 0 && lastDotIdx < typeName.Length - 1)
+            typeName = typeName[(lastDotIdx + 1)..];
+        return typeName.ToPascalCase();
+    }
+
+    private string GetBuiltFileNameForUserType(IUserPropertyType userType)
+    {
+        if (userType is ObjectType obj)
+        {
+            return DefinitionBuilder.GetBuiltFileName(new BuildContext(obj.OwnedFile, []), obj.OwnedDefinition);
+        }
+        if (userType is EnumType en)
+        {
+            return EnumBuilder.GetBuiltFileName(new BuildContext(en.OwnedFile, []), en.OwnedEnum);
+        }
+        // Fallback shouldn't happen
+        return string.Empty;
+    }
+
+    private string ComputeRelativeImportPath(string fromFile, string toFile)
+    {
+        string fromDir = System.IO.Path.GetDirectoryName(fromFile)?.Replace('\\', '/') ?? string.Empty;
+        string toPath = toFile.Replace('\\', '/');
+        string rel = System.IO.Path.GetRelativePath(string.IsNullOrEmpty(fromDir) ? "." : fromDir, toPath)
+            .Replace('\\', '/');
+
+        // Drop extension
+        if (rel.EndsWith(".ts", StringComparison.OrdinalIgnoreCase))
+            rel = rel.Substring(0, rel.Length - 3);
+
+        if (!rel.StartsWith(".") && !rel.StartsWith("/"))
+            rel = "./" + rel;
+        return rel;
     }
 }
 
