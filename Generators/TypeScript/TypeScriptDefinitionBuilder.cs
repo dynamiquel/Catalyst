@@ -49,7 +49,8 @@ public class TypeScriptDefinitionBuilder : IDefinitionBuilder<TypeScriptCompiler
         {
             IOptionalPropertyType => new NoPropertyValue(),
             AnyType or ObjectType => new SomePropertyValue("{} as any"),
-            ListType or MapType or SetType => new SomePropertyValue("[]"),
+            ListType or SetType => new SomePropertyValue("[]"),
+            MapType => new SomePropertyValue("{}"),
             StringType => new SomePropertyValue("''"),
             _ => new NoPropertyValue()
         };
@@ -80,7 +81,11 @@ public class TypeScriptDefinitionBuilder : IDefinitionBuilder<TypeScriptCompiler
                 sb.Append(']');
                 return new SomePropertyValue(sb.ToString());
             case EnumValue enumValue:
+                // Ensure enum references use simple identifier (no namespaces)
                 string enumPrefix = Compiler.GetCompiledPropertyType(enumValue.Type).Name;
+                int lastDotIdx = enumPrefix.LastIndexOf('.');
+                if (lastDotIdx >= 0 && lastDotIdx < enumPrefix.Length - 1)
+                    enumPrefix = enumPrefix[(lastDotIdx + 1)..];
                 string value = string.Join(" | ", enumValue.Values.Select(x => $"{enumPrefix}.{x}"));
                 return new SomePropertyValue(value);
             case MapValue:
