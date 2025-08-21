@@ -3,6 +3,7 @@ using Catalyst;
 using Catalyst.Generators;
 using Catalyst.Generators.CSharp;
 using Catalyst.Generators.Unreal;
+using Catalyst.Generators.TypeScript;
 using Catalyst.SpecGraph;
 using Catalyst.SpecGraph.Nodes;
 using Catalyst.SpecReader;
@@ -43,6 +44,7 @@ FileReader specFileReader = new()
 };
 specFileReader.AddGeneratorOptionsReader<CSharpOptionsReader>();
 specFileReader.AddGeneratorOptionsReader<UnrealOptionsReader>();
+specFileReader.AddGeneratorOptionsReader<TypeScriptOptionsReader>();
 
 await ReadSpecFilesRecursive(inputFiles);
 
@@ -62,6 +64,8 @@ if (config.Language == CSharp.Name)
     compiler = new CSharpCompiler(compilerOptions);
 else if (config.Language == Unreal.Name)
     compiler = new UnrealCompiler(compilerOptions);
+else if (config.Language == TypeScript.Name)
+    compiler = new TypeScriptCompiler(compilerOptions);
 else
     throw new InvalidOperationException($"Language {config.Language} is not supported");
 
