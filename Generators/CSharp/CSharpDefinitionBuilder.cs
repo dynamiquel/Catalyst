@@ -114,7 +114,7 @@ public class CSharpDefinitionBuilder : IDefinitionBuilder<CSharpCompiler>
                 ReturnType: "byte[]",
                 Flags: FunctionFlags.Const,
                 Parameters: [],
-                BodyInit: "return System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(this);")
+                BodyInit: "return System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(this, JsonSerializerOptions.Web);")
         ];
     }
 
@@ -126,7 +126,7 @@ public class CSharpDefinitionBuilder : IDefinitionBuilder<CSharpCompiler>
                 ReturnType: $"{definitionNode.Name.ToPascalCase()}?",
                 Flags: FunctionFlags.Static,
                 Parameters: ["ReadOnlySpan<byte> bytes"],
-                BodyInit: $"return System.Text.Json.JsonSerializer.Deserialize<{definitionNode.Name.ToPascalCase()}>(bytes);")
+                BodyInit: $"return System.Text.Json.JsonSerializer.Deserialize<{definitionNode.Name.ToPascalCase()}>(bytes, JsonSerializerOptions.Web);")
         ];
     }
 }
