@@ -46,8 +46,6 @@ public class CSharpDefinitionBuilder : IDefinitionBuilder<CSharpCompiler>
         BuiltFile file = context.GetOrAddFile(Compiler, GetBuiltFileName(context, definitionNode));
         file.Definitions.Add(definition);
         file.Includes.Add(new("System.Text.Json"));
-
-        context.GetOrAddFile(Compiler, GetBuiltFileName(context, definitionNode)).Definitions.Add(definition);
     }
 
     public BuiltPropertyValue GetCompiledDefaultValueForPropertyType(IPropertyType propertyType)
