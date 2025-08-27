@@ -81,7 +81,7 @@ public class CSharpClientServiceBuilder : IClientServiceBuilder<CSharpCompiler>
                 .AppendLine($"    public async Task<{endpoint.ResponseType.Name}> {endpoint.Name}({endpoint.RequestType.Name} request)")
                 .AppendLine("    {")
                 .AppendLine("        ByteArrayContent requestContent = new(request.ToBytes());")
-                .AppendLine("        requestContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(\"application/json;\", \"utf-8\");")
+                .AppendLine("        requestContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(\"application/json\", \"utf-8\");")
                 .AppendLine()
                 .AppendLine("        HttpRequestMessage httpRequest = new()")
                 .AppendLine("        {")
