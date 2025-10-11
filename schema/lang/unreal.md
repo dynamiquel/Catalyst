@@ -19,6 +19,7 @@ This section details the Unreal Engine-specific attributes and type conversions 
 | `bool`                       | `bool`                   |                                                                              |
 | `date`                       | `FDateTime`              |                                                                              |
 | `time`                       | `FTimespan`              |                                                                              |
+| `uuid`                       | `FGuid`                  |                                                                              |
 | `list<T>`                    | `TArray<T>`              | Where `T` is the C++ equivalent of the inner schema type.                    |
 | `set<T>`                     | `TSet<T>`                | Where `T` is the C++ equivalent of the inner schema type.                    |
 | `map<K, V>`                  | `TMap<K, V>`             | Where `K` and `V` are the C++ equivalents of the schema key and value types. |

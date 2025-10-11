@@ -70,6 +70,7 @@ A property definition can have the following keys:
   - `bool`: boolean
   - `date`: ISO 8601 date
   - `time`: timespan
+  - `uuid`: 128-bit UUID
   - `list<T>`: resizable array of T elements
   - `set<T>`: unique container of T elements
   - `map<K, V>`: hash map of T elements keyed using K

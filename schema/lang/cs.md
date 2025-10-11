@@ -22,6 +22,7 @@ This section details the C#-specific attributes and type conversions used during
 | `bool`                       | `bool`                  |                                                                             |
 | `date`                       | `DateTime`              |                                                                             |
 | `time`                       | `TimeSpan`              |                                                                             |
+| `uuid`                       | `Guid`                  |                                                                             |
 | `list<T>`                    | `List<T>`               | Where `T` is the C# equivalent of the inner schema type.                    |
 | `set<T>`                     | `HashSet<T>`            | Where `T` is the C# equivalent of the inner schema type.                    |
 | `map<K, V>`                  | `Dictionary<K, V>`      | Where `K` and `V` are the C# equivalents of the schema key and value types. |
