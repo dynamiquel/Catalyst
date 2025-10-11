@@ -45,7 +45,10 @@ public class CSharpDefinitionBuilder : IDefinitionBuilder<CSharpCompiler>
         
         BuiltFile file = context.GetOrAddFile(Compiler, GetBuiltFileName(context, definitionNode));
         file.Definitions.Add(definition);
-        file.Includes.Add(new("System.Text.Json"));
+        file.Includes.AddRange([
+            new("System.Text.Json"),
+            new("System.Text.Json.Serialization")
+        ]);
     }
 
     public BuiltPropertyValue GetCompiledDefaultValueForPropertyType(IPropertyType propertyType)
@@ -116,7 +119,7 @@ public class CSharpDefinitionBuilder : IDefinitionBuilder<CSharpCompiler>
                 ReturnType: "byte[]",
                 Flags: FunctionFlags.Const,
                 Parameters: [],
-                BodyInit: "return System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(this, JsonSerializerOptions.Web);")
+                BodyInit: $"return System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(this, {GetJsonContextName(context, definitionNode)});")
         ];
     }
 
@@ -128,7 +131,10 @@ public class CSharpDefinitionBuilder : IDefinitionBuilder<CSharpCompiler>
                 ReturnType: $"{definitionNode.Name.ToPascalCase()}?",
                 Flags: FunctionFlags.Static,
                 Parameters: ["ReadOnlySpan<byte> bytes"],
-                BodyInit: $"return System.Text.Json.JsonSerializer.Deserialize<{definitionNode.Name.ToPascalCase()}>(bytes, JsonSerializerOptions.Web);")
+                BodyInit: $"return System.Text.Json.JsonSerializer.Deserialize<{definitionNode.Name.ToPascalCase()}>(bytes, {GetJsonContextName(context, definitionNode)});")
         ];
     }
+
+    private string GetJsonContextName(BuildContext context, DefinitionNode definitionNode) =>
+        $"{context.FileNode.FileName.ToPascalCase()}JsonContext.Default.{definitionNode.Name.ToPascalCase()}";
 }

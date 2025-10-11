@@ -136,6 +136,24 @@ public class CSharpCompiler : Compiler
                 sb.AppendLine();
         }
 
+        sb.AppendLine();
+
+        if (file.Definitions.Count > 0)
+        {
+            // JSON Serialiser Context
+            sb
+                .AppendLine("[JsonSourceGenerationOptions(")
+                .AppendLine("    WriteIndented = false,")
+                .AppendLine("    DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,")
+                .AppendLine("    NumberHandling = JsonNumberHandling.AllowReadingFromString,")
+                .AppendLine("    PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase,")
+                .AppendLine("    PropertyNameCaseInsensitive = true)]");
+            foreach (var def in file.Definitions)
+                sb.AppendLine($"[JsonSerializable(typeof({def.Name}))]");
+            sb.AppendLine(
+                $"public partial class {file.Node.FileName.ToPascalCase()}JsonContext : JsonSerializerContext;");
+        }
+
         // TODO: Redo BuiltService and BuiltEndpoint. The implementation details should be generated
         // in the Build stage, not the Compile stage.
         if (ClientServiceBuilder is not null)
@@ -154,7 +172,6 @@ public class CSharpCompiler : Compiler
         return propertyType switch
         {
             ListType or MapType or SetType => new BuiltInclude("System.Collections.Generic"),
-            EnumType => new BuiltInclude("System.Text.Json.Serialization"),
             _ => null
         };
     }
