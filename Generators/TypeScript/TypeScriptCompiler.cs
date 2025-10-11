@@ -189,6 +189,9 @@ public class TypeScriptCompiler : Compiler
             case TimeType:
                 genPropertyType = new BuiltPropertyType("number");
                 break;
+            case UuidType:
+                genPropertyType = new BuiltPropertyType("string");
+                break;
             case IUserPropertyType userType:
                 // For TS, emit only the simple identifier (no namespaces, no optional marker)
                 string typeName = userType.Name;

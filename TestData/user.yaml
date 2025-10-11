@@ -11,6 +11,7 @@ definitions:
     description: Represents a user in the system.
     properties:
       userId: i32
+      userUuid: uuid?
       username: str
       email: str
       registrationDate:

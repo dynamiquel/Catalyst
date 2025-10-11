@@ -94,6 +94,16 @@ public class OptionalTimeType : TimeType, IOptionalPropertyType
     public override string Name => "time?";
 }
 
+public class UuidType : IPropertyType
+{
+    public virtual string Name => "uuid";
+}
+
+public class OptionalUuidType : UuidType, IOptionalPropertyType
+{
+    public override string Name => "uuid?";
+}
+
 public class AnyType : IPropertyType, IOptionalPropertyType
 {
     public string Name => "any";

@@ -483,6 +483,24 @@ public class Graph
                         
                         propertyValue = new TimeValue(TimeSpan.FromSeconds(seconds));
                         break;
+                    case UuidType:
+                        Guid guid;
+                        if (IsDefaultValue(jsonValue))
+                            guid = Guid.Empty;
+                        else if (jsonValue.GetValueKind() == JsonValueKind.String)
+                            guid = Guid.Parse(jsonValue.GetValue<string>());
+                        else
+                        {
+                            throw new InvalidPropertyValueFormatException
+                            {
+                                PropertyNode = propertyNode,
+                                ExpectedPropertyType = propertyType,
+                                ReceivedValue = jsonValue.ToJsonString()
+                            };
+                        }
+                        
+                        propertyValue = new UuidValue(guid);
+                        break;
                     case EnumType enumType:
                         string enumValueName;
                         if (IsDefaultValue(jsonValue))
@@ -525,7 +543,8 @@ public class Graph
                             ExpectedPropertyTypes =
                             [
                                 typeof(AnyType), typeof(BooleanType), typeof(DateType), typeof(FloatType),
-                                typeof(IntegerType), typeof(StringType), typeof(TimeType), typeof(EnumType)
+                                typeof(IntegerType), typeof(StringType), typeof(TimeType), typeof(UuidType),
+                                typeof(EnumType),
                             ]
                         };
                 }
@@ -687,6 +706,8 @@ public class Graph
         PropertyTypes.Add(new OptionalDateType());
         PropertyTypes.Add(new TimeType());
         PropertyTypes.Add(new OptionalTimeType());
+        PropertyTypes.Add(new UuidType());
+        PropertyTypes.Add(new OptionalUuidType());
         PropertyTypes.Add(new AnyType());
     }
 

@@ -27,6 +27,8 @@ public class UnrealCompiler : Compiler
                 return new ("Misc/DateTime");
             case TimeType:
                 return new("Misc/Timespan");
+            case UuidType:
+                return new("Misc/Guid");
             case ObjectType objectType:
                 string compiledFileName = DefinitionBuilder.GetBuiltFileName(
                     new BuildContext(objectType.OwnedFile, []), 
@@ -78,6 +80,9 @@ public class UnrealCompiler : Compiler
                 break;
             case TimeType:
                 genPropertyType = new ("FTimespan");
+                break;
+            case UuidType:
+                genPropertyType = new("FGuid");
                 break;
             case ObjectType objectType:
                 genPropertyType = new (DefinitionBuilder.GetCompiledClassName(objectType.OwnedDefinition));

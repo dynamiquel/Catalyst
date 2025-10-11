@@ -215,6 +215,9 @@ public class CSharpCompiler : Compiler
             case TimeType:
                 genPropertyType = new BuiltPropertyType("TimeSpan");
                 break;
+            case UuidType:
+                genPropertyType = new BuiltPropertyType("Guid");
+                break;
             case IUserPropertyType userType:
                 genPropertyType = new BuiltPropertyType(userType.Name.ToPascalCase());
                 break;

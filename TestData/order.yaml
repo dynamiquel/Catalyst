@@ -17,7 +17,7 @@ definitions:
     description: Represents a customer order.
     properties:
       orderId:
-        type: str
+        type: uuid
         cs:
           useRequired: true   # example of using the required keyword for C#
       customer: UserManagement.User
