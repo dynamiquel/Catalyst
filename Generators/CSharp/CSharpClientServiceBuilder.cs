@@ -36,12 +36,18 @@ public class CSharpClientServiceBuilder : IClientServiceBuilder<CSharpCompiler>
             Endpoints: endpoints
         );
 
-        context.GetOrAddFile(Compiler, GetBuiltFileName(context, serviceNode)).Services.Add(service);
+        BuiltFile file = context.GetOrAddFile(Compiler, GetBuiltFileName(context, serviceNode));
+        file.Services.Add(service);
+        
+        if (service.Node.FindCompilerOptions<CSharpServiceOptionsNode>()!.UseOptions)
+            file.Includes.Add(new("Microsoft.Extensions.Options"));
     }
 
     public void Compile(BuiltFile file, BuiltService service, StringBuilder fileStr)
     {
         // TODO: Remove this Compile stage all together and make it part of the Build stage.
+
+        var options = service.Node.FindCompilerOptions<CSharpServiceOptionsNode>()!;
         
         // Hackyyyyy.
         if (!file.Name.EndsWith("Client.cs"))
@@ -51,6 +57,7 @@ public class CSharpClientServiceBuilder : IClientServiceBuilder<CSharpCompiler>
             .AppendLine($"public class {service.Name}Options")
             .AppendLine("{")
             .AppendLine("    public required string Url { get; set; }")
+            .AppendLine("    public Func<string?> GetAuthHeader { internal get; set; } = () => null;")
             .AppendLine("}")
             .AppendLine();
 
@@ -59,7 +66,9 @@ public class CSharpClientServiceBuilder : IClientServiceBuilder<CSharpCompiler>
         fileStr
             .AppendLine($"public class {service.Name}(")
             .AppendLine("    HttpClient httpClient,")
-            .AppendLine($"    {service.Name}Options options)")
+            .AppendLine(options.UseOptions 
+                     ? $"    IOptions<{service.Name}Options> options)" 
+                     : $"    {service.Name}Options options)")
             .AppendLine("{");
 
         for (int endpointIndex = 0; endpointIndex < service.Endpoints.Count; endpointIndex++)
@@ -76,6 +85,8 @@ public class CSharpClientServiceBuilder : IClientServiceBuilder<CSharpCompiler>
                 nullableResponseType += '?';
 
             Compiler.AppendDescriptionComment(fileStr, endpoint.Node, 1);
+
+            string getOptions = options.UseOptions ? "options.Value" : "options";
             
             fileStr
                 .AppendLine($"    public async Task<{endpoint.ResponseType.Name}> {endpoint.Name}({endpoint.RequestType.Name} request)")
@@ -83,10 +94,14 @@ public class CSharpClientServiceBuilder : IClientServiceBuilder<CSharpCompiler>
                 .AppendLine("        ByteArrayContent requestContent = new(request.ToBytes());")
                 .AppendLine("        requestContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(\"application/json\", \"utf-8\");")
                 .AppendLine()
+                .AppendLine($"       string? authHeader = {getOptions}.GetAuthHeader.Invoke();")
+                .AppendLine("        if (!string.IsNullOrEmpty(authHeader))")
+                .AppendLine("            requestContent.Headers.Add(\"Authorization\", authHeader);")
+                .AppendLine()
                 .AppendLine("        HttpRequestMessage httpRequest = new()")
                 .AppendLine("        {")
                 .AppendLine($"            Method = HttpMethod.{endpoint.Node.Method},")
-                .AppendLine($"            RequestUri = new Uri(options.Url + \"{service.Node.Path}\" + \"{endpoint.Node.Path}\"),")
+                .AppendLine($"            RequestUri = new Uri({getOptions}.Url + \"{service.Node.Path}\" + \"{endpoint.Node.Path}\"),")
                 .AppendLine("            Content = requestContent")
                 .AppendLine("        };")
                 .AppendLine()

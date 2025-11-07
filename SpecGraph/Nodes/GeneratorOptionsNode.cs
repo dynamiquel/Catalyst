@@ -11,6 +11,7 @@ namespace Catalyst.SpecGraph.Nodes;
 [JsonDerivedType(typeof(CSharpEnumOptionsNode))]
 [JsonDerivedType(typeof(CSharpDefinitionOptionsNode))]
 [JsonDerivedType(typeof(CSharpPropertyOptionsNode))]
+[JsonDerivedType(typeof(CSharpServiceOptionsNode))]
 [JsonDerivedType(typeof(UnrealGlobalOptionsNode))]
 [JsonDerivedType(typeof(UnrealFileOptionsNode))]
 [JsonDerivedType(typeof(UnrealEnumOptionsNode))]

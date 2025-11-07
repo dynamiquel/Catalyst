@@ -15,14 +15,16 @@ public class CSharpOptionsReader : OptionsReader
     public override GeneratorOptionsNode? ReadFileOptions(FileNode fileNode, RawNode? rawCompilerOptions)
     {
         CSharpClassType classType = ParseClassType(rawCompilerOptions?.ReadPropertyAsStr("classType")) ?? CSharpClassType.Record;
-        bool useRequires = rawCompilerOptions?.ReadPropertyAsBool("useRequired") ?? false;
-        
+        bool useRequires = rawCompilerOptions?.ReadPropertyAsBool("useRequired") ?? true;
+        bool useOptions = rawCompilerOptions?.ReadPropertyAsBool("useOptions") ?? true;
+
         return new CSharpFileOptionsNode
         {
             Parent = new WeakReference<Node>(fileNode),
             Name = SectionName,
             ClassType = classType,
-            UseRequired = useRequires
+            UseRequired = useRequires,
+            UseOptions = useOptions
         };
     }
 
@@ -59,7 +61,7 @@ public class CSharpOptionsReader : OptionsReader
             Parent = new WeakReference<Node>(definitionNode),
             Name = SectionName,
             Type = classType ?? CSharpClassType.Record,
-            UseRequired = useRequires ?? false
+            UseRequired = useRequires ?? true
         };
     }
 
@@ -87,14 +89,24 @@ public class CSharpOptionsReader : OptionsReader
         {
             Parent = new WeakReference<Node>(propertyNode),
             Name = SectionName,
-            UseRequired = useRequires ?? false
+            UseRequired = useRequires ?? true
         };
     }
 
     public override GeneratorOptionsNode? ReadServiceOptions(ServiceNode serviceNode, GeneratorOptionsNode? parentCompilerOptions,
         RawNode? rawCompilerOptions)
     {
-        return null;
+        bool useOptions = 
+            rawCompilerOptions?.ReadPropertyAsBool("useOptions") ?? 
+            ((CSharpFileOptionsNode?)parentCompilerOptions)?.UseOptions ??
+            true;
+        
+        return new CSharpServiceOptionsNode
+        {
+            Parent = new WeakReference<Node>(serviceNode),
+            Name = SectionName,
+            UseOptions = useOptions
+        };
     }
 
     static CSharpClassType? ParseClassType(string? classTypeStr)
