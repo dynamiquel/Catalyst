@@ -32,6 +32,20 @@ public class CSharpDefinitionBuilder : IDefinitionBuilder<CSharpCompiler>
                 Value: propertyValue
             ));
         }
+
+        List<BuiltConstant> constants = [];
+        foreach (KeyValuePair<string, ConstantNode> constantNode in definitionNode.Constants)
+        {
+            BuiltPropertyType constantType = Compiler.GetCompiledPropertyType(constantNode.Value.BuiltType!);
+            BuiltPropertyValue constantValue = this.GetCompiledPropertyValue(constantNode.Value.BuiltType!, constantNode.Value.Value);
+
+            constants.Add(new(
+                Node: constantNode.Value,
+                Name: constantNode.Value.Name.ToPascalCase(),
+                Type: constantType,
+                Value: constantValue
+            ));
+        }
         
         List<BuiltFunction> functions = [];
         functions.AddRange(BuildSerialiseFunctions(context, definitionNode));
@@ -41,6 +55,7 @@ public class CSharpDefinitionBuilder : IDefinitionBuilder<CSharpCompiler>
             Node: definitionNode,
             Name: GetCompiledClassName(definitionNode),
             Properties: properties,
+            Constants: constants,
             Functions: functions);
         
         BuiltFile file = context.GetOrAddFile(Compiler, GetBuiltFileName(context, definitionNode));
@@ -101,6 +116,8 @@ public class CSharpDefinitionBuilder : IDefinitionBuilder<CSharpCompiler>
                 return new SomePropertyValue($"\"{stringValue.Value}\"");
             case TimeValue timeValue:
                 return new SomePropertyValue($"TimeSpan.FromSeconds({timeValue.Value.TotalSeconds.ToString(CultureInfo.InvariantCulture)})");
+            case UuidValue uuidValue:
+                return new SomePropertyValue($"Guid.Parse(\"{uuidValue.Value}\")");
             default:
                 throw new ArgumentOutOfRangeException();
         }

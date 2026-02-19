@@ -1,0 +1,34 @@
+name: Build and Test
+
+on:
+  push:
+    branches: [ "master" ]
+  pull_request:
+    branches: [ "master" ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: 10.0.x
+
+    - name: Restore dependencies
+      run: dotnet restore
+
+    - name: Build
+      run: dotnet build --no-restore
+
+    - name: Test C#
+      run: dotnet run --project . --Language=cs --BaseInputDir=./TestData --BaseOutputDir=./output/cs
+
+    - name: Test TypeScript
+      run: dotnet run --project . --Language=ts --BaseInputDir=./TestData --BaseOutputDir=./output/ts
+
+    - name: Test Unreal
+      run: dotnet run --project . --Language=unreal --BaseInputDir=./TestData --BaseOutputDir=./output/unreal

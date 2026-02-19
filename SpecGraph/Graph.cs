@@ -209,6 +209,12 @@ public class Graph
         foreach (KeyValuePair<string, PropertyNode> property in definition.Value.Properties)
             BuildTypeForProperty(file, property.Value);
         
+        // Build types for constants.
+        foreach (FileNode file in Files)
+        foreach (KeyValuePair<string, DefinitionNode> definition in file.Definitions)
+        foreach (KeyValuePair<string, ConstantNode> constant in definition.Value.Constants)
+            BuildTypeForConstant(file, constant.Value);
+
         // Now types are all build, build the default values.
         foreach (FileNode file in Files)
         foreach (KeyValuePair<string, DefinitionNode> definition in file.Definitions)
@@ -219,6 +225,22 @@ public class Graph
         foreach (KeyValuePair<string, ServiceNode> service in file.Services)
         foreach (KeyValuePair<string, EndpointNode> endpoint in service.Value.Endpoints)
             BuildTypesForEndpoint(file, endpoint.Value);
+    }
+
+    void BuildTypeForConstant(FileNode fileNode, ConstantNode constantNode)
+    {
+        IPropertyType? foundPropertyType = FindPropertyType(constantNode.UnBuiltType, fileNode.Namespace);
+
+        if (foundPropertyType is null)
+        {
+            throw new PropertyTypeNotFoundException
+            {
+                ExpectedProperty = constantNode.UnBuiltType,
+                Node = constantNode
+            };
+        }
+
+        constantNode.BuiltType = foundPropertyType;
     }
 
     void BuildTypeForProperty(FileNode fileNode, PropertyNode propertyNode)

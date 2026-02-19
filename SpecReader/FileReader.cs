@@ -417,6 +417,21 @@ public class FileReader
             }
         }
 
+        Dictionary<object, object>? constants = definitionRawNode.ReadPropertyAsDictionary("constants");
+        constants ??= definitionRawNode.ReadPropertyAsDictionary("consts");
+        if (constants is not null)
+        {
+            Console.WriteLine($"[{definitionNode.FullName}] Found {constants.Count} Constants");
+
+            RawNode constantsRawNode = definitionRawNode.CreateChild(constants, "constants");
+
+            foreach (KeyValuePair<object, object> constant in constants)
+            {
+                string constantName = ((string)constant.Key);
+                ReadConstant(definitionNode, constantsRawNode, constantName, constant.Value);
+            }
+        }
+
         fileNode.Definitions.Add(definitionName, definitionNode);
     }
 
@@ -486,6 +501,104 @@ public class FileReader
         ReadPropertyCompilerOptions(definitionNode, propertyRawNode, propertyNode);
         
         definitionNode.Properties.Add(propertyName, propertyNode);
+    }
+
+    void ReadConstant(DefinitionNode definitionNode, RawNode constantsRawNode, string constantName, object constantValue)
+    {
+        Console.WriteLine($"[{definitionNode.FullName}] Reading Constant '{constantName}'");
+
+        Dictionary<object, object>? constantObjectValue = constantValue as Dictionary<object, object>;
+        if (constantObjectValue is null)
+        {
+            throw new UnexpectedTypeException
+            {
+                RawNode = constantsRawNode,
+                LeafName = constantName,
+                ExpectedType = nameof(Dictionary<object, object>),
+                ReceivedType = constantValue.GetType().Name
+            };
+        }
+
+        RawNode constantRawNode = constantsRawNode.CreateChild(constantObjectValue, constantName);
+
+        string? constantType = constantRawNode.ReadPropertyAsStr("type");
+        if (string.IsNullOrWhiteSpace(constantType))
+        {
+            throw new ExpectedTokenNotFoundException
+            {
+                RawNode = constantRawNode,
+                TokenName = "type"
+            };
+        }
+
+        constantType = constantType.Replace(" ", string.Empty);
+
+        object? constantDefaultValue = constantRawNode.Internal.GetValueOrDefault("value");
+        if (constantDefaultValue is null)
+        {
+            throw new ExpectedTokenNotFoundException
+            {
+                RawNode = constantRawNode,
+                TokenName = "value"
+            };
+        }
+
+        IPropertyValue propertyValue = ConvertYamlValueToPropertyValue(constantDefaultValue, constantRawNode);
+
+        ConstantNode constantNode = new()
+        {
+            Parent = new WeakReference<Node>(definitionNode),
+            Name = constantName,
+            UnBuiltType = constantType,
+            Description = (constantRawNode.ReadPropertyAsStr("description") ?? constantsRawNode.ReadPropertyAsStr("desc"))?.TrimEnd(),
+            Value = propertyValue
+        };
+
+        ReadConstantCompilerOptions(definitionNode, constantRawNode, constantNode);
+
+        definitionNode.Constants.Add(constantName, constantNode);
+    }
+
+    IPropertyValue ConvertYamlValueToPropertyValue(object yamlValue, RawNode rawNode)
+    {
+        return yamlValue switch
+        {
+            bool boolValue => new BooleanValue(boolValue),
+            double doubleValue => new FloatValue(doubleValue),
+            long longValue => new IntegerValue((int)longValue),
+            string stringValue => ConvertStringToPropertyValue(stringValue),
+            _ => throw new UnexpectedTypeException
+            {
+                RawNode = rawNode,
+                ExpectedType = "Supported constant value type",
+                ReceivedType = yamlValue.GetType().Name
+            }
+        };
+    }
+
+    IPropertyValue ConvertStringToPropertyValue(string value)
+    {
+        if (value == "true")
+            return new BooleanValue(true);
+        if (value == "false")
+            return new BooleanValue(false);
+        
+        if (int.TryParse(value, out int intValue))
+            return new IntegerValue(intValue);
+        
+        if (double.TryParse(value, out double doubleValue))
+            return new FloatValue(doubleValue);
+        
+        if (TimeSpan.TryParse(value, out TimeSpan timeValue))
+            return new TimeValue(timeValue);
+        
+        if (DateTime.TryParse(value, out DateTime dateValue))
+            return new DateValue(dateValue);
+        
+        if (Guid.TryParse(value, out Guid uuidValue))
+            return new UuidValue(uuidValue);
+        
+        return new StringValue(value);
     }
     
     void ReadServices(RawFileNode rawFileNode, FileNode fileNode)
@@ -701,6 +814,11 @@ public class FileReader
                 propertyNode.CompilerOptions.Add(compilerOptions.Name, compilerOptions);
         }
     }
+    
+    void ReadConstantCompilerOptions(DefinitionNode definitionNode, RawNode constantRawNode, ConstantNode constantNode)
+    {
+    }
+
     
     void ReadServiceCompilerOptions(FileNode fileNode, RawNode rawServiceNode, ServiceNode serviceNode)
     {

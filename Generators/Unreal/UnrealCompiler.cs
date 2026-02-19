@@ -219,6 +219,37 @@ public class UnrealCompiler : Compiler
                 .AppendLine("    GENERATED_BODY()")
                 .AppendLine();
 
+            if (def.Constants.Count > 0)
+            {
+                for (int constantIndex = 0; constantIndex < def.Constants.Count; constantIndex++)
+                {
+                    BuiltConstant constant = def.Constants[constantIndex];
+
+                    AppendDescriptionComment(sb, constant.Node, 1);
+
+                    bool canBeConstexpr = constant.Type.Name is "bool" or "int32" or "double";
+                    bool canBeConstexprString = constant.Type.Name is "FString";
+
+                    if (canBeConstexpr)
+                    {
+                        sb.AppendLine($"    static constexpr {constant.Type.Name} {constant.Name} = {constant.Value.Value};");
+                    }
+                    else if (canBeConstexprString)
+                    {
+                        sb.AppendLine($"    static constexpr const TCHAR* {constant.Name} = TEXT({constant.Value.Value});");
+                    }
+                    else
+                    {
+                        sb.AppendLine($"    static {constant.Type.Name} Get{constant.Name}();");
+                    }
+
+                    if (constantIndex < def.Constants.Count - 1)
+                        sb.AppendLine();
+                }
+
+                sb.AppendLine();
+            }
+
             for (int propertyIndex = 0; propertyIndex < def.Properties.Count; propertyIndex++)
             {
                 BuiltProperty property = def.Properties[propertyIndex];
@@ -310,6 +341,21 @@ public class UnrealCompiler : Compiler
 
         foreach (BuiltDefinition def in file.Definitions)
         {
+            foreach (BuiltConstant constant in def.Constants)
+            {
+                bool canBeConstexpr = constant.Type.Name is "bool" or "int32" or "double";
+                bool canBeConstexprString = constant.Type.Name is "FString";
+                if (!canBeConstexpr && !canBeConstexprString)
+                {
+                    sb.AppendLine();
+                    sb.AppendLine($"{constant.Type.Name} {def.Name}::Get{constant.Name}()");
+                    sb.AppendLine("{");
+                    sb.AppendLine($"    static {constant.Type.Name} Instance{{{constant.Value.Value}}};");
+                    sb.AppendLine("    return Instance;");
+                    sb.AppendLine("}");
+                }
+            }
+
             foreach (BuiltFunction function in def.Functions)
             {
                 if (function.Body is null)

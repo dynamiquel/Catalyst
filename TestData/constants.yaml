@@ -1,0 +1,29 @@
+namespace: Catalyst.Tests.Constants
+
+definitions:
+  ConstantTest:
+    properties:
+      name:
+        type: str
+    constants:
+      intConstant:
+        type: i32
+        value: 42
+      floatConstant:
+        type: f64
+        value: 3.14
+      stringConstant:
+        type: str
+        value: "hello world"
+      boolConstant:
+        type: bool
+        value: true
+      dateConstant:
+        type: date
+        value: "2024-01-15T10:30:00Z"
+      uuidConstant:
+        type: uuid
+        value: "12345678-1234-1234-1234-123456789abc"
+      timeConstant:
+        type: time
+        value: "01:30:00"

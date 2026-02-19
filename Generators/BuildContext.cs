@@ -10,6 +10,7 @@ public record SomePropertyValue(string Value) : BuiltPropertyValue(Value);
 public record BuiltPropertyType(string Name);
 public record BuiltInclude(string Path);
 public record BuiltProperty(PropertyNode Node, string Name, BuiltPropertyType Type, BuiltPropertyValue Value);
+public record BuiltConstant(ConstantNode Node, string Name, BuiltPropertyType Type, BuiltPropertyValue Value);
     
 public enum FunctionFlags
 {
@@ -26,7 +27,7 @@ public record BuiltFunction(string Name, string ReturnType, FunctionFlags Flags,
 
 public record BuiltEnumValue(string Label, int Value);
 public record BuiltEnum(EnumNode Node, string Name, List<BuiltEnumValue> Values);
-public record BuiltDefinition(DefinitionNode Node, string Name, List<BuiltProperty> Properties, List<BuiltFunction> Functions);
+public record BuiltDefinition(DefinitionNode Node, string Name, List<BuiltProperty> Properties, List<BuiltConstant> Constants, List<BuiltFunction> Functions);
 public record BuiltEndpoint(EndpointNode Node, string Name, BuiltPropertyType RequestType, BuiltPropertyType ResponseType);
 public record BuiltService(ServiceNode Node, string Name, List<BuiltEndpoint> Endpoints);
     

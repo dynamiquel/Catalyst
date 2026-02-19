@@ -69,6 +69,33 @@ public class CSharpCompiler : Compiler
             string classTypeStr = classType == CSharpClassType.Class ? "class" : "record";
             sb.AppendLine($"public {classTypeStr} {def.Name}").AppendLine("{");
 
+            if (def.Constants.Count > 0)
+            {
+                for (var constantIdx = 0; constantIdx < def.Constants.Count; constantIdx++)
+                {
+                    BuiltConstant constant = def.Constants[constantIdx];
+
+                    AppendDescriptionComment(sb, constant.Node, 1);
+
+                    bool canBeConst = constant.Type.Name is "int" or "double" or "bool" or "string";
+                    if (canBeConst)
+                    {
+                        sb.Append($"    public const {constant.Type.Name} {constant.Name} = {constant.Value.Value};");
+                    }
+                    else
+                    {
+                        sb.Append($"    public static readonly {constant.Type.Name} {constant.Name} = {constant.Value.Value};");
+                    }
+
+                    sb.AppendLine();
+
+                    if (constantIdx < def.Constants.Count - 1)
+                        sb.AppendLine();
+                }
+
+                sb.AppendLine();
+            }
+
             for (var propertyIdx = 0; propertyIdx < def.Properties.Count; propertyIdx++)
             {
                 BuiltProperty property = def.Properties[propertyIdx];

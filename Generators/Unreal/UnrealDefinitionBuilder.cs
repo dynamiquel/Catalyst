@@ -89,6 +89,8 @@ public class UnrealDefinitionBuilder : IDefinitionBuilder<UnrealCompiler>
                 return new SomePropertyValue($"\"{stringValue.Value}\"");
             case TimeValue timeValue:
                 return new SomePropertyValue($"FTimespan::FromSeconds({timeValue.Value.TotalSeconds.ToString(CultureInfo.InvariantCulture)})");
+            case UuidValue uuidValue:
+                return new SomePropertyValue($"FGuid(\"{uuidValue.Value}\")");
             default:
                 throw new ArgumentOutOfRangeException();
         }
@@ -152,6 +154,20 @@ public class UnrealDefinitionBuilder : IDefinitionBuilder<UnrealCompiler>
             ));
         }
 
+        List<BuiltConstant> constants = [];
+        foreach (KeyValuePair<string, ConstantNode> constantNode in definitionNode.Constants)
+        {
+            BuiltPropertyType constantType = Compiler.GetCompiledPropertyType(constantNode.Value.BuiltType!);
+            BuiltPropertyValue constantValue = this.GetCompiledPropertyValue(constantNode.Value.BuiltType!, constantNode.Value.Value);
+
+            constants.Add(new(
+                Node: constantNode.Value,
+                Name: constantNode.Value.Name.ToPascalCase(),
+                Type: constantType,
+                Value: constantValue
+            ));
+        }
+
         List<BuiltFunction> fullFunctions = [];
         fullFunctions.AddRange(BuildSerialiseFunctions(context, definitionNode));
         fullFunctions.AddRange(BuildDeserialiseFunctions(context, definitionNode));
@@ -168,6 +184,7 @@ public class UnrealDefinitionBuilder : IDefinitionBuilder<UnrealCompiler>
             Node: definitionNode,
             Name: GetCompiledClassName(definitionNode),
             Properties: properties,
+            Constants: constants,
             Functions: headerFunctions);
         
         BuiltFile headerFile = context.GetOrAddFile(Compiler, GetBuiltFileName(context, definitionNode), FileFlags.Header);
@@ -176,6 +193,20 @@ public class UnrealDefinitionBuilder : IDefinitionBuilder<UnrealCompiler>
 
     void BuildSource(BuildContext context, DefinitionNode definitionNode)
     {
+        List<BuiltConstant> constants = [];
+        foreach (KeyValuePair<string, ConstantNode> constantNode in definitionNode.Constants)
+        {
+            BuiltPropertyType constantType = Compiler.GetCompiledPropertyType(constantNode.Value.BuiltType!);
+            BuiltPropertyValue constantValue = this.GetCompiledPropertyValue(constantNode.Value.BuiltType!, constantNode.Value.Value);
+
+            constants.Add(new(
+                Node: constantNode.Value,
+                Name: constantNode.Value.Name.ToPascalCase(),
+                Type: constantType,
+                Value: constantValue
+            ));
+        }
+
         List<BuiltFunction> functions = [];
         functions.AddRange(BuildSerialiseFunctions(context, definitionNode));
         functions.AddRange(BuildDeserialiseFunctions(context, definitionNode));
@@ -184,6 +215,7 @@ public class UnrealDefinitionBuilder : IDefinitionBuilder<UnrealCompiler>
             Node: definitionNode,
             Name: GetCompiledClassName(definitionNode),
             Properties: [],
+            Constants: constants,
             Functions: functions);
         
         BuiltFile sourceFile = context.GetOrAddFile(Compiler, GetBuiltSourceFileName(context, definitionNode));

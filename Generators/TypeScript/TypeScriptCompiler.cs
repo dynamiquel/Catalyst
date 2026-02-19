@@ -58,6 +58,25 @@ public class TypeScriptCompiler : Compiler
             AppendDescriptionComment(sb, def.Node);
             sb.AppendLine($"export class {def.Name} {{");
 
+            if (def.Constants.Count > 0)
+            {
+                for (var constantIdx = 0; constantIdx < def.Constants.Count; constantIdx++)
+                {
+                    BuiltConstant constant = def.Constants[constantIdx];
+
+                    AppendDescriptionComment(sb, constant.Node, 1);
+
+                    sb.Append($"    static readonly {constant.Name}: {constant.Type.Name} = {constant.Value.Value};");
+
+                    sb.AppendLine();
+
+                    if (constantIdx < def.Constants.Count - 1)
+                        sb.AppendLine();
+                }
+
+                sb.AppendLine();
+            }
+
             for (var propertyIdx = 0; propertyIdx < def.Properties.Count; propertyIdx++)
             {
                 BuiltProperty property = def.Properties[propertyIdx];
