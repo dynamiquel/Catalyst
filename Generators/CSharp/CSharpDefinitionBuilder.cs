@@ -90,6 +90,8 @@ public class CSharpDefinitionBuilder : IDefinitionBuilder<CSharpCompiler>
                 return new SomePropertyValue(floatValue.Value.ToString(CultureInfo.InvariantCulture));
             case IntegerValue integerValue:
                 return new SomePropertyValue(integerValue.Value.ToString(CultureInfo.InvariantCulture));
+            case Integer64Value integer64Value:
+                return new SomePropertyValue($"{integer64Value.Value.ToString(CultureInfo.InvariantCulture)}L");
             case ListValue listValue:
                 StringBuilder sb = new();
                 sb.Append('[');

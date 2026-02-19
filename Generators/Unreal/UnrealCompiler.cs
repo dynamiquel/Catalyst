@@ -62,6 +62,9 @@ public class UnrealCompiler : Compiler
             case IntegerType:
                 genPropertyType = new("int32");
                 break;
+            case Integer64Type:
+                genPropertyType = new("int64");
+                break;
             case ListType listType:
                 BuiltPropertyType innerListPropertyType = GetCompiledPropertyType(listType.InnerType);
                 genPropertyType = new($"TArray<{innerListPropertyType.Name}>");
@@ -227,7 +230,7 @@ public class UnrealCompiler : Compiler
 
                     AppendDescriptionComment(sb, constant.Node, 1);
 
-                    bool canBeConstexpr = constant.Type.Name is "bool" or "int32" or "double";
+                    bool canBeConstexpr = constant.Type.Name is "bool" or "int32" or "int64" or "double";
                     bool canBeConstexprString = constant.Type.Name is "FString";
 
                     if (canBeConstexpr)
@@ -343,7 +346,7 @@ public class UnrealCompiler : Compiler
         {
             foreach (BuiltConstant constant in def.Constants)
             {
-                bool canBeConstexpr = constant.Type.Name is "bool" or "int32" or "double";
+                bool canBeConstexpr = constant.Type.Name is "bool" or "int32" or "int64" or "double";
                 bool canBeConstexprString = constant.Type.Name is "FString";
                 if (!canBeConstexpr && !canBeConstexprString)
                 {

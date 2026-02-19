@@ -43,7 +43,7 @@ public class UnrealDefinitionBuilder : IDefinitionBuilder<UnrealCompiler>
         {
             IOptionalPropertyType => new NoPropertyValue(),
             BooleanType => new SomePropertyValue("false"),
-            IntegerType or FloatType => new SomePropertyValue("0"),
+            IntegerType or Integer64Type or FloatType => new SomePropertyValue("0"),
             _ => new NoPropertyValue()
         };
     }
@@ -63,6 +63,8 @@ public class UnrealDefinitionBuilder : IDefinitionBuilder<UnrealCompiler>
                 return new SomePropertyValue(floatValue.Value.ToString(CultureInfo.InvariantCulture));
             case IntegerValue integerValue:
                 return new SomePropertyValue(integerValue.Value.ToString(CultureInfo.InvariantCulture));
+            case Integer64Value integer64Value:
+                return new SomePropertyValue(integer64Value.Value.ToString(CultureInfo.InvariantCulture));
             case EnumValue enumValue:
                 string enumPrefix = Compiler.GetCompiledPropertyType(enumValue.Type).Name;
                 string value = string.Join(" | ", enumValue.Values.Select(x => $"{enumPrefix}.{x}"));

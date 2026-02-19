@@ -189,6 +189,9 @@ public class TypeScriptCompiler : Compiler
             case IntegerType:
                 genPropertyType = new BuiltPropertyType("number");
                 break;
+            case Integer64Type:
+                genPropertyType = new BuiltPropertyType("bigint");
+                break;
             case ListType listType:
                 BuiltPropertyType innerListPropertyType = GetCompiledPropertyType(listType.InnerType);
                 genPropertyType = new BuiltPropertyType($"Array<{innerListPropertyType.Name}>");

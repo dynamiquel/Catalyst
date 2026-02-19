@@ -470,6 +470,26 @@ public class Graph
                         
                         propertyValue = new IntegerValue(intValue);
                         break;
+                    case Integer64Type:
+                        long int64Value;
+                        if (IsDefaultValue(jsonValue))
+                            int64Value = 0;
+                        else if (jsonValue.GetValueKind() == JsonValueKind.Number)
+                            int64Value = jsonValue.GetValue<long>();
+                        else if (jsonValue.GetValueKind() == JsonValueKind.String)
+                            int64Value = long.Parse(jsonValue.GetValue<string>());
+                        else
+                        {
+                            throw new InvalidPropertyValueFormatException
+                            {
+                                PropertyNode = propertyNode,
+                                ExpectedPropertyType = propertyType,
+                                ReceivedValue = jsonValue.ToJsonString()
+                            };
+                        }
+                        
+                        propertyValue = new Integer64Value(int64Value);
+                        break;
                     case StringType:
                         string stringValue;
                         if (IsDefaultValue(jsonValue))
@@ -565,7 +585,7 @@ public class Graph
                             ExpectedPropertyTypes =
                             [
                                 typeof(AnyType), typeof(BooleanType), typeof(DateType), typeof(FloatType),
-                                typeof(IntegerType), typeof(StringType), typeof(TimeType), typeof(UuidType),
+                                typeof(IntegerType), typeof(Integer64Type), typeof(StringType), typeof(TimeType), typeof(UuidType),
                                 typeof(EnumType),
                             ]
                         };
@@ -720,6 +740,8 @@ public class Graph
         PropertyTypes.Add(new OptionalBooleanType());
         PropertyTypes.Add(new IntegerType());
         PropertyTypes.Add(new OptionalIntegerType());
+        PropertyTypes.Add(new Integer64Type());
+        PropertyTypes.Add(new OptionalInteger64Type());
         PropertyTypes.Add(new FloatType());
         PropertyTypes.Add(new OptionalFloatType());
         PropertyTypes.Add(new StringType());

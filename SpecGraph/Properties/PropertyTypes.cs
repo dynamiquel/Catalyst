@@ -54,6 +54,16 @@ public class OptionalIntegerType : IntegerType, IOptionalPropertyType
     public override string Name => "i32?";
 }
 
+public class Integer64Type : IPropertyType
+{
+    public virtual string Name => "i64";
+}
+
+public class OptionalInteger64Type : Integer64Type, IOptionalPropertyType
+{
+    public override string Name => "i64?";
+}
+
 public class FloatType : IPropertyType
 {
     public virtual string Name => "f64";

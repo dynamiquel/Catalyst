@@ -24,6 +24,9 @@ definitions:
       orderDate: date
       items: list<OrderItem>    # example of same namespace
       totalAmount: f64
+      trackingNumber: 
+        type: i64
+        default: 21000000000
       shippingAddress: Common.Address
       orderStatus: str
       notes: str?

@@ -66,6 +66,7 @@ A property definition can have the following keys:
 - `type` (required): The data type of the property. Supported types include:
   - `str`: string of characters
   - `i32`: 32-bit integer
+  - `i64`: 64-bit integer
   - `f64`: 64-bit floating-point number
   - `bool`: boolean
   - `date`: ISO 8601 date

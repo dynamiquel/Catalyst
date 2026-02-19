@@ -10,6 +10,7 @@ namespace Catalyst.SpecGraph.Properties;
 [JsonDerivedType(typeof(UnBuiltValue))]
 [JsonDerivedType(typeof(BooleanValue))]
 [JsonDerivedType(typeof(IntegerValue))]
+[JsonDerivedType(typeof(Integer64Value))]
 [JsonDerivedType(typeof(FloatValue))]
 [JsonDerivedType(typeof(StringValue))]
 [JsonDerivedType(typeof(DateValue))]
@@ -29,6 +30,7 @@ public record UnBuiltValue(string ValueJson) : IPropertyValue;
 public record NullValue : IPropertyValue;
 public record BooleanValue(bool Value) : IPropertyValue;
 public record IntegerValue(int Value) : IPropertyValue;
+public record Integer64Value(long Value) : IPropertyValue;
 public record FloatValue(double Value) : IPropertyValue;
 public record StringValue(string Value) : IPropertyValue;
 public record DateValue(DateTime Value) : IPropertyValue;

@@ -83,6 +83,8 @@ public class TypeScriptDefinitionBuilder : IDefinitionBuilder<TypeScriptCompiler
                 return new SomePropertyValue(floatValue.Value.ToString(System.Globalization.CultureInfo.InvariantCulture));
             case IntegerValue integerValue:
                 return new SomePropertyValue(integerValue.Value.ToString(System.Globalization.CultureInfo.InvariantCulture));
+            case Integer64Value integer64Value:
+                return new SomePropertyValue($"{integer64Value.Value.ToString(System.Globalization.CultureInfo.InvariantCulture)}n");
             case ListValue listValue:
                 System.Text.StringBuilder sb = new();
                 sb.Append('[');

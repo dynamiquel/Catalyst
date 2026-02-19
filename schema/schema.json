@@ -64,7 +64,7 @@
       "oneOf": [
         {
           "type": "string",
-          "pattern": "^(str|i32|f64|bool|date|time|uuid|list<.+>|set<.+>|map<.+,.+>|[a-zA-Z0-9\\._]+)(\\?)?$",
+          "pattern": "^(str|i32|i64|f64|bool|date|time|uuid|list<.+>|set<.+>|map<.+,.+>|[a-zA-Z0-9\\._]+)(\\?)?$",
           "description": "Shorthand property type definition (allowing optional, containers, and references)."
         },
         {
@@ -72,7 +72,7 @@
           "properties": {
             "type": {
               "type": "string",
-              "pattern": "^(str|i32|f64|bool|date|time|uuid|list<.+>|set<.+>|map<.+,.+>|[a-zA-Z0-9\\._]+)(\\?)?$",
+              "pattern": "^(str|i32|i64|f64|bool|date|time|uuid|list<.+>|set<.+>|map<.+,.+>|[a-zA-Z0-9\\._]+)(\\?)?$",
               "description": "Data type of the property (allowing optional, containers, and references)."
             },
             "description": {

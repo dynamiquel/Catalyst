@@ -77,7 +77,7 @@ public class CSharpCompiler : Compiler
 
                     AppendDescriptionComment(sb, constant.Node, 1);
 
-                    bool canBeConst = constant.Type.Name is "int" or "double" or "bool" or "string";
+                    bool canBeConst = constant.Type.Name is "int" or "long" or "double" or "bool" or "string";
                     if (canBeConst)
                     {
                         sb.Append($"    public const {constant.Type.Name} {constant.Name} = {constant.Value.Value};");
@@ -222,6 +222,9 @@ public class CSharpCompiler : Compiler
                 break;
             case IntegerType:
                 genPropertyType = new BuiltPropertyType("int");
+                break;
+            case Integer64Type:
+                genPropertyType = new BuiltPropertyType("long");
                 break;
             case ListType listType:
                 BuiltPropertyType innerListPropertyType = GetCompiledPropertyType(listType.InnerType);
