@@ -1,0 +1,105 @@
+namespace: Catalyst.Tests.Time
+
+definitions:
+  TimeTest:
+    properties:
+      name: str
+      # All units in typical order (y w d h s ms)
+      allUnits:
+        type: time
+        default: "1y 2w 3d 4h 5s 6ms"
+      
+      # Over conventional limits
+      overLimits:
+        type: time
+        default: "90h 75m 90s"
+      
+      # Just seconds (backward compatibility)
+      justSeconds:
+        type: time
+        default: "3600"
+      
+      # Just days
+      justDays:
+        type: time
+        default: "5d"
+      
+      # Hours and seconds only
+      hoursAndSeconds:
+        type: time
+        default: "2h 30s"
+      
+      # Decimal days and hours
+      decimalDaysAndHours:
+        type: time
+        default: "1.5d 12h"
+      
+      # Just weeks
+      justWeeks:
+        type: time
+        default: "3w"
+      
+      # Just years
+      justYears:
+        type: time
+        default: "2y"
+      
+      # Milliseconds only
+      justMilliseconds:
+        type: time
+        default: "500ms"
+      
+      # Hours, minutes, milliseconds
+      hoursMinutesMs:
+        type: time
+        default: "1h 30m 500ms"
+      
+      # Days and hours only
+      daysAndHours:
+        type: time
+        default: "2d 6h"
+      
+      # Seconds as number (backward compatibility)
+      secondsAsNumber:
+        type: time
+        default: 7200
+      
+  TimePropertyTest:
+    properties:
+      # Property with default value using new format
+      typicalUsage:
+        type: time
+        default: "5d 4h 21s 933ms"
+      
+      # Property with over conventional limits
+      overLimitUsage:
+        type: time
+        default: "100h 90m 120s"
+      
+      # Simple seconds string
+      simpleSeconds:
+        type: time
+        default: "300"
+      
+      # Simple days
+      justDays:
+        type: time
+        default: "7d"
+      
+      # Hours and seconds combo
+      hoursAndSecs:
+        type: time
+        default: "1h 45s"
+      
+      # Decimal values
+      decimalTime:
+        type: time
+        default: "0.5d"
+      
+      # Just milliseconds
+      justMs:
+        type: time
+        default: "250ms"
+      
+      # No default (required field)
+      requiredTime: time
