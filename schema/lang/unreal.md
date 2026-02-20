@@ -11,10 +11,11 @@ This section details the Unreal Engine-specific attributes and type conversions 
 ### Property Options
 
 ## Property Type Conversions
-| Schema Type                  | C# Type                  | Notes                                                                        |
+| Schema Type                 | C++ Type                | Notes                                                                     |
 |------------------------------|--------------------------|------------------------------------------------------------------------------|
-| `str`                        | `FString`                |                                                                              |
+| `str`                        | `FString`                | Constant strings will use TCHAR*                                             |
 | `i32`                        | `int32`                  |                                                                              |
+| `i64`                        | `int64`                  |                                                                              |
 | `f64`                        | `double`                 |                                                                              |
 | `bool`                       | `bool`                   |                                                                              |
 | `date`                       | `FDateTime`              |                                                                              |
