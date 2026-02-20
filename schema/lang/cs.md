@@ -18,6 +18,7 @@ This section details the C#-specific attributes and type conversions used during
 |------------------------------|-------------------------|-----------------------------------------------------------------------------|
 | `str`                        | `string`                |                                                                             |
 | `i32`                        | `int`                   |                                                                             |
+| `i64`                        | `long`                   |                                                                             |
 | `f64`                        | `double`                |                                                                             |
 | `bool`                       | `bool`                  |                                                                             |
 | `date`                       | `DateTime`              |                                                                             |
