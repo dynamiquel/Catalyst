@@ -45,7 +45,6 @@ public abstract class Compiler
             ClientServiceBuilder = 
                 AllClientServiceBuilders.Find(b => b.Name.Split(';').Contains(options.ClientServiceBuilderName))
                 ?? throw new NullReferenceException($"Failed to find Client Service Builder {options.ClientServiceBuilderName}");
-
         }
         
         if (!string.IsNullOrEmpty(options.ServerServiceBuilderName))

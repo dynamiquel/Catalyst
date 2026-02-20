@@ -4,6 +4,7 @@ namespace Catalyst;
 
 public class Config
 {
+    public LogLevel LogLevel { get; set; } = LogLevel.Information;
     public string BaseInputDir { get; set; } = Directory.GetCurrentDirectory();
     public List<string> Files { get; set; } = ["*.yaml"];
     public string BaseOutputDir { get; set; } = "";

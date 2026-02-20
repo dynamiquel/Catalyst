@@ -1,23 +1,28 @@
 using System.Text;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
+
 using Catalyst;
 using Catalyst.Generators;
 using Catalyst.Generators.CSharp;
 using Catalyst.Generators.Unreal;
 using Catalyst.Generators.TypeScript;
-using Catalyst.Logging;
 using Catalyst.SpecGraph;
 using Catalyst.SpecGraph.Nodes;
 using Catalyst.SpecReader;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Logging;
-
-AppLoggerFactory.Initialize(args.Contains("--verbose"));
-
-ILogger<Program> logger = AppLoggerFactory.CreateLogger<Program>();
-
-logger.LogInformation("Starting Catalyst");
 
 Config config = ReadConfiguration();
+
+ILoggerFactory loggerFactory = LoggerFactory.Create(builder =>
+{
+    builder
+        .AddConsole()
+        .SetMinimumLevel(config.LogLevel);
+});
+
+ILogger<Program> logger = loggerFactory.CreateLogger<Program>();
+
+logger.LogInformation("Starting Catalyst");
 
 if (string.IsNullOrWhiteSpace(config.Language))
     throw new Exception("Language not set!");
@@ -42,19 +47,19 @@ if (inputFiles.Length == 0)
     return 0;
 }
 
-
-ILogger<FileReader> specReaderLogger = AppLoggerFactory.CreateLogger<FileReader>();
-ILogger<Graph> specGraphLogger = AppLoggerFactory.CreateLogger<Graph>();
-
-Graph graph = new() { Logger = specGraphLogger };
 FileReader specFileReader = new()
 {
     BaseDir = baseInputDir,
-    Logger = specReaderLogger
+    Logger = loggerFactory.CreateLogger<FileReader>()
 };
 specFileReader.AddGeneratorOptionsReader<CSharpOptionsReader>();
 specFileReader.AddGeneratorOptionsReader<UnrealOptionsReader>();
 specFileReader.AddGeneratorOptionsReader<TypeScriptOptionsReader>();
+
+Graph graph = new()
+{
+    Logger = loggerFactory.CreateLogger<Graph>()
+};
 
 await ReadSpecFilesRecursive(inputFiles);
 
@@ -69,21 +74,15 @@ logger.LogDebug("{Graph}", graph);
 if (graph.Files.Count == 0)
     return 0;
 
+ILogger<Compiler> compilerLogger = loggerFactory.CreateLogger<Compiler>();
 Compiler compiler;
-ILogger<Compiler> compilerLogger = AppLoggerFactory.CreateLogger<Compiler>();
 
 if (config.Language == CSharp.Name)
-{
     compiler = new CSharpCompiler(compilerOptions) { Logger = compilerLogger };
-}
 else if (config.Language == Unreal.Name)
-{
     compiler = new UnrealCompiler(compilerOptions) { Logger = compilerLogger };
-}
 else if (config.Language == TypeScript.Name)
-{
     compiler = new TypeScriptCompiler(compilerOptions) { Logger = compilerLogger };
-}
 else
     throw new InvalidOperationException($"Language {config.Language} is not supported");
 
@@ -94,8 +93,8 @@ for (var fileNodeIdx = 0; fileNodeIdx < graph.Files.Count; fileNodeIdx++)
 {
     FileNode fileNode = graph.Files[fileNodeIdx];
     compilerLogger.LogInformation("[{CurrentIndex}] Building Spec File '{FileName}'...", fileNodeIdx + 1, fileNode.FullName);
-    
-    IEnumerable<BuiltFile> builtFilesForFile = compiler.Build(fileNode);
+
+    BuiltFile[] builtFilesForFile = compiler.Build(fileNode).ToArray();
     builtFiles.AddRange(builtFilesForFile);
     
     StringBuilder sb = new($"[{fileNodeIdx + 1}] Built Spec File '{fileNode.FullName}' into files: ");
@@ -121,7 +120,7 @@ for (var builtFileIdx = 0; builtFileIdx < builtFiles.Count; builtFileIdx++)
     compiledFiles.AddFile(compiledFile);
     
     compilerLogger.LogInformation("[{CurrentIndex}] Compiled Built File '{FileName}'", builtFileIdx + 1, builtFile.Name);
-    compilerLogger.LogDebug("':\n{FileContents}", compiledFile.FileContents);
+    compilerLogger.LogDebug("':{FileContents}", compiledFile.FileContents);
 }
 
 await compiledFiles.OutputFiles(baseOutputDir);
@@ -132,10 +131,7 @@ return 0;
 
 Config ReadConfiguration()
 {
-    logger.LogInformation("Reading configuration");
-    
     IConfiguration configuration = new ConfigurationBuilder()
-        .AddJsonFile("config.json", optional: true)
         .AddEnvironmentVariables()
         .AddCommandLine(args)
         .Build();
@@ -159,8 +155,6 @@ Config ReadConfiguration()
         foundConfig.Client = true;
     else if (foundConfig.Client is false)
         foundConfig.ClientBuilder = null;
-    
-    logger.LogInformation("Configuration read successfully");
     
     return foundConfig;
 }
