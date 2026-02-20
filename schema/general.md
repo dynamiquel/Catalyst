@@ -34,6 +34,7 @@ Each entry under definitions defines a data structure with a unique name.
 A definition can have the following keys:
 - `description` (alt: `desc`): A human-readable description of the data structure.
 - `properties` (alt: `props`): A map where each key is the name of a property and the value is a property definition.
+- `constants` (alt: `consts`): A map where each key is the name of a constant and the value is a constant definition.
 - Language-Specific Sections (e.g. cs): Allow for language-specific configurations for this definition.
 ### Examples
 ```yaml
@@ -58,6 +59,10 @@ definitions:
         type: f64
         default: 0.5
       credentials: Credentials
+    constants:
+      onlineStatus:
+        type: str
+        value: Online
 ```
 
 ## Properties
@@ -81,6 +86,24 @@ A property definition can have the following keys:
 - `description` (alt: `desc`): A human-readable description of the property.
 - `default`: Default value to assign to the property. A value of `default` means to use the default value for the property type
 - Language-Specific Sections (e.g. cs): Allow for language-specific configurations for this property
+
+## Constants
+Each entry under constants defines a constant field. These are read-only and static
+fields that can be accessed without creating an instance of a definition.
+A constant definition can have the following keys:
+- `type` (required): The data type of the constant. Supported types include:
+  - `str`: string of characters
+  - `i32`: 32-bit integer
+  - `i64`: 64-bit integer
+  - `f64`: 64-bit floating-point number
+  - `bool`: boolean
+  - `date`: ISO 8601 date
+  - `time`: timespan
+  - `uuid`: 128-bit UUID
+  - Every type can also be **optional**  by suffixing it with `?` (e.g. `str?`)
+- `description` (alt: `desc`): A human-readable description of the property.
+- `value`: Value to assign to the constant. A value of `default` means to use the default value for the constant type
+- Language-Specific Sections (e.g. cs): Allow for language-specific configurations for this constant
 
 ### Examples
 ```yaml
