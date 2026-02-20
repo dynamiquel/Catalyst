@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using Catalyst.Generators.Builders;
 
 namespace Catalyst;
