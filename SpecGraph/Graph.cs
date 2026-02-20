@@ -3,6 +3,7 @@ using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 using Catalyst.SpecGraph.Nodes;
 using Catalyst.SpecGraph.Properties;
+using Microsoft.Extensions.Logging;
 
 namespace Catalyst.SpecGraph;
 
@@ -15,6 +16,7 @@ namespace Catalyst.SpecGraph;
 /// </summary>
 public class Graph
 {
+    public required ILogger<Graph> Logger { get; init; }
     public List<FileNode> Files { get; private set; } = [];
     public List<IPropertyType> PropertyTypes { get; private set; } = [];
     
@@ -74,6 +76,8 @@ public class Graph
         if (_bBuilt)
             throw new GraphAlreadyBuiltException();
         
+        Logger.LogInformation("Building spec graph...");
+        
         // All definitions have been added at this point. It's safe to register container property types now.
         BuildContainerPropertyTypes();
         
@@ -81,6 +85,8 @@ public class Graph
         BuildProperties();
 
         _bBuilt = true;
+        
+        Logger.LogInformation("Spec graph built successfully");
     }
 
     void BuildContainerPropertyTypes()

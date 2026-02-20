@@ -1,15 +1,21 @@
-﻿using System.Text;
+using System.Text;
 using Catalyst;
 using Catalyst.Generators;
 using Catalyst.Generators.CSharp;
 using Catalyst.Generators.Unreal;
 using Catalyst.Generators.TypeScript;
+using Catalyst.Logging;
 using Catalyst.SpecGraph;
 using Catalyst.SpecGraph.Nodes;
 using Catalyst.SpecReader;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 
-Console.WriteLine("Running Catalyst!");
+AppLoggerFactory.Initialize(args.Contains("--verbose"));
+
+ILogger<Program> logger = AppLoggerFactory.CreateLogger<Program>();
+
+logger.LogInformation("Starting Catalyst");
 
 Config config = ReadConfiguration();
 
@@ -19,8 +25,8 @@ if (string.IsNullOrWhiteSpace(config.Language))
 DirectoryInfo baseInputDir = new DirectoryInfo(config.BaseInputDir);
 DirectoryInfo baseOutputDir = new DirectoryInfo(config.BaseOutputDir);
 
-Console.WriteLine($"BaseInputDir: {baseInputDir.FullName}");
-Console.WriteLine($"BaseOutputDir: {baseOutputDir.FullName}");
+logger.LogInformation("BaseInputDir: {BaseInputDir}", baseInputDir.FullName);
+logger.LogInformation("BaseOutputDir: {BaseOutputDir}", baseOutputDir.FullName);
 
 CompilerOptions compilerOptions = new(
     EnumBuilderName: config.EnumBuilder,
@@ -32,15 +38,19 @@ FileInfo[] inputFiles = GetInputFiles();
 
 if (inputFiles.Length == 0)
 {
-    Console.WriteLine("No input files found");
+    logger.LogWarning("No input files found");
     return 0;
 }
 
 
-Graph graph = new();
+ILogger<FileReader> specReaderLogger = AppLoggerFactory.CreateLogger<FileReader>();
+ILogger<Graph> specGraphLogger = AppLoggerFactory.CreateLogger<Graph>();
+
+Graph graph = new() { Logger = specGraphLogger };
 FileReader specFileReader = new()
 {
-    BaseDir = baseInputDir
+    BaseDir = baseInputDir,
+    Logger = specReaderLogger
 };
 specFileReader.AddGeneratorOptionsReader<CSharpOptionsReader>();
 specFileReader.AddGeneratorOptionsReader<UnrealOptionsReader>();
@@ -48,34 +58,42 @@ specFileReader.AddGeneratorOptionsReader<TypeScriptOptionsReader>();
 
 await ReadSpecFilesRecursive(inputFiles);
 
-Console.WriteLine("Spec Graph created");
-Console.WriteLine(graph);
+logger.LogInformation("Spec Graph created");
+logger.LogDebug("{Graph}", graph);
 
 graph.Build();
 
-Console.WriteLine("Spec Graph built");
-Console.WriteLine(graph);
+logger.LogInformation("Spec Graph built");
+logger.LogDebug("{Graph}", graph);
 
 if (graph.Files.Count == 0)
     return 0;
 
 Compiler compiler;
+ILogger<Compiler> compilerLogger = AppLoggerFactory.CreateLogger<Compiler>();
+
 if (config.Language == CSharp.Name)
-    compiler = new CSharpCompiler(compilerOptions);
+{
+    compiler = new CSharpCompiler(compilerOptions) { Logger = compilerLogger };
+}
 else if (config.Language == Unreal.Name)
-    compiler = new UnrealCompiler(compilerOptions);
+{
+    compiler = new UnrealCompiler(compilerOptions) { Logger = compilerLogger };
+}
 else if (config.Language == TypeScript.Name)
-    compiler = new TypeScriptCompiler(compilerOptions);
+{
+    compiler = new TypeScriptCompiler(compilerOptions) { Logger = compilerLogger };
+}
 else
     throw new InvalidOperationException($"Language {config.Language} is not supported");
 
-Console.WriteLine($"Building Spec Graph using {compiler.GetType().Name} ({graph.Files.Count}] files)...");
+compilerLogger.LogInformation("Building Spec Graph using {CompilerName} ({FileCount} files)...", compiler.GetType().Name, graph.Files.Count);
 
 List<BuiltFile> builtFiles = [];
 for (var fileNodeIdx = 0; fileNodeIdx < graph.Files.Count; fileNodeIdx++)
 {
     FileNode fileNode = graph.Files[fileNodeIdx];
-    Console.WriteLine($"[{fileNodeIdx + 1}] Building Spec File '{fileNode.FullName}'...");
+    compilerLogger.LogInformation("[{CurrentIndex}] Building Spec File '{FileName}'...", fileNodeIdx + 1, fileNode.FullName);
     
     IEnumerable<BuiltFile> builtFilesForFile = compiler.Build(fileNode);
     builtFiles.AddRange(builtFilesForFile);
@@ -84,34 +102,37 @@ for (var fileNodeIdx = 0; fileNodeIdx < graph.Files.Count; fileNodeIdx++)
     foreach (BuiltFile builtFile in builtFilesForFile)
         sb.Append($"'{builtFile.Name}' ");
 
-    Console.WriteLine(sb.ToString());
+    compilerLogger.LogInformation("{Message}", sb.ToString());
 }
 
 if (builtFiles.Count == 0)
     throw new InvalidOperationException("No files were built. Something has gone wrong");
 
-Console.WriteLine($"Compiling Spec Graph using {compiler.GetType().Name} ({builtFiles.Count} files)...");
+compilerLogger.LogInformation("Compiling Spec Graph using {CompilerName} ({FileCount} files)...", compiler.GetType().Name, builtFiles.Count);
 
 CompiledFiles compiledFiles = new();
 for (var builtFileIdx = 0; builtFileIdx < builtFiles.Count; builtFileIdx++)
 {
     BuiltFile builtFile = builtFiles[builtFileIdx];
     
-    Console.WriteLine($"[{builtFileIdx + 1}] Compiling Built File '{builtFile.Name}'...");
+    compilerLogger.LogInformation("[{CurrentIndex}] Compiling Built File '{FileName}'...", builtFileIdx + 1, builtFile.Name);
 
     CompiledFile compiledFile = compiler.Compile(builtFile);
     compiledFiles.AddFile(compiledFile);
     
-    Console.WriteLine($"[{builtFileIdx + 1}] Compiled Built File '{builtFile.Name}':\n{compiledFile.FileContents}");
+    compilerLogger.LogInformation("[{CurrentIndex}] Compiled Built File '{FileName}'", builtFileIdx + 1, builtFile.Name);
+    compilerLogger.LogDebug("':\n{FileContents}", compiledFile.FileContents);
 }
 
 await compiledFiles.OutputFiles(baseOutputDir);
+
+logger.LogInformation("Catalyst completed successfully");
 
 return 0;
 
 Config ReadConfiguration()
 {
-    Console.WriteLine("Reading configuration");
+    logger.LogInformation("Reading configuration");
     
     IConfiguration configuration = new ConfigurationBuilder()
         .AddJsonFile("config.json", optional: true)
@@ -139,7 +160,7 @@ Config ReadConfiguration()
     else if (foundConfig.Client is false)
         foundConfig.ClientBuilder = null;
     
-    Console.WriteLine("Read configuration");
+    logger.LogInformation("Configuration read successfully");
     
     return foundConfig;
 }

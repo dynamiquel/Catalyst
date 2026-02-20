@@ -2,6 +2,7 @@ using System.Text.Json;
 using Catalyst.Generators;
 using Catalyst.SpecGraph.Nodes;
 using Catalyst.SpecGraph.Properties;
+using Microsoft.Extensions.Logging;
 using YamlDotNet.Serialization;
 using HttpMethod = Catalyst.SpecGraph.Nodes.HttpMethod;
 
@@ -13,6 +14,7 @@ namespace Catalyst.SpecReader;
 /// </summary>
 public class FileReader
 {
+    public required ILogger<FileReader> Logger { get; init; }
     public required DirectoryInfo BaseDir { get; init; }
     protected List<OptionsReader> LanguageFileReaders = [];
 
@@ -53,7 +55,7 @@ public class FileReader
 
     public FileNode ReadFileFromSpec(RawFileNode rawFileNode)
     {
-        Console.WriteLine($"[{rawFileNode.FileInfo.FullName}] Reading Spec File");
+        Logger?.LogInformation("Reading spec file {FilePath}", rawFileNode.FileInfo.FullName);
 
         string builtFilePath = GetBuiltSpecFilePath(rawFileNode.FileInfo);
         
@@ -85,7 +87,7 @@ public class FileReader
         if (includeSpecs is null) 
             return;
         
-        Console.WriteLine($"[{fileNode.FullName}] Found {includeSpecs.Count} Include Specs");
+        Logger?.LogInformation("Found {Count} include specs in {FilePath}", includeSpecs.Count, fileNode.FullName);
         
         foreach (var includeSpec in includeSpecs)
         {
@@ -122,13 +124,13 @@ public class FileReader
     
     void ReadEnums(RawFileNode rawFileNode, FileNode fileNode)
     {
-        Console.WriteLine($"[{fileNode.FullName}] Reading Enums");
+        Logger.LogDebug("Reading enums in {FilePath}", fileNode.FullName);
 
         Dictionary<object, object>? enums = rawFileNode.ReadPropertyAsDictionary("enums");
         if (enums is null) 
             return;
         
-        Console.WriteLine($"[{fileNode.FullName}] Found {enums.Count} Enums");
+        Logger.LogInformation("Found {Count} enums in {FilePath}", enums.Count, fileNode.FullName);
         
         RawNode enumsRawNode = rawFileNode.CreateChild(enums, "enums");
             
@@ -175,7 +177,7 @@ public class FileReader
             Flags = enumRawNode.ReadPropertyAsBool("flags")
         };
         
-        Console.WriteLine($"[{fileNode.FullName}] Reading Enum '{enumNode.Name}'");
+        Logger.LogDebug("Reading enum {EnumName} in {FilePath}", enumNode.Name, fileNode.FullName);
 
         ReadEnumCompilerOptions(fileNode, enumRawNode, enumNode);
         
@@ -189,7 +191,7 @@ public class FileReader
             };
         }
         
-        Console.WriteLine($"[{enumNode.FullName}] Found {enumValues.Count} Values");
+        Logger.LogDebug("Found {Count} values in enum {EnumFullName}", enumValues.Count, enumNode.FullName);
         
         int prevIntegerValue = -1;
         for (var valueIdx = 0; valueIdx < enumValues.Count; valueIdx++)
@@ -350,13 +352,13 @@ public class FileReader
     
     void ReadDefinitions(RawFileNode rawFileNode, FileNode fileNode)
     {
-        Console.WriteLine($"[{fileNode.FullName}] Reading Definitions");
+        Logger.LogDebug("Reading definitions in {FilePath}", fileNode.FullName);
 
         Dictionary<object, object>? definitions = rawFileNode.ReadPropertyAsDictionary("definitions");
         if (definitions is null) 
             return;
         
-        Console.WriteLine($"[{fileNode.FullName}] Found {definitions.Count} Definitions");
+        Logger.LogInformation("Found {Count} definitions in {FilePath}", definitions.Count, fileNode.FullName);
         
         RawNode definitionsRawNode = rawFileNode.CreateChild(definitions, "definitions");
             
@@ -389,7 +391,7 @@ public class FileReader
             Description = (definitionRawNode.ReadPropertyAsStr("description") ?? definitionRawNode.ReadPropertyAsStr("desc"))?.TrimEnd()
         };
         
-        Console.WriteLine($"[{fileNode.FullName}] Reading Definition '{definitionNode.Name}'");
+        Logger.LogDebug("Reading definition {DefinitionName} in {FilePath}", definitionNode.Name, fileNode.FullName);
 
         ReadDefinitionCompilerOptions(fileNode, definitionRawNode, definitionNode);
 
@@ -406,7 +408,7 @@ public class FileReader
                 };
             }
 
-            Console.WriteLine($"[{definitionNode.FullName}] Found {properties.Count} Properties");
+            Logger.LogDebug("Found {Count} properties in definition {DefinitionFullName}", properties.Count, definitionNode.FullName);
 
             RawNode propertiesRawNode = definitionRawNode.CreateChild(properties, "properties");
 
@@ -421,7 +423,7 @@ public class FileReader
         constants ??= definitionRawNode.ReadPropertyAsDictionary("consts");
         if (constants is not null)
         {
-            Console.WriteLine($"[{definitionNode.FullName}] Found {constants.Count} Constants");
+            Logger.LogDebug("Found {Count} constants in definition {DefinitionFullName}", constants.Count, definitionNode.FullName);
 
             RawNode constantsRawNode = definitionRawNode.CreateChild(constants, "constants");
 
@@ -437,7 +439,7 @@ public class FileReader
 
     void ReadProperty(DefinitionNode definitionNode, RawNode propertiesRawNode, string propertyName, object propertyValue)
     {
-        Console.WriteLine($"[{definitionNode.FullName}] Reading Property '{propertyName}'");
+        Logger.LogDebug("Reading property {PropertyName} in {DefinitionFullName}", propertyName, definitionNode.FullName);
 
         Dictionary<object, object>? propertyObjectValue;
         
@@ -505,7 +507,7 @@ public class FileReader
 
     void ReadConstant(DefinitionNode definitionNode, RawNode constantsRawNode, string constantName, object constantValue)
     {
-        Console.WriteLine($"[{definitionNode.FullName}] Reading Constant '{constantName}'");
+        Logger.LogDebug("Reading constant {ConstantName} in {DefinitionFullName}", constantName, definitionNode.FullName);
 
         Dictionary<object, object>? constantObjectValue = constantValue as Dictionary<object, object>;
         if (constantObjectValue is null)
@@ -603,13 +605,13 @@ public class FileReader
     
     void ReadServices(RawFileNode rawFileNode, FileNode fileNode)
     {
-        Console.WriteLine($"[{fileNode.FullName}] Reading Services");
+        Logger.LogDebug("Reading services in {FilePath}", fileNode.FullName);
 
         Dictionary<object, object> services = rawFileNode.ReadPropertyAsDictionary("services") ?? [];
         Dictionary<object, object>? defaultEndpoints = rawFileNode.ReadPropertyAsDictionary("endpoints");
         if (defaultEndpoints is not null)
         {
-            Console.WriteLine($"[{fileNode.FullName}] Found Default Service");
+            Logger.LogInformation("Found default service in {FilePath}", fileNode.FullName);
             
             string defaultServiceName = fileNode.FileName;
             services.Add(defaultServiceName, new Dictionary<object, object>
@@ -621,7 +623,7 @@ public class FileReader
         if (services.Count == 0)
             return;
         
-        Console.WriteLine($"[{fileNode.FullName}] Found {services.Count} Services");
+        Logger.LogInformation("Found {Count} services in {FilePath}", services.Count, fileNode.FullName);
         
         RawNode servicesRawNode = rawFileNode.CreateChild(services, "services");
             
@@ -647,7 +649,7 @@ public class FileReader
 
     void ReadService(FileNode fileNode, string serviceName, RawNode serviceRawNode)
     {
-        Console.WriteLine($"[{fileNode.FullName}] Reading Service '{serviceName}'");
+        Logger.LogDebug("Reading service {ServiceName} in {FilePath}", serviceName, fileNode.FullName);
 
         string path = serviceRawNode.ReadPropertyAsUri("path") ?? $"/{serviceName}";
         if (!path.StartsWith('/'))
@@ -673,7 +675,7 @@ public class FileReader
             };
         }
 
-        Console.WriteLine($"[{fileNode.FullName}] Found {endpoints.Count} Endpoints");
+        Logger.LogDebug("Found {Count} endpoints in service {FilePath}", endpoints.Count, fileNode.FullName);
         
         foreach (KeyValuePair<object, object> endpoint in endpoints)
         {
@@ -699,7 +701,7 @@ public class FileReader
     
     void ReadEndpoint(ServiceNode serviceNode, string endpointName, RawNode endpointRawNode)
     {
-        Console.WriteLine($"[{serviceNode.FullName}] Reading Endpoint '{endpointName}'");
+        Logger.LogDebug("Reading endpoint {EndpointName} in service {ServiceFullName}", endpointName, serviceNode.FullName);
         
         string? requestType = endpointRawNode.ReadPropertyAsStr("request") ?? endpointRawNode.ReadPropertyAsStr("req");
         if (string.IsNullOrWhiteSpace(requestType))

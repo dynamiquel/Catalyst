@@ -2,6 +2,7 @@ using System.Reflection;
 using Catalyst.Generators.Builders;
 using Catalyst.SpecGraph.Nodes;
 using Catalyst.SpecGraph.Properties;
+using Microsoft.Extensions.Logging;
 
 namespace Catalyst.Generators;
 
@@ -13,6 +14,8 @@ public record CompilerOptions(
 
 public abstract class Compiler
 {
+    public required ILogger<Compiler> Logger { get; init; }
+
     public abstract string Name { get; }
     
     protected IEnumBuilder EnumBuilder { get; }
