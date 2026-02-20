@@ -37,62 +37,62 @@ public class UnrealDefinitionBuilder : IDefinitionBuilder<UnrealCompiler>
         BuildSource(context, definitionNode);
     }
 
-    public BuiltPropertyValue GetCompiledDefaultValueForPropertyType(IPropertyType propertyType)
+    public BuiltDataValue GetCompiledDefaultValueForDataType(IDataType dataType)
     {
-        return propertyType switch
+        return dataType switch
         {
-            IOptionalPropertyType => new NoPropertyValue(),
-            BooleanType => new SomePropertyValue("false"),
-            IntegerType or Integer64Type or FloatType => new SomePropertyValue("0"),
-            _ => new NoPropertyValue()
+            IOptionalDataType => new NoDataValue(),
+            BooleanType => new SomeDataValue("false"),
+            IntegerType or Integer64Type or FloatType => new SomeDataValue("0"),
+            _ => new NoDataValue()
         };
     }
 
-    public BuiltPropertyValue GetCompiledDesiredPropertyValue(IPropertyValue propertyValue)
+    public BuiltDataValue GetCompiledDesiredDataValue(IDataValue dataValue)
     {
-        switch (propertyValue)
+        switch (dataValue)
         {
             case BooleanValue booleanValue:
-                return new SomePropertyValue(booleanValue.Value ? "true" : "false");
+                return new SomeDataValue(booleanValue.Value ? "true" : "false");
             case DateValue dateValue:
                 // Unreal doesn't have a DateTime initialiser for ISO, so need to convert to unix.
                 long unixMs = new DateTimeOffset(dateValue.Value).ToUnixTimeMilliseconds();
                 double unixS = unixMs / 1000d;
-                return new SomePropertyValue($"FDateTime::FromUnixTimestamp({unixS})");
+                return new SomeDataValue($"FDateTime::FromUnixTimestamp({unixS})");
             case FloatValue floatValue:
-                return new SomePropertyValue(floatValue.Value.ToString(CultureInfo.InvariantCulture));
+                return new SomeDataValue(floatValue.Value.ToString(CultureInfo.InvariantCulture));
             case IntegerValue integerValue:
-                return new SomePropertyValue(integerValue.Value.ToString(CultureInfo.InvariantCulture));
+                return new SomeDataValue(integerValue.Value.ToString(CultureInfo.InvariantCulture));
             case Integer64Value integer64Value:
-                return new SomePropertyValue(integer64Value.Value.ToString(CultureInfo.InvariantCulture));
+                return new SomeDataValue(integer64Value.Value.ToString(CultureInfo.InvariantCulture));
             case EnumValue enumValue:
-                string enumPrefix = Compiler.GetCompiledPropertyType(enumValue.Type).Name;
+                string enumPrefix = Compiler.GetCompiledDataType(enumValue.Type).Name;
                 string value = string.Join(" | ", enumValue.Values.Select(x => $"{enumPrefix}.{x}"));
-                return new SomePropertyValue(value);
+                return new SomeDataValue(value);
             case ListValue listValue:
                 StringBuilder sb = new();
                 sb.Append('[');
                 for (int itemIdx = 0; itemIdx < listValue.Values.Count; itemIdx++)
                 {
-                    IPropertyValue itemValue = listValue.Values[itemIdx];
-                    sb.Append(GetCompiledDesiredPropertyValue(itemValue));
+                    IDataValue itemValue = listValue.Values[itemIdx];
+                    sb.Append(GetCompiledDesiredDataValue(itemValue));
                     if (itemIdx < listValue.Values.Count - 1)
                         sb.Append(", ");
                 }
                 sb.Append(']');
-                return new SomePropertyValue(sb.ToString());
+                return new SomeDataValue(sb.ToString());
             case MapValue mapValue:
                 throw new NotImplementedException();
             case NullValue nullValue:
-                return new SomePropertyValue("null");
+                return new SomeDataValue("null");
             case ObjectValue objectValue:
                 throw new NotImplementedException();
             case StringValue stringValue:
-                return new SomePropertyValue($"\"{stringValue.Value}\"");
+                return new SomeDataValue($"\"{stringValue.Value}\"");
             case TimeValue timeValue:
-                return new SomePropertyValue($"FTimespan::FromSeconds({timeValue.Value.TotalSeconds.ToString(CultureInfo.InvariantCulture)})");
+                return new SomeDataValue($"FTimespan::FromSeconds({timeValue.Value.TotalSeconds.ToString(CultureInfo.InvariantCulture)})");
             case UuidValue uuidValue:
-                return new SomePropertyValue($"FGuid(\"{uuidValue.Value}\")");
+                return new SomeDataValue($"FGuid(\"{uuidValue.Value}\")");
             default:
                 throw new ArgumentOutOfRangeException();
         }
@@ -145,8 +145,8 @@ public class UnrealDefinitionBuilder : IDefinitionBuilder<UnrealCompiler>
         List<BuiltProperty> properties = [];
         foreach (KeyValuePair<string, PropertyNode> propertyNode in definitionNode.Properties)
         {
-            BuiltPropertyType propertyType = Compiler.GetCompiledPropertyType(propertyNode.Value.BuiltType!);
-            BuiltPropertyValue propertyValue = this.GetCompiledPropertyValue(propertyNode.Value.BuiltType!, propertyNode.Value.Value);
+            BuiltDataType propertyType = Compiler.GetCompiledDataType(propertyNode.Value.BuiltType!);
+            BuiltDataValue propertyValue = this.GetCompiledDataValue(propertyNode.Value.BuiltType!, propertyNode.Value.Value);
             
             properties.Add(new(
                 Node: propertyNode.Value,
@@ -159,8 +159,8 @@ public class UnrealDefinitionBuilder : IDefinitionBuilder<UnrealCompiler>
         List<BuiltConstant> constants = [];
         foreach (KeyValuePair<string, ConstantNode> constantNode in definitionNode.Constants)
         {
-            BuiltPropertyType constantType = Compiler.GetCompiledPropertyType(constantNode.Value.BuiltType!);
-            BuiltPropertyValue constantValue = this.GetCompiledPropertyValue(constantNode.Value.BuiltType!, constantNode.Value.Value);
+            BuiltDataType constantType = Compiler.GetCompiledDataType(constantNode.Value.BuiltType!);
+            BuiltDataValue constantValue = this.GetCompiledDataValue(constantNode.Value.BuiltType!, constantNode.Value.Value);
 
             constants.Add(new(
                 Node: constantNode.Value,
@@ -198,8 +198,8 @@ public class UnrealDefinitionBuilder : IDefinitionBuilder<UnrealCompiler>
         List<BuiltConstant> constants = [];
         foreach (KeyValuePair<string, ConstantNode> constantNode in definitionNode.Constants)
         {
-            BuiltPropertyType constantType = Compiler.GetCompiledPropertyType(constantNode.Value.BuiltType!);
-            BuiltPropertyValue constantValue = this.GetCompiledPropertyValue(constantNode.Value.BuiltType!, constantNode.Value.Value);
+            BuiltDataType constantType = Compiler.GetCompiledDataType(constantNode.Value.BuiltType!);
+            BuiltDataValue constantValue = this.GetCompiledDataValue(constantNode.Value.BuiltType!, constantNode.Value.Value);
 
             constants.Add(new(
                 Node: constantNode.Value,

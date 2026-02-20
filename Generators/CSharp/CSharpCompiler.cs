@@ -77,14 +77,19 @@ public class CSharpCompiler : Compiler
 
                     AppendDescriptionComment(sb, constant.Node, 1);
 
-                    bool canBeConst = constant.Type.Name is "int" or "long" or "double" or "bool" or "string";
-                    if (canBeConst)
+                    switch (constant.Node.BuiltType)
                     {
-                        sb.Append($"    public const {constant.Type.Name} {constant.Name} = {constant.Value.Value};");
-                    }
-                    else
-                    {
-                        sb.Append($"    public static readonly {constant.Type.Name} {constant.Name} = {constant.Value.Value};");
+                        case IntegerType:
+                        case Integer64Type:
+                        case FloatType:
+                        case BooleanType:
+                        case StringType:
+                        case EnumType:
+                            sb.Append($"    public const {constant.Type.Name} {constant.Name} = {constant.Value.Value};");
+                            break;
+                        default:
+                            sb.Append($"    public static readonly {constant.Type.Name} {constant.Name} = {constant.Value.Value};");
+                            break;
                     }
 
                     sb.AppendLine();
@@ -121,7 +126,7 @@ public class CSharpCompiler : Compiler
 
                 sb.Append($" {property.Type.Name} {property.Name} {{ get; set; }}");
 
-                if (!useRequired && property.Value is not NoPropertyValue)
+                if (!useRequired && property.Value is not NoDataValue)
                     sb.Append($" = {property.Value.Value};");
 
                 sb.AppendLine();
@@ -194,71 +199,71 @@ public class CSharpCompiler : Compiler
         return new CompiledFile(file.Name, sb.ToString());
     }
 
-    public override BuiltInclude? GetCompiledIncludeForType(BuiltFile file, IPropertyType propertyType)
+    public override BuiltInclude? GetCompiledIncludeForType(BuiltFile file, IDataType dataType)
     {
-        return propertyType switch
+        return dataType switch
         {
             ListType or MapType or SetType => new BuiltInclude("System.Collections.Generic"),
             _ => null
         };
     }
 
-    public override BuiltPropertyType GetCompiledPropertyType(IPropertyType propertyType)
+    public override BuiltDataType GetCompiledDataType(IDataType dataType)
     {
-        BuiltPropertyType genPropertyType;
-        switch (propertyType)
+        BuiltDataType builtDataType;
+        switch (dataType)
         {
             case AnyType:
-                genPropertyType = new BuiltPropertyType("object");
+                builtDataType = new BuiltDataType("object");
                 break;
             case BooleanType:
-                genPropertyType = new BuiltPropertyType("bool");
+                builtDataType = new BuiltDataType("bool");
                 break;
             case DateType:
-                genPropertyType = new BuiltPropertyType("DateTime");
+                builtDataType = new BuiltDataType("DateTime");
                 break;
             case FloatType:
-                genPropertyType = new BuiltPropertyType("double");
+                builtDataType = new BuiltDataType("double");
                 break;
             case IntegerType:
-                genPropertyType = new BuiltPropertyType("int");
+                builtDataType = new BuiltDataType("int");
                 break;
             case Integer64Type:
-                genPropertyType = new BuiltPropertyType("long");
+                builtDataType = new BuiltDataType("long");
                 break;
             case ListType listType:
-                BuiltPropertyType innerListPropertyType = GetCompiledPropertyType(listType.InnerType);
-                genPropertyType = new BuiltPropertyType($"List<{innerListPropertyType.Name}>");
+                BuiltDataType innerListPropertyType = GetCompiledDataType(listType.InnerType);
+                builtDataType = new BuiltDataType($"List<{innerListPropertyType.Name}>");
                 break;
             case MapType mapType:
-                BuiltPropertyType innerKeyPropertyType = GetCompiledPropertyType(mapType.InnerTypeA);
-                BuiltPropertyType innerValuePropertyType = GetCompiledPropertyType(mapType.InnerTypeB);
-                genPropertyType = new BuiltPropertyType($"Dictionary<{innerKeyPropertyType.Name}, {innerValuePropertyType.Name}>");
+                BuiltDataType innerKeyPropertyType = GetCompiledDataType(mapType.InnerTypeA);
+                BuiltDataType innerValuePropertyType = GetCompiledDataType(mapType.InnerTypeB);
+                builtDataType = new BuiltDataType($"Dictionary<{innerKeyPropertyType.Name}, {innerValuePropertyType.Name}>");
                 break;
             case SetType setType:
-                BuiltPropertyType innerSetPropertyType = GetCompiledPropertyType(setType.InnerType);
-                genPropertyType = new BuiltPropertyType($"HashSet<{innerSetPropertyType.Name}>");
+                BuiltDataType innerSetPropertyType = GetCompiledDataType(setType.InnerType);
+                builtDataType = new BuiltDataType($"HashSet<{innerSetPropertyType.Name}>");
                 break;
             case StringType:
-                genPropertyType = new BuiltPropertyType("string");
+                builtDataType = new BuiltDataType("string");
                 break;
             case TimeType:
-                genPropertyType = new BuiltPropertyType("TimeSpan");
+                builtDataType = new BuiltDataType("TimeSpan");
                 break;
             case UuidType:
-                genPropertyType = new BuiltPropertyType("Guid");
+                builtDataType = new BuiltDataType("Guid");
                 break;
-            case IUserPropertyType userType:
-                genPropertyType = new BuiltPropertyType(userType.Name.ToPascalCase());
+            case IUserDataType userType:
+                builtDataType = new BuiltDataType(userType.Name.ToPascalCase());
                 break;
             default:
-                throw new ArgumentOutOfRangeException(nameof(propertyType));
+                throw new ArgumentOutOfRangeException(nameof(dataType));
         }
 
-        if (propertyType is IOptionalPropertyType)
-            genPropertyType = new BuiltPropertyType($"{genPropertyType.Name}?");
+        if (dataType is IOptionalDataType)
+            builtDataType = new BuiltDataType($"{builtDataType.Name}?");
 
-        return genPropertyType;
+        return builtDataType;
     }
 
     public override string? GetCompiledNamespace(string? namespaceName)

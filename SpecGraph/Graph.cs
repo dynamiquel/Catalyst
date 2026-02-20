@@ -18,7 +18,7 @@ public class Graph
 {
     public required ILogger<Graph> Logger { get; init; }
     public List<FileNode> Files { get; private set; } = [];
-    public List<IPropertyType> PropertyTypes { get; private set; } = [];
+    public List<IDataType> PropertyTypes { get; private set; } = [];
     
     bool _bBuilt;
 
@@ -27,7 +27,7 @@ public class Graph
         AddBuiltInPropertyTypes();
     }
     
-    public IPropertyType? FindPropertyType(string typeName, string? currentNamespace = null)
+    public IDataType? FindPropertyType(string typeName, string? currentNamespace = null)
     {
         if (string.IsNullOrEmpty(currentNamespace))
             return PropertyTypes.FirstOrDefault(x => x.Name == typeName);
@@ -108,12 +108,12 @@ public class Graph
             
             if (FindPropertyType(rawContainerPropertyType, fileNode.Namespace) is null)
             {
-                IPropertyType? foundInnerPropertyType = FindPropertyType(rawInnerPropertyType, fileNode.Namespace);
+                IDataType? foundInnerPropertyType = FindPropertyType(rawInnerPropertyType, fileNode.Namespace);
                 if (foundInnerPropertyType is null)
                 {
-                    throw new PropertyTypeNotFoundException
+                    throw new DataTypeNotFoundException
                     {
-                        ExpectedProperty = rawInnerPropertyType,
+                        ExpectedDataType = rawInnerPropertyType,
                         Node = propertyNode
                     };
                 }
@@ -139,12 +139,12 @@ public class Graph
             
             if (FindPropertyType(rawContainerPropertyType, fileNode.Namespace) is null)
             {
-                IPropertyType? foundInnerPropertyType = FindPropertyType(rawInnerPropertyType, fileNode.Namespace);
+                IDataType? foundInnerPropertyType = FindPropertyType(rawInnerPropertyType, fileNode.Namespace);
                 if (foundInnerPropertyType is null)
                 {
-                    throw new PropertyTypeNotFoundException
+                    throw new DataTypeNotFoundException
                     {
-                        ExpectedProperty = rawInnerPropertyType,
+                        ExpectedDataType = rawInnerPropertyType,
                         Node = propertyNode
                     };
                 }
@@ -170,22 +170,22 @@ public class Graph
             
             if (FindPropertyType(rawContainerPropertyType, fileNode.Namespace) is null)
             {
-                IPropertyType? foundInnerAPropertyType = FindPropertyType(rawInnerPropertyTypes.Item1, fileNode.Namespace);
+                IDataType? foundInnerAPropertyType = FindPropertyType(rawInnerPropertyTypes.Item1, fileNode.Namespace);
                 if (foundInnerAPropertyType is null)
                 {
-                    throw new PropertyTypeNotFoundException
+                    throw new DataTypeNotFoundException
                     {
-                        ExpectedProperty = rawInnerPropertyTypes.Item1,
+                        ExpectedDataType = rawInnerPropertyTypes.Item1,
                         Node = propertyNode
                     };
                 }
                 
-                IPropertyType? foundInnerBPropertyType = FindPropertyType(rawInnerPropertyTypes.Item2, fileNode.Namespace);
+                IDataType? foundInnerBPropertyType = FindPropertyType(rawInnerPropertyTypes.Item2, fileNode.Namespace);
                 if (foundInnerBPropertyType is null)
                 {
-                    throw new PropertyTypeNotFoundException
+                    throw new DataTypeNotFoundException
                     {
-                        ExpectedProperty = rawInnerPropertyTypes.Item2,
+                        ExpectedDataType = rawInnerPropertyTypes.Item2,
                         Node = propertyNode
                     };
                 }
@@ -214,7 +214,7 @@ public class Graph
         foreach (FileNode file in Files)
         foreach (KeyValuePair<string, DefinitionNode> definition in file.Definitions)
         foreach (KeyValuePair<string, PropertyNode> property in definition.Value.Properties)
-            BuildTypeForProperty(file, property.Value);
+            BuildTypeForDataMember(file, property.Value);
         
         // Build types for constants.
         foreach (FileNode file in Files)
@@ -226,7 +226,12 @@ public class Graph
         foreach (FileNode file in Files)
         foreach (KeyValuePair<string, DefinitionNode> definition in file.Definitions)
         foreach (KeyValuePair<string, PropertyNode> property in definition.Value.Properties)
-            BuildValueForProperty(file, property.Value);
+            BuildValueForDataMember(file, property.Value);
+        
+        foreach (FileNode file in Files)
+        foreach (KeyValuePair<string, DefinitionNode> definition in file.Definitions)
+        foreach (KeyValuePair<string, ConstantNode> constant in definition.Value.Constants)
+            BuildValueForConstant(file, constant.Value);
         
         foreach (FileNode file in Files)
         foreach (KeyValuePair<string, ServiceNode> service in file.Services)
@@ -236,13 +241,13 @@ public class Graph
 
     void BuildTypeForConstant(FileNode fileNode, ConstantNode constantNode)
     {
-        IPropertyType? foundPropertyType = FindPropertyType(constantNode.UnBuiltType, fileNode.Namespace);
+        IDataType? foundPropertyType = FindPropertyType(constantNode.UnBuiltType, fileNode.Namespace);
 
         if (foundPropertyType is null)
         {
-            throw new PropertyTypeNotFoundException
+            throw new DataTypeNotFoundException
             {
-                ExpectedProperty = constantNode.UnBuiltType,
+                ExpectedDataType = constantNode.UnBuiltType,
                 Node = constantNode
             };
         }
@@ -250,15 +255,15 @@ public class Graph
         constantNode.BuiltType = foundPropertyType;
     }
 
-    void BuildTypeForProperty(FileNode fileNode, PropertyNode propertyNode)
+    void BuildTypeForDataMember(FileNode fileNode, PropertyNode propertyNode)
     {
-        IPropertyType? foundPropertyType = FindPropertyType(propertyNode.UnBuiltType, fileNode.Namespace);
+        IDataType? foundPropertyType = FindPropertyType(propertyNode.UnBuiltType, fileNode.Namespace);
 
         if (foundPropertyType is null)
         {
-            throw new PropertyTypeNotFoundException
+            throw new DataTypeNotFoundException
             {
-                ExpectedProperty = propertyNode.UnBuiltType,
+                ExpectedDataType = propertyNode.UnBuiltType,
                 Node = propertyNode
             };
         }
@@ -266,7 +271,7 @@ public class Graph
         propertyNode.BuiltType = foundPropertyType;
     }
 
-    void BuildValueForProperty(FileNode fileNode, PropertyNode propertyNode)
+    void BuildValueForDataMember(FileNode fileNode, PropertyNode propertyNode)
     {
         if (propertyNode.Value is null)
             return;
@@ -274,36 +279,55 @@ public class Graph
         UnBuiltValue? unbuiltValue = propertyNode.Value as UnBuiltValue;
         if (unbuiltValue is null)
         {
-            throw new PropertyValueAlreadyBuiltException
+            throw new DataMemberValueAlreadyBuiltException
             {
-                PropertyNode = propertyNode
+                DataMemberNode = propertyNode
             };
         }
         
         JsonNode? valueJsonNode = JsonNode.Parse(unbuiltValue.ValueJson);
-        BuildJsonNode(propertyNode, propertyNode.BuiltType!, valueJsonNode, out IPropertyValue propertyValue);
+        BuildJsonNode(propertyNode, propertyNode.BuiltType!, valueJsonNode, out IDataValue propertyValue);
         propertyNode.Value = propertyValue;
+    }
+
+    void BuildValueForConstant(FileNode fileNode, ConstantNode constantNode)
+    {
+        if (constantNode.Value is null)
+            return;
+        
+        UnBuiltValue? unbuiltValue = constantNode.Value as UnBuiltValue;
+        if (unbuiltValue is null)
+        {
+            throw new DataMemberValueAlreadyBuiltException
+            {
+                DataMemberNode = constantNode
+            };
+        }
+        
+        JsonNode? valueJsonNode = JsonNode.Parse(unbuiltValue.ValueJson);
+        BuildJsonNode(constantNode, constantNode.BuiltType!, valueJsonNode, out IDataValue propertyValue);
+        constantNode.Value = propertyValue;
     }
 
     void BuildTypesForEndpoint(FileNode fileNode, EndpointNode endpointNode)
     {
-        IPropertyType? foundRequestType = FindPropertyType(endpointNode.UnBuiltRequestType, fileNode.Namespace);
-        IPropertyType? foundResponseType = FindPropertyType(endpointNode.UnBuiltResponseType, fileNode.Namespace);
+        IDataType? foundRequestType = FindPropertyType(endpointNode.UnBuiltRequestType, fileNode.Namespace);
+        IDataType? foundResponseType = FindPropertyType(endpointNode.UnBuiltResponseType, fileNode.Namespace);
 
         if (foundRequestType is null)
         {
-            throw new PropertyTypeNotFoundException
+            throw new DataTypeNotFoundException
             {
-                ExpectedProperty = endpointNode.UnBuiltRequestType,
+                ExpectedDataType = endpointNode.UnBuiltRequestType,
                 Node = endpointNode
             };
         }
         
         if (foundResponseType is null)
         {
-            throw new PropertyTypeNotFoundException
+            throw new DataTypeNotFoundException
             {
-                ExpectedProperty = endpointNode.UnBuiltResponseType,
+                ExpectedDataType = endpointNode.UnBuiltResponseType,
                 Node = endpointNode
             };
         }
@@ -318,7 +342,7 @@ public class Graph
         return result is "" or "default" and not "@default";
     }
 
-    void BuildJsonNode(PropertyNode propertyNode, IPropertyType propertyType, JsonNode? jsonNode, out IPropertyValue propertyValue)
+    void BuildJsonNode(DataMemberNode dataMemberNode, IDataType propertyType, JsonNode? jsonNode, out IDataValue propertyValue)
     {
         // TODO: Support recursion properly. Cba doing it rn. Too complicated for what it's worth.
         
@@ -333,53 +357,53 @@ public class Graph
             case JsonArray jsonArray:
                 if (propertyType is not ListType or SetType or AnyType)
                 {
-                    throw new PropertyTypeMismatchException
+                    throw new DataMemberTypeMismatchException
                     {
-                        Node = propertyNode,
-                        ExpectedPropertyTypes = [typeof(ListType), typeof(SetType)],
+                        DataMemberNode = dataMemberNode,
+                        ExpectedDataTypes = [typeof(ListType), typeof(SetType)],
                     };
                 }
 
-                IPropertyType innerType = ((propertyType as IPropertyContainer1InnerType)?.InnerType ?? propertyType as AnyType) ?? throw new InvalidOperationException();
+                IDataType innerType = ((propertyType as IPropertyContainer1InnerType)?.InnerType ?? propertyType as AnyType) ?? throw new InvalidOperationException();
 
-                List<IPropertyValue> childValues = [];
+                List<IDataValue> childValues = [];
                 foreach (JsonNode? childJsonNode in jsonArray)
                 {
-                    BuildJsonNode(propertyNode, innerType, childJsonNode, out IPropertyValue childValue);
+                    BuildJsonNode(dataMemberNode, innerType, childJsonNode, out IDataValue childValue);
                     childValues.Add(childValue);
                 }
 
                 propertyValue = new ListValue(childValues);
                 break;
             case JsonObject jsonObject:
-                if (propertyNode.BuiltType is MapType mapType)
+                if (dataMemberNode.BuiltType is MapType mapType)
                 {
-                    var mapEntries = new Dictionary<IPropertyValue, IPropertyValue>();
+                    var mapEntries = new Dictionary<IDataValue, IDataValue>();
                     foreach (KeyValuePair<string, JsonNode?> property in jsonObject)
                     {
                         JsonValue keyNode = JsonValue.Create(property.Key);
                         
-                        BuildJsonNode(propertyNode, mapType.InnerTypeA, keyNode, out IPropertyValue keyPropertyValue);
-                        BuildJsonNode(propertyNode, mapType.InnerTypeB, property.Value, out IPropertyValue valuePropertyValue);
+                        BuildJsonNode(dataMemberNode, mapType.InnerTypeA, keyNode, out IDataValue keyPropertyValue);
+                        BuildJsonNode(dataMemberNode, mapType.InnerTypeB, property.Value, out IDataValue valuePropertyValue);
                         mapEntries.Add(keyPropertyValue, valuePropertyValue);
                     }
                     
                     propertyValue = new MapValue(mapEntries);
                 }
-                else if (propertyNode.BuiltType is ObjectType objectType)
+                else if (dataMemberNode.BuiltType is ObjectType objectType)
                 {
                     throw new NotImplementedException();
                 }
-                else if (propertyNode.BuiltType is AnyType)
+                else if (dataMemberNode.BuiltType is AnyType)
                 {
                     throw new NotImplementedException();
                 }
                 else
                 {
-                    throw new PropertyTypeMismatchException
+                    throw new DataMemberTypeMismatchException
                     {
-                        Node = propertyNode,
-                        ExpectedPropertyTypes = [typeof(MapType), typeof(ObjectType), typeof(AnyType)],
+                        DataMemberNode = dataMemberNode,
+                        ExpectedDataTypes = [typeof(MapType), typeof(ObjectType), typeof(AnyType)],
                     };
                 }
                 break;
@@ -418,10 +442,10 @@ public class Graph
                             boolValue = bool.Parse(jsonValue.GetValue<string>());
                         else
                         {
-                            throw new InvalidPropertyValueFormatException
+                            throw new InvalidDataMemberValueFormatException
                             {
-                                PropertyNode = propertyNode,
-                                ExpectedPropertyType = propertyType,
+                                DataMemberNode = dataMemberNode,
+                                ExpectedDataType = propertyType,
                                 ReceivedValue = jsonValue.ToJsonString()
                             };
                         }
@@ -447,10 +471,10 @@ public class Graph
                             floatValue = double.Parse(jsonValue.GetValue<string>());
                         else
                         {
-                            throw new InvalidPropertyValueFormatException
+                            throw new InvalidDataMemberValueFormatException
                             {
-                                PropertyNode = propertyNode,
-                                ExpectedPropertyType = propertyType,
+                                DataMemberNode = dataMemberNode,
+                                ExpectedDataType = propertyType,
                                 ReceivedValue = jsonValue.ToJsonString()
                             };
                         }
@@ -467,10 +491,10 @@ public class Graph
                             intValue = int.Parse(jsonValue.GetValue<string>());
                         else
                         {
-                            throw new InvalidPropertyValueFormatException
+                            throw new InvalidDataMemberValueFormatException
                             {
-                                PropertyNode = propertyNode,
-                                ExpectedPropertyType = propertyType,
+                                DataMemberNode = dataMemberNode,
+                                ExpectedDataType = propertyType,
                                 ReceivedValue = jsonValue.ToJsonString()
                             };
                         }
@@ -487,10 +511,10 @@ public class Graph
                             int64Value = long.Parse(jsonValue.GetValue<string>());
                         else
                         {
-                            throw new InvalidPropertyValueFormatException
+                            throw new InvalidDataMemberValueFormatException
                             {
-                                PropertyNode = propertyNode,
-                                ExpectedPropertyType = propertyType,
+                                DataMemberNode = dataMemberNode,
+                                ExpectedDataType = propertyType,
                                 ReceivedValue = jsonValue.ToJsonString()
                             };
                         }
@@ -522,10 +546,10 @@ public class Graph
                             seconds = ParseTimespanString(jsonValue.GetValue<string>());
                         else
                         {
-                            throw new InvalidPropertyValueFormatException
+                            throw new InvalidDataMemberValueFormatException
                             {
-                                PropertyNode = propertyNode,
-                                ExpectedPropertyType = propertyType,
+                                DataMemberNode = dataMemberNode,
+                                ExpectedDataType = propertyType,
                                 ReceivedValue = jsonValue.ToJsonString()
                             };
                         }
@@ -540,10 +564,10 @@ public class Graph
                             guid = Guid.Parse(jsonValue.GetValue<string>());
                         else
                         {
-                            throw new InvalidPropertyValueFormatException
+                            throw new InvalidDataMemberValueFormatException
                             {
-                                PropertyNode = propertyNode,
-                                ExpectedPropertyType = propertyType,
+                                DataMemberNode = dataMemberNode,
+                                ExpectedDataType = propertyType,
                                 ReceivedValue = jsonValue.ToJsonString()
                             };
                         }
@@ -567,8 +591,8 @@ public class Graph
                             {
                                 throw new InvalidEnumValueException
                                 {
-                                    PropertyNode = propertyNode,
-                                    ExpectedPropertyType = enumType,
+                                    DataMemberNode = dataMemberNode,
+                                    ExpectedDataType = enumType,
                                     ReceivedValue = jsonValue.ToJsonString()
                                 };
                             }
@@ -577,19 +601,19 @@ public class Graph
                         }
                         else
                         {
-                            throw new InvalidPropertyValueFormatException
+                            throw new InvalidDataMemberValueFormatException
                             {
-                                PropertyNode = propertyNode,
-                                ExpectedPropertyType = enumType,
+                                DataMemberNode = dataMemberNode,
+                                ExpectedDataType = enumType,
                                 ReceivedValue = jsonValue.ToJsonString()
                             };
                         }
                         break;
                     default:
-                        throw new PropertyTypeMismatchException
+                        throw new DataMemberTypeMismatchException
                         {
-                            Node = propertyNode,
-                            ExpectedPropertyTypes =
+                            DataMemberNode = dataMemberNode,
+                            ExpectedDataTypes =
                             [
                                 typeof(AnyType), typeof(BooleanType), typeof(DateType), typeof(FloatType),
                                 typeof(IntegerType), typeof(Integer64Type), typeof(StringType), typeof(TimeType), typeof(UuidType),
@@ -617,13 +641,13 @@ public class Graph
                 OwnedFile = fileNode
             };
 
-            IPropertyType? existingPropertyType = FindPropertyType(newEnumPropertyType.Name);
+            IDataType? existingPropertyType = FindPropertyType(newEnumPropertyType.Name);
             if (existingPropertyType is not null)
             {
-                throw new PropertyTypeAlreadyExistsException
+                throw new DataTypeAlreadyExistsException
                 {
-                    ExistingPropertyType = existingPropertyType,
-                    NewPropertyType = newEnumPropertyType
+                    ExistingDataType = existingPropertyType,
+                    NewDataType = newEnumPropertyType
                 };
             }
             
@@ -633,10 +657,10 @@ public class Graph
                 
             if (existingPropertyType is not null)
             {
-                throw new SimilarPropertyTypeAlreadyExistsException
+                throw new SimilarDataTypeAlreadyExistsException
                 {
-                    ExistingPropertyType = existingPropertyType,
-                    NewPropertyType = newEnumPropertyType
+                    ExistingDataType = existingPropertyType,
+                    NewDataType = newEnumPropertyType
                 };
             }
             
@@ -668,13 +692,13 @@ public class Graph
                 OwnedFile = fileNode
             };
 
-            IPropertyType? existingPropertyType = FindPropertyType(newObjectPropertyType.Name);
+            IDataType? existingPropertyType = FindPropertyType(newObjectPropertyType.Name);
             if (existingPropertyType is not null)
             {
-                throw new PropertyTypeAlreadyExistsException
+                throw new DataTypeAlreadyExistsException
                 {
-                    ExistingPropertyType = existingPropertyType,
-                    NewPropertyType = newObjectPropertyType
+                    ExistingDataType = existingPropertyType,
+                    NewDataType = newObjectPropertyType
                 };
             }
             
@@ -684,10 +708,10 @@ public class Graph
                 
             if (existingPropertyType is not null)
             {
-                throw new SimilarPropertyTypeAlreadyExistsException
+                throw new SimilarDataTypeAlreadyExistsException
                 {
-                    ExistingPropertyType = existingPropertyType,
-                    NewPropertyType = newObjectPropertyType
+                    ExistingDataType = existingPropertyType,
+                    NewDataType = newObjectPropertyType
                 };
             }
             

@@ -16,15 +16,15 @@ public interface IDefinitionBuilder
     string GetBuiltFileName(BuildContext context, DefinitionNode definitionNode);
     void Build(BuildContext context, DefinitionNode definitionNode);
     
-    BuiltPropertyValue GetCompiledPropertyValue(IPropertyType propertyType, IPropertyValue? propertyValue)
+    BuiltDataValue GetCompiledDataValue(IDataType propertyType, IDataValue? propertyValue)
     {
         return propertyValue is null 
-            ? GetCompiledDefaultValueForPropertyType(propertyType) 
-            : GetCompiledDesiredPropertyValue(propertyValue);
+            ? GetCompiledDefaultValueForDataType(propertyType) 
+            : GetCompiledDesiredDataValue(propertyValue);
     }
     
-    BuiltPropertyValue GetCompiledDefaultValueForPropertyType(IPropertyType propertyType);
-    BuiltPropertyValue GetCompiledDesiredPropertyValue(IPropertyValue propertyValue);
+    BuiltDataValue GetCompiledDefaultValueForDataType(IDataType dataType);
+    BuiltDataValue GetCompiledDesiredDataValue(IDataValue dataValue);
     string GetCompiledClassName(DefinitionNode definitionNode);
         
 
@@ -88,10 +88,10 @@ public interface IServerServiceBuilder<T> : IServerServiceBuilder where T : Comp
 /// </summary>
 public static class BuilderExtensions
 {
-    public static BuiltPropertyValue GetCompiledPropertyValue(this IDefinitionBuilder builder, IPropertyType propertyType, IPropertyValue? propertyValue)
+    public static BuiltDataValue GetCompiledDataValue(this IDefinitionBuilder builder, IDataType propertyType, IDataValue? propertyValue)
     {
         return propertyValue is null 
-            ? builder.GetCompiledDefaultValueForPropertyType(propertyType) 
-            : builder.GetCompiledDesiredPropertyValue(propertyValue);
+            ? builder.GetCompiledDefaultValueForDataType(propertyType) 
+            : builder.GetCompiledDesiredDataValue(propertyValue);
     }
 }

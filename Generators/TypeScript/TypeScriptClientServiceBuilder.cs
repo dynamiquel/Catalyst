@@ -22,8 +22,8 @@ public class TypeScriptClientServiceBuilder : IClientServiceBuilder<TypeScriptCo
             BuiltEndpoint endpoint = new(
                 Node: endpointNode.Value,
                 Name: endpointNode.Value.Name.ToPascalCase(),
-                RequestType: Compiler.GetCompiledPropertyType(endpointNode.Value.BuiltRequestType!),
-                ResponseType: Compiler.GetCompiledPropertyType(endpointNode.Value.BuiltResponseType!)
+                RequestType: Compiler.GetCompiledDataType(endpointNode.Value.BuiltRequestType!),
+                ResponseType: Compiler.GetCompiledDataType(endpointNode.Value.BuiltResponseType!)
             );
 
             endpoints.Add(endpoint);

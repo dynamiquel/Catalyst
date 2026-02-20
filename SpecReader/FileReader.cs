@@ -545,7 +545,9 @@ public class FileReader
             };
         }
 
-        IPropertyValue propertyValue = ConvertYamlValueToPropertyValue(constantDefaultValue, constantRawNode);
+        UnBuiltValue unBuiltValue = new(JsonSerializer.Serialize(
+            constantDefaultValue, 
+            new JsonSerializerOptions{ WriteIndented = true }));
 
         ConstantNode constantNode = new()
         {
@@ -553,54 +555,12 @@ public class FileReader
             Name = constantName,
             UnBuiltType = constantType,
             Description = (constantRawNode.ReadPropertyAsStr("description") ?? constantsRawNode.ReadPropertyAsStr("desc"))?.TrimEnd(),
-            Value = propertyValue
+            Value = unBuiltValue
         };
 
         ReadConstantCompilerOptions(definitionNode, constantRawNode, constantNode);
 
         definitionNode.Constants.Add(constantName, constantNode);
-    }
-
-    IPropertyValue ConvertYamlValueToPropertyValue(object yamlValue, RawNode rawNode)
-    {
-        return yamlValue switch
-        {
-            bool boolValue => new BooleanValue(boolValue),
-            double doubleValue => new FloatValue(doubleValue),
-            long longValue => new IntegerValue((int)longValue),
-            string stringValue => ConvertStringToPropertyValue(stringValue),
-            _ => throw new UnexpectedTypeException
-            {
-                RawNode = rawNode,
-                ExpectedType = "Supported constant value type",
-                ReceivedType = yamlValue.GetType().Name
-            }
-        };
-    }
-
-    IPropertyValue ConvertStringToPropertyValue(string value)
-    {
-        if (value == "true")
-            return new BooleanValue(true);
-        if (value == "false")
-            return new BooleanValue(false);
-        
-        if (int.TryParse(value, out int intValue))
-            return new IntegerValue(intValue);
-        
-        if (double.TryParse(value, out double doubleValue))
-            return new FloatValue(doubleValue);
-        
-        if (TimeSpan.TryParse(value, out TimeSpan timeValue))
-            return new TimeValue(timeValue);
-        
-        if (DateTime.TryParse(value, out DateTime dateValue))
-            return new DateValue(dateValue);
-        
-        if (Guid.TryParse(value, out Guid uuidValue))
-            return new UuidValue(uuidValue);
-        
-        return new StringValue(value);
     }
     
     void ReadServices(RawFileNode rawFileNode, FileNode fileNode)

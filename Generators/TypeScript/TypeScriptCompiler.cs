@@ -80,7 +80,7 @@ public class TypeScriptCompiler : Compiler
             for (var propertyIdx = 0; propertyIdx < def.Properties.Count; propertyIdx++)
             {
                 BuiltProperty property = def.Properties[propertyIdx];
-                bool isOptional = property.Node.BuiltType is IOptionalPropertyType;
+                bool isOptional = property.Node.BuiltType is IOptionalDataType;
 
                 AppendDescriptionComment(sb, property.Node, 1);
 
@@ -90,7 +90,7 @@ public class TypeScriptCompiler : Compiler
                     sb.Append("?");
                 sb.Append($": {property.Type.Name}");
 
-                if (property.Value is SomePropertyValue some && !isOptional)
+                if (property.Value is SomeDataValue some && !isOptional)
                     sb.Append($" = {some.Value}");
                 sb.AppendLine(";");
 
@@ -164,57 +164,57 @@ public class TypeScriptCompiler : Compiler
         return new CompiledFile(file.Name, sb.ToString());
     }
 
-    public override BuiltInclude? GetCompiledIncludeForType(BuiltFile file, IPropertyType propertyType)
+    public override BuiltInclude? GetCompiledIncludeForType(BuiltFile file, IDataType dataType)
     {
         return null;
     }
 
-    public override BuiltPropertyType GetCompiledPropertyType(IPropertyType propertyType)
+    public override BuiltDataType GetCompiledDataType(IDataType dataType)
     {
-        BuiltPropertyType genPropertyType;
-        switch (propertyType)
+        BuiltDataType genPropertyType;
+        switch (dataType)
         {
             case AnyType:
-                genPropertyType = new BuiltPropertyType("any");
+                genPropertyType = new BuiltDataType("any");
                 break;
             case BooleanType:
-                genPropertyType = new BuiltPropertyType("boolean");
+                genPropertyType = new BuiltDataType("boolean");
                 break;
             case DateType:
-                genPropertyType = new BuiltPropertyType("string");
+                genPropertyType = new BuiltDataType("string");
                 break;
             case FloatType:
-                genPropertyType = new BuiltPropertyType("number");
+                genPropertyType = new BuiltDataType("number");
                 break;
             case IntegerType:
-                genPropertyType = new BuiltPropertyType("number");
+                genPropertyType = new BuiltDataType("number");
                 break;
             case Integer64Type:
-                genPropertyType = new BuiltPropertyType("bigint");
+                genPropertyType = new BuiltDataType("bigint");
                 break;
             case ListType listType:
-                BuiltPropertyType innerListPropertyType = GetCompiledPropertyType(listType.InnerType);
-                genPropertyType = new BuiltPropertyType($"Array<{innerListPropertyType.Name}>");
+                BuiltDataType innerListPropertyType = GetCompiledDataType(listType.InnerType);
+                genPropertyType = new BuiltDataType($"Array<{innerListPropertyType.Name}>");
                 break;
             case MapType mapType:
-                BuiltPropertyType innerKeyPropertyType = GetCompiledPropertyType(mapType.InnerTypeA);
-                BuiltPropertyType innerValuePropertyType = GetCompiledPropertyType(mapType.InnerTypeB);
-                genPropertyType = new BuiltPropertyType($"Record<{innerKeyPropertyType.Name}, {innerValuePropertyType.Name}>");
+                BuiltDataType innerKeyPropertyType = GetCompiledDataType(mapType.InnerTypeA);
+                BuiltDataType innerValuePropertyType = GetCompiledDataType(mapType.InnerTypeB);
+                genPropertyType = new BuiltDataType($"Record<{innerKeyPropertyType.Name}, {innerValuePropertyType.Name}>");
                 break;
             case SetType setType:
-                BuiltPropertyType innerSetPropertyType = GetCompiledPropertyType(setType.InnerType);
-                genPropertyType = new BuiltPropertyType($"Array<{innerSetPropertyType.Name}>");
+                BuiltDataType innerSetPropertyType = GetCompiledDataType(setType.InnerType);
+                genPropertyType = new BuiltDataType($"Array<{innerSetPropertyType.Name}>");
                 break;
             case StringType:
-                genPropertyType = new BuiltPropertyType("string");
+                genPropertyType = new BuiltDataType("string");
                 break;
             case TimeType:
-                genPropertyType = new BuiltPropertyType("number");
+                genPropertyType = new BuiltDataType("number");
                 break;
             case UuidType:
-                genPropertyType = new BuiltPropertyType("string");
+                genPropertyType = new BuiltDataType("string");
                 break;
-            case IUserPropertyType userType:
+            case IUserDataType userType:
                 // For TS, emit only the simple identifier (no namespaces, no optional marker)
                 string typeName = userType.Name;
                 if (!string.IsNullOrEmpty(typeName) && typeName.EndsWith("?"))
@@ -224,14 +224,14 @@ public class TypeScriptCompiler : Compiler
                 if (lastDotIdx >= 0 && lastDotIdx < typeName.Length - 1)
                     typeName = typeName[(lastDotIdx + 1)..];
 
-                genPropertyType = new BuiltPropertyType(typeName.ToPascalCase());
+                genPropertyType = new BuiltDataType(typeName.ToPascalCase());
                 break;
             default:
-                throw new ArgumentOutOfRangeException(nameof(propertyType));
+                throw new ArgumentOutOfRangeException(nameof(dataType));
         }
 
-        if (propertyType is IOptionalPropertyType)
-            genPropertyType = new BuiltPropertyType($"{genPropertyType.Name} | null");
+        if (dataType is IOptionalDataType)
+            genPropertyType = new BuiltDataType($"{genPropertyType.Name} | null");
 
         return genPropertyType;
     }
@@ -290,7 +290,7 @@ public class TypeScriptCompiler : Compiler
         return map;
     }
 
-    private void CollectImportsForPropertyType(BuiltFile currentFile, IPropertyType type, Dictionary<string, HashSet<string>> map)
+    private void CollectImportsForPropertyType(BuiltFile currentFile, IDataType type, Dictionary<string, HashSet<string>> map)
     {
         switch (type)
         {
@@ -304,7 +304,7 @@ public class TypeScriptCompiler : Compiler
                 CollectImportsForPropertyType(currentFile, mapType.InnerTypeA, map);
                 CollectImportsForPropertyType(currentFile, mapType.InnerTypeB, map);
                 break;
-            case IUserPropertyType userType:
+            case IUserDataType userType:
             {
                 string symbol = GetSimpleUserTypeName(userType);
                 string targetFile = GetBuiltFileNameForUserType(userType);
@@ -323,7 +323,7 @@ public class TypeScriptCompiler : Compiler
         }
     }
 
-    private string GetSimpleUserTypeName(IUserPropertyType userType)
+    private string GetSimpleUserTypeName(IUserDataType userType)
     {
         string typeName = userType.Name;
         if (!string.IsNullOrEmpty(typeName) && typeName.EndsWith("?"))
@@ -334,7 +334,7 @@ public class TypeScriptCompiler : Compiler
         return typeName.ToPascalCase();
     }
 
-    private string GetBuiltFileNameForUserType(IUserPropertyType userType)
+    private string GetBuiltFileNameForUserType(IUserDataType userType)
     {
         if (userType is ObjectType obj)
         {

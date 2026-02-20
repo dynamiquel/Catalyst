@@ -20,64 +20,64 @@ public class GraphAlreadyBuiltException : CatalystGraphException
     public override string Message => "The Graph has already been built. No modifications can be made";
 }
 
-public class PropertyTypeAlreadyExistsException : CatalystGraphException
+public class DataTypeAlreadyExistsException : CatalystGraphException
 {
-    public required IPropertyType ExistingPropertyType { get; init; }
-    public required IPropertyType NewPropertyType { get; init; }
+    public required IDataType ExistingDataType { get; init; }
+    public required IDataType NewDataType { get; init; }
     public override string Message
     {
         get
         {
-            var msg = $"Property Type '{ExistingPropertyType.Name}' already exists in the SpecGraph";
-            if (ExistingPropertyType is IUserPropertyType existingUserPropertyType)
-                msg += $" and is declared in '{existingUserPropertyType.OwnedFile.FullName}'";
+            var msg = $"Data Type '{ExistingDataType.Name}' already exists in the SpecGraph";
+            if (ExistingDataType is IUserDataType existingUserDataType)
+                msg += $" and is declared in '{existingUserDataType.OwnedFile.FullName}'";
             
-            if (NewPropertyType is IUserPropertyType newUserPropertyType)
-                msg += $". Cannot add the new one found in '{newUserPropertyType.OwnedFile.FullName}'";
+            if (NewDataType is IUserDataType newUserDataType)
+                msg += $". Cannot add the new one found in '{newUserDataType.OwnedFile.FullName}'";
 
             return msg;
         }
     }
 }
 
-public class SimilarPropertyTypeAlreadyExistsException : CatalystGraphException
+public class SimilarDataTypeAlreadyExistsException : CatalystGraphException
 {
-    public required IPropertyType ExistingPropertyType { get; init; }
-    public required IPropertyType NewPropertyType { get; init; }
+    public required IDataType ExistingDataType { get; init; }
+    public required IDataType NewDataType { get; init; }
     public override string Message
     {
         get
         {
-            var msg = $"Similar Property Type '{ExistingPropertyType.Name}' already exists in the SpecGraph";
-            if (ExistingPropertyType is IUserPropertyType existingUserPropertyType)
-                msg += $" and is declared in '{existingUserPropertyType.OwnedFile.FullName}'";
+            var msg = $"Similar Data Type '{ExistingDataType.Name}' already exists in the SpecGraph";
+            if (ExistingDataType is IUserDataType existingUserDataType)
+                msg += $" and is declared in '{existingUserDataType.OwnedFile.FullName}'";
             
-            if (NewPropertyType is IUserPropertyType newUserPropertyType)
-                msg += $". Cannot add the new one found in '{newUserPropertyType.OwnedFile.FullName}'";
+            if (NewDataType is IUserDataType newUserDataType)
+                msg += $". Cannot add the new one found in '{newUserDataType.OwnedFile.FullName}'";
 
             return msg;
         }
     }
 }
 
-public class PropertyTypeNotFoundException : CatalystGraphException
+public class DataTypeNotFoundException : CatalystGraphException
 {
-    public required string ExpectedProperty { get; init; }
+    public required string ExpectedDataType { get; init; }
     public required Node Node { get; init; }
     public override string Message
     {
         get
         {
-            var msg = $"Property Type '{ExpectedProperty}' could not be found in the SpecGraph for '{Node.FullName}'";
+            var msg = $"Data Type '{ExpectedDataType}' could not be found in the SpecGraph for '{Node.FullName}'";
             return msg;
         }
     }
 }
 
-public class PropertyTypeMismatchException : CatalystGraphException
+public class DataMemberTypeMismatchException : CatalystGraphException
 {
-    public required PropertyNode Node { get; init; }
-    public required Type[] ExpectedPropertyTypes { get; init; }
+    public required DataMemberNode DataMemberNode { get; init; }
+    public required Type[] ExpectedDataTypes { get; init; }
 
     public override string Message
     {
@@ -85,35 +85,35 @@ public class PropertyTypeMismatchException : CatalystGraphException
         {
             StringBuilder sb = new();
             
-            sb.Append($"Unexpected Property Type '{Node.BuiltType!.Name}' for '{Node.FullName}'. Expected: ");
-            foreach (var expectedPropertyType in ExpectedPropertyTypes)
-                sb.Append($"{expectedPropertyType.Name}, ");
+            sb.Append($"Unexpected Data Type '{DataMemberNode.BuiltType?.Name}' for '{DataMemberNode.FullName}'. Expected: ");
+            foreach (var expectedDataType in ExpectedDataTypes)
+                sb.Append($"{expectedDataType.Name}, ");
             
             return sb.ToString();
         }
     }
 }
 
-public class PropertyValueAlreadyBuiltException : CatalystGraphException
+public class DataMemberValueAlreadyBuiltException : CatalystGraphException
 {
-    public required PropertyNode PropertyNode { get; init; }
-    public override string Message => $"Property '{PropertyNode.FullName}' value has already been built as a '{PropertyNode.Value?.GetType().Name}";
+    public required DataMemberNode DataMemberNode { get; init; }
+    public override string Message => $"DataMember '{DataMemberNode.FullName}' value has already been built as a '{DataMemberNode.Value?.GetType().Name ?? "null"}";
 }
 
-public class InvalidPropertyValueFormatException : CatalystGraphException
+public class InvalidDataMemberValueFormatException : CatalystGraphException
 {
-    public required PropertyNode PropertyNode { get; init; }
-    public required IPropertyType ExpectedPropertyType { get; init; }
+    public required DataMemberNode DataMemberNode { get; init; }
+    public required IDataType ExpectedDataType { get; init; }
     public required object? ReceivedValue { get; init; }
-    public override string Message => $"Received an unexpected value format for Property '{PropertyNode.FullName}' of type '{ExpectedPropertyType.Name}: '{ReceivedValue}'";
+    public override string Message => $"Received an unexpected value format for DataMember '{DataMemberNode.FullName}' of type '{ExpectedDataType.Name}: '{ReceivedValue}'";
 }
 
 public class InvalidEnumValueException : CatalystGraphException
 {
-    public required PropertyNode PropertyNode { get; init; }
-    public required IPropertyType ExpectedPropertyType { get; init; }
+    public required DataMemberNode DataMemberNode { get; init; }
+    public required IDataType ExpectedDataType { get; init; }
     public required object? ReceivedValue { get; init; }
-    public override string Message => $"Received an unexpected enum value for Property '{PropertyNode.FullName}' of type '{ExpectedPropertyType.Name}: '{ReceivedValue}'";
+    public override string Message => $"Received an unexpected enum value for DataMember '{DataMemberNode.FullName}' of type '{ExpectedDataType.Name}: '{ReceivedValue}'";
 }
 
 public class SimilarServiceAlreadyExistsException : CatalystGraphException

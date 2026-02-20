@@ -19,8 +19,8 @@ public class TypeScriptDefinitionBuilder : IDefinitionBuilder<TypeScriptCompiler
         List<BuiltProperty> properties = [];
         foreach (KeyValuePair<string, PropertyNode> propertyNode in definitionNode.Properties)
         {
-            BuiltPropertyType propertyType = Compiler.GetCompiledPropertyType(propertyNode.Value.BuiltType!);
-            BuiltPropertyValue propertyValue = this.GetCompiledPropertyValue(propertyNode.Value.BuiltType!, propertyNode.Value.Value);
+            BuiltDataType propertyType = Compiler.GetCompiledDataType(propertyNode.Value.BuiltType!);
+            BuiltDataValue propertyValue = this.GetCompiledDataValue(propertyNode.Value.BuiltType!, propertyNode.Value.Value);
 
             properties.Add(new(
                 Node: propertyNode.Value,
@@ -33,8 +33,8 @@ public class TypeScriptDefinitionBuilder : IDefinitionBuilder<TypeScriptCompiler
         List<BuiltConstant> constants = [];
         foreach (KeyValuePair<string, ConstantNode> constantNode in definitionNode.Constants)
         {
-            BuiltPropertyType constantType = Compiler.GetCompiledPropertyType(constantNode.Value.BuiltType!);
-            BuiltPropertyValue constantValue = this.GetCompiledPropertyValue(constantNode.Value.BuiltType!, constantNode.Value.Value);
+            BuiltDataType constantType = Compiler.GetCompiledDataType(constantNode.Value.BuiltType!);
+            BuiltDataValue constantValue = this.GetCompiledDataValue(constantNode.Value.BuiltType!, constantNode.Value.Value);
 
             constants.Add(new(
                 Node: constantNode.Value,
@@ -58,65 +58,65 @@ public class TypeScriptDefinitionBuilder : IDefinitionBuilder<TypeScriptCompiler
         context.GetOrAddFile(Compiler, GetBuiltFileName(context, definitionNode)).Definitions.Add(definition);
     }
 
-    public BuiltPropertyValue GetCompiledDefaultValueForPropertyType(IPropertyType propertyType)
+    public BuiltDataValue GetCompiledDefaultValueForDataType(IDataType dataType)
     {
-        return propertyType switch
+        return dataType switch
         {
-            IOptionalPropertyType => new NoPropertyValue(),
-            AnyType or ObjectType => new SomePropertyValue("{} as any"),
-            ListType or SetType => new SomePropertyValue("[]"),
-            MapType => new SomePropertyValue("{}"),
-            StringType => new SomePropertyValue("''"),
-            _ => new NoPropertyValue()
+            IOptionalDataType => new NoDataValue(),
+            AnyType or ObjectType => new SomeDataValue("{} as any"),
+            ListType or SetType => new SomeDataValue("[]"),
+            MapType => new SomeDataValue("{}"),
+            StringType => new SomeDataValue("''"),
+            _ => new NoDataValue()
         };
     }
 
-    public BuiltPropertyValue GetCompiledDesiredPropertyValue(IPropertyValue propertyValue)
+    public BuiltDataValue GetCompiledDesiredDataValue(IDataValue dataValue)
     {
-        switch (propertyValue)
+        switch (dataValue)
         {
             case BooleanValue booleanValue:
-                return new SomePropertyValue(booleanValue.Value ? "true" : "false");
+                return new SomeDataValue(booleanValue.Value ? "true" : "false");
             case DateValue dateValue:
-                return new SomePropertyValue($"'" + dateValue.Value.ToString("O") + "'");
+                return new SomeDataValue($"'" + dateValue.Value.ToString("O") + "'");
             case FloatValue floatValue:
-                return new SomePropertyValue(floatValue.Value.ToString(System.Globalization.CultureInfo.InvariantCulture));
+                return new SomeDataValue(floatValue.Value.ToString(System.Globalization.CultureInfo.InvariantCulture));
             case IntegerValue integerValue:
-                return new SomePropertyValue(integerValue.Value.ToString(System.Globalization.CultureInfo.InvariantCulture));
+                return new SomeDataValue(integerValue.Value.ToString(System.Globalization.CultureInfo.InvariantCulture));
             case Integer64Value integer64Value:
-                return new SomePropertyValue($"{integer64Value.Value.ToString(System.Globalization.CultureInfo.InvariantCulture)}n");
+                return new SomeDataValue($"{integer64Value.Value.ToString(System.Globalization.CultureInfo.InvariantCulture)}n");
             case ListValue listValue:
                 System.Text.StringBuilder sb = new();
                 sb.Append('[');
                 for (int itemIdx = 0; itemIdx < listValue.Values.Count; itemIdx++)
                 {
-                    IPropertyValue itemValue = listValue.Values[itemIdx];
-                    sb.Append(GetCompiledDesiredPropertyValue(itemValue));
+                    IDataValue itemValue = listValue.Values[itemIdx];
+                    sb.Append(GetCompiledDesiredDataValue(itemValue));
                     if (itemIdx < listValue.Values.Count - 1)
                         sb.Append(", ");
                 }
                 sb.Append(']');
-                return new SomePropertyValue(sb.ToString());
+                return new SomeDataValue(sb.ToString());
             case EnumValue enumValue:
                 // Ensure enum references use simple identifier (no namespaces)
-                string enumPrefix = Compiler.GetCompiledPropertyType(enumValue.Type).Name;
+                string enumPrefix = Compiler.GetCompiledDataType(enumValue.Type).Name;
                 int lastDotIdx = enumPrefix.LastIndexOf('.');
                 if (lastDotIdx >= 0 && lastDotIdx < enumPrefix.Length - 1)
                     enumPrefix = enumPrefix[(lastDotIdx + 1)..];
                 string value = string.Join(" | ", enumValue.Values.Select(x => $"{enumPrefix}.{x}"));
-                return new SomePropertyValue(value);
+                return new SomeDataValue(value);
             case MapValue:
                 throw new NotImplementedException();
             case NullValue:
-                return new SomePropertyValue("null");
+                return new SomeDataValue("null");
             case ObjectValue:
                 throw new NotImplementedException();
             case StringValue stringValue:
-                return new SomePropertyValue($"'" + stringValue.Value.Replace("'", "\\'") + "'");
+                return new SomeDataValue($"'" + stringValue.Value.Replace("'", "\\'") + "'");
             case TimeValue timeValue:
-                return new SomePropertyValue(timeValue.Value.TotalSeconds.ToString(System.Globalization.CultureInfo.InvariantCulture));
+                return new SomeDataValue(timeValue.Value.TotalSeconds.ToString(System.Globalization.CultureInfo.InvariantCulture));
             case UuidValue uuidValue:
-                return new SomePropertyValue($"'{uuidValue.Value}'");
+                return new SomeDataValue($"'{uuidValue.Value}'");
             default:
                 throw new ArgumentOutOfRangeException();
         }

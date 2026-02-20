@@ -17,9 +17,9 @@ public class UnrealCompiler : Compiler
         return file.Flags == FileFlags.Header ? CompileHeaderFile(file) : CompileSourceFile(file);
     }
 
-    public override BuiltInclude? GetCompiledIncludeForType(BuiltFile file, IPropertyType propertyType)
+    public override BuiltInclude? GetCompiledIncludeForType(BuiltFile file, IDataType dataType)
     {
-        switch (propertyType)
+        switch (dataType)
         {
             case AnyType:
                 return new("StructUtils/InstancedStruct");
@@ -42,10 +42,10 @@ public class UnrealCompiler : Compiler
         return null;
     }
 
-    public override BuiltPropertyType GetCompiledPropertyType(IPropertyType propertyType)
+    public override BuiltDataType GetCompiledDataType(IDataType dataType)
     {
-        BuiltPropertyType genPropertyType;
-        switch (propertyType)
+        BuiltDataType genPropertyType;
+        switch (dataType)
         {
             case AnyType:
                 genPropertyType = new("FInstancedStruct");
@@ -66,16 +66,16 @@ public class UnrealCompiler : Compiler
                 genPropertyType = new("int64");
                 break;
             case ListType listType:
-                BuiltPropertyType innerListPropertyType = GetCompiledPropertyType(listType.InnerType);
+                BuiltDataType innerListPropertyType = GetCompiledDataType(listType.InnerType);
                 genPropertyType = new($"TArray<{innerListPropertyType.Name}>");
                 break;
             case MapType mapType:
-                BuiltPropertyType innerKeyPropertyType = GetCompiledPropertyType(mapType.InnerTypeA);
-                BuiltPropertyType innerValuePropertyType = GetCompiledPropertyType(mapType.InnerTypeB);
+                BuiltDataType innerKeyPropertyType = GetCompiledDataType(mapType.InnerTypeA);
+                BuiltDataType innerValuePropertyType = GetCompiledDataType(mapType.InnerTypeB);
                 genPropertyType = new($"TMap<{innerKeyPropertyType.Name}, {innerValuePropertyType.Name}>");
                 break;
             case SetType setType:
-                BuiltPropertyType innerSetPropertyType = GetCompiledPropertyType(setType.InnerType);
+                BuiltDataType innerSetPropertyType = GetCompiledDataType(setType.InnerType);
                 genPropertyType = new($"TSet<{innerSetPropertyType.Name}>");
                 break;
             case StringType:
@@ -94,14 +94,14 @@ public class UnrealCompiler : Compiler
                 genPropertyType = new(EnumBuilder.GetCompiledEnumName(enumType.OwnedEnum));
                 break;
             default:
-                throw new ArgumentOutOfRangeException(nameof(propertyType));
+                throw new ArgumentOutOfRangeException(nameof(dataType));
         }
 
         // Unreal Reflection doesn't support Containers as a template, i.e. TOptional<TArray<T>>
         // Instead, we have to treat it as an empty container.
         // The alternative would be to generate our own serialisers in Unreal
         // without the help of reflection, but that would be a lot of work.
-        if (propertyType is IOptionalPropertyType and not IPropertyContainerType)
+        if (dataType is IOptionalDataType and not IPropertyContainerType)
             genPropertyType = new($"TOptional<{genPropertyType.Name}>");
 
         return genPropertyType;
@@ -273,7 +273,7 @@ public class UnrealCompiler : Compiler
 
                 sb.Append($"    {property.Type.Name} {property.Name}");
 
-                if (property.Value is not NoPropertyValue)
+                if (property.Value is not NoDataValue)
                     sb.Append($" = {property.Value.Value};");
                 else
                     sb.Append(";");

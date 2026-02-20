@@ -127,9 +127,9 @@ public abstract class Compiler
     
     public abstract CompiledFile Compile(BuiltFile file);
     
-    public abstract BuiltInclude? GetCompiledIncludeForType(BuiltFile file, IPropertyType propertyType);
+    public abstract BuiltInclude? GetCompiledIncludeForType(BuiltFile file, IDataType dataType);
     
-    public abstract BuiltPropertyType GetCompiledPropertyType(IPropertyType propertyType);
+    public abstract BuiltDataType GetCompiledDataType(IDataType dataType);
     
     /// <summary>
     /// Ensures the Built File has all the necessary includes it needs based on used Types.
@@ -137,6 +137,14 @@ public abstract class Compiler
     /// </summary>
     private void BuildIncludesForFile(BuiltFile builtFile)
     {
+        foreach (BuiltDefinition definition in builtFile.Definitions)
+        foreach (BuiltConstant constant in definition.Constants)
+        {
+            BuiltInclude? typeInclude = GetCompiledIncludeForType(builtFile, constant.Node.BuiltType!);
+            if (typeInclude is not null && !builtFile.Includes.Contains(typeInclude))
+                builtFile.Includes.Add(typeInclude);
+        }
+        
         foreach (BuiltDefinition definition in builtFile.Definitions)
         foreach (BuiltProperty property in definition.Properties)
         {

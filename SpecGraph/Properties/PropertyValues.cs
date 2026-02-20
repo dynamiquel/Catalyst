@@ -3,8 +3,8 @@ using System.Text.Json.Serialization;
 namespace Catalyst.SpecGraph.Properties;
 
 /// <summary>
-/// Property Value represents the value assigned to a Definition's Property.
-/// It must match the Property's Type.
+/// Data Value represents the value assigned to a Definition's DataMember.
+/// It must match the DataMember's Type.
 /// </summary>
 // Annoying. Maybe better way to solve this JsonDerivedType stuff.
 [JsonDerivedType(typeof(UnBuiltValue))]
@@ -20,28 +20,22 @@ namespace Catalyst.SpecGraph.Properties;
 [JsonDerivedType(typeof(MapValue))]
 [JsonDerivedType(typeof(ObjectValue))]
 [JsonDerivedType(typeof(EnumValue))]
-public interface IPropertyValue;
+public interface IDataValue;
 
-/// <summary>
-/// Represents a Property Value that is yet to be built via JSON.
-/// </summary>
-public record UnBuiltValue(string ValueJson) : IPropertyValue;
+public record UnBuiltValue(string ValueJson) : IDataValue;
 
-public record NullValue : IPropertyValue;
-public record BooleanValue(bool Value) : IPropertyValue;
-public record IntegerValue(int Value) : IPropertyValue;
-public record Integer64Value(long Value) : IPropertyValue;
-public record FloatValue(double Value) : IPropertyValue;
-public record StringValue(string Value) : IPropertyValue;
-public record DateValue(DateTime Value) : IPropertyValue;
-public record TimeValue(TimeSpan Value) : IPropertyValue;
-public record UuidValue(Guid Value) : IPropertyValue;
-public record ListValue(List<IPropertyValue> Values) : IPropertyValue;
-public record MapValue(Dictionary<IPropertyValue, IPropertyValue> Values) : IPropertyValue;
+public record NullValue : IDataValue;
+public record BooleanValue(bool Value) : IDataValue;
+public record IntegerValue(int Value) : IDataValue;
+public record Integer64Value(long Value) : IDataValue;
+public record FloatValue(double Value) : IDataValue;
+public record StringValue(string Value) : IDataValue;
+public record DateValue(DateTime Value) : IDataValue;
+public record TimeValue(TimeSpan Value) : IDataValue;
+public record UuidValue(Guid Value) : IDataValue;
+public record ListValue(List<IDataValue> Values) : IDataValue;
+public record MapValue(Dictionary<IDataValue, IDataValue> Values) : IDataValue;
 
-/// <summary>
-/// Represents a Property Value of a non-built-in Property Type, typically those generated from Spec Files.
-/// </summary>
-public record ObjectValue(IPropertyType Type, Dictionary<string, IPropertyValue> Values) : IPropertyValue;
+public record ObjectValue(IDataType Type, Dictionary<string, IDataValue> Values) : IDataValue;
 
-public record EnumValue(IPropertyType Type, string[] Values) : IPropertyValue;
+public record EnumValue(IDataType Type, string[] Values) : IDataValue;

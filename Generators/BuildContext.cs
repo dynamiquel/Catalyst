@@ -3,14 +3,14 @@ using Catalyst.SpecGraph.Nodes;
 
 namespace Catalyst.Generators;
 
-public abstract record BuiltPropertyValue(string? Value);
-public record NoPropertyValue() : BuiltPropertyValue(Value: null);
-public record SomePropertyValue(string Value) : BuiltPropertyValue(Value);
+public abstract record BuiltDataValue(string? Value);
+public record NoDataValue() : BuiltDataValue(Value: null);
+public record SomeDataValue(string Value) : BuiltDataValue(Value);
 
-public record BuiltPropertyType(string Name);
+public record BuiltDataType(string Name);
 public record BuiltInclude(string Path);
-public record BuiltProperty(PropertyNode Node, string Name, BuiltPropertyType Type, BuiltPropertyValue Value);
-public record BuiltConstant(ConstantNode Node, string Name, BuiltPropertyType Type, BuiltPropertyValue Value);
+public record BuiltProperty(DataMemberNode Node, string Name, BuiltDataType Type, BuiltDataValue Value);
+public record BuiltConstant(ConstantNode Node, string Name, BuiltDataType Type, BuiltDataValue Value);
     
 public enum FunctionFlags
 {
@@ -28,7 +28,7 @@ public record BuiltFunction(string Name, string ReturnType, FunctionFlags Flags,
 public record BuiltEnumValue(string Label, int Value);
 public record BuiltEnum(EnumNode Node, string Name, List<BuiltEnumValue> Values);
 public record BuiltDefinition(DefinitionNode Node, string Name, List<BuiltProperty> Properties, List<BuiltConstant> Constants, List<BuiltFunction> Functions);
-public record BuiltEndpoint(EndpointNode Node, string Name, BuiltPropertyType RequestType, BuiltPropertyType ResponseType);
+public record BuiltEndpoint(EndpointNode Node, string Name, BuiltDataType RequestType, BuiltDataType ResponseType);
 public record BuiltService(ServiceNode Node, string Name, List<BuiltEndpoint> Endpoints);
     
 public enum FileFlags

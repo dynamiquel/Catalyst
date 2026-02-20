@@ -1,5 +1,8 @@
 namespace: Catalyst.Tests.Constants
 
+includes:
+  - enums
+
 definitions:
   ConstantTest:
     properties:
@@ -26,4 +29,7 @@ definitions:
         value: "12345678-1234-1234-1234-123456789abc"
       timeConstant:
         type: time
-        value: "01:30:00"
+        value: "5400"
+      enumConstant:
+        type: Enums.ProductType
+        value: Household

@@ -44,8 +44,8 @@ public class UnrealClientServiceBuilder : IClientServiceBuilder<UnrealCompiler>
             BuiltEndpoint endpoint = new(
                 Node: endpointNode.Value,
                 Name: endpointNode.Value.Name.ToPascalCase(),
-                RequestType: Compiler.GetCompiledPropertyType(endpointNode.Value.BuiltRequestType!),
-                ResponseType: Compiler.GetCompiledPropertyType(endpointNode.Value.BuiltResponseType!)
+                RequestType: Compiler.GetCompiledDataType(endpointNode.Value.BuiltRequestType!),
+                ResponseType: Compiler.GetCompiledDataType(endpointNode.Value.BuiltResponseType!)
             );
             
             endpoints.Add(endpoint);
@@ -74,8 +74,8 @@ public class UnrealClientServiceBuilder : IClientServiceBuilder<UnrealCompiler>
             BuiltEndpoint endpoint = new(
                 Node: endpointNode.Value,
                 Name: endpointNode.Value.Name.ToPascalCase(),
-                RequestType: Compiler.GetCompiledPropertyType(endpointNode.Value.BuiltRequestType!),
-                ResponseType: Compiler.GetCompiledPropertyType(endpointNode.Value.BuiltResponseType!)
+                RequestType: Compiler.GetCompiledDataType(endpointNode.Value.BuiltRequestType!),
+                ResponseType: Compiler.GetCompiledDataType(endpointNode.Value.BuiltResponseType!)
             );
             
             endpoints.Add(endpoint);
@@ -92,7 +92,7 @@ public class UnrealClientServiceBuilder : IClientServiceBuilder<UnrealCompiler>
         sourceFile.Includes.Add(new("CatalystSubsystem"));
     }
 
-    record struct OperationDeclaration(string Name, BuiltPropertyType Type);
+    record struct OperationDeclaration(string Name, BuiltDataType Type);
     
     public void Compile(BuiltFile file, BuiltService service, StringBuilder fileStr)
     {
