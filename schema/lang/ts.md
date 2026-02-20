@@ -16,6 +16,7 @@ This section details the TypeScript-specific attributes and type conversions use
 |------------------------------|-----------------|-----------------------------------------------------------------|
 | `str`                        | `string`        |                                                                 |
 | `i32`                        | `number`        |                                                                 |
+| `i64`                        | `bigint`        |                                                                 |
 | `f64`                        | `number`        |                                                                 |
 | `bool`                       | `boolean`       |                                                                 |
 | `date`                       | `string`        | ISO 8601 string                                                 |
