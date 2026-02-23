@@ -55,8 +55,9 @@ public class CSharpFluentValidatorBuilder : IValidatorBuilder<CSharpCompiler>
             ValidationAttributes validation = prop.Validation;
 
             bool isCollection = csharpType.StartsWith("List<") || csharpType.StartsWith("HashSet<");
-            bool isNumeric = csharpType is "int" or "long" or "double" or "decimal";
-            bool isTimeSpan = csharpType == "TimeSpan";
+            bool isNumeric = csharpType is "int" or "long" or "double" or "decimal" 
+                          or "int?" or "long?" or "double?" or "decimal?";
+            bool isTimeSpan = csharpType is "TimeSpan" or "TimeSpan?";
             bool isNullable = prop.Node.BuiltType is IOptionalDataType;
             bool hasMin = validation.Min.HasValue;
             bool hasMax = validation.Max.HasValue;
@@ -93,7 +94,7 @@ public class CSharpFluentValidatorBuilder : IValidatorBuilder<CSharpCompiler>
                     ? $".LessThanOrEqualTo({validation.Max!.Value:F0})"
                     : $".LessThan({validation.Max!.Value:F0})");
             }
-            else if (csharpType == "string" && hasRange)
+            else if ((csharpType == "string" || csharpType == "string?") && hasRange)
             {
                 rules.Add($".MinimumLength({(int)validation.Min!.Value})");
                 rules.Add($".MaximumLength({(int)validation.Max!.Value})");
@@ -109,7 +110,7 @@ public class CSharpFluentValidatorBuilder : IValidatorBuilder<CSharpCompiler>
                         ? $".GreaterThanOrEqualTo({validation.Min!.Value:F0})"
                         : $".GreaterThan({validation.Min!.Value:F0})");
                 }
-                else if (hasMin && csharpType == "string")
+                else if (hasMin && (csharpType == "string" || csharpType == "string?"))
                 {
                     rules.Add($".MinimumLength({(int)validation.Min!.Value})");
                     if (validation.Min.Value == 1)
@@ -140,7 +141,7 @@ public class CSharpFluentValidatorBuilder : IValidatorBuilder<CSharpCompiler>
                         ? $".LessThanOrEqualTo({validation.Max!.Value:F0})"
                         : $".LessThan({validation.Max!.Value:F0})");
                 }
-                else if (hasMax && !hasRange && csharpType == "string")
+                else if (hasMax && !hasRange && (csharpType == "string" || csharpType == "string?"))
                 {
                     rules.Add($".MaximumLength({(int)validation.Max!.Value})");
                 }
