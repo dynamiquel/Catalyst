@@ -536,6 +536,7 @@ public class FileReader
             MinInclusive = minInclusive,
             Max = max,
             MaxInclusive = maxInclusive,
+            PatternRaw = patternValue,
             Pattern = GetRegexForPattern(patternValue)
         };
     }

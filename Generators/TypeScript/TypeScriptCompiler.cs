@@ -248,19 +248,54 @@ public class TypeScriptCompiler : Compiler
 
     public StringBuilder AppendDescriptionComment(StringBuilder sb, INodeDescription node, int indentation = 0)
     {
-        if (string.IsNullOrEmpty(node.Description))
+        List<string> descriptionLines = [];
+        List<string> metadataLines = [];
+
+        if (!string.IsNullOrEmpty(node.Description))
+            descriptionLines.AddRange(node.Description.Split('\n'));
+
+        if (node is PropertyNode propertyNode)
+        {
+            bool isOptional = propertyNode.BuiltType is IOptionalDataType;
+            if (isOptional)
+                metadataLines.Add("Optional property.");
+
+            if (propertyNode.Validation is { } validation)
+            {
+                if (validation.Min is { } min)
+                {
+                    string inclusive = validation.MinInclusive ? "inclusive" : "exclusive";
+                    metadataLines.Add($"Minimum value: {min} ({inclusive}).");
+                }
+                if (validation.Max is { } max)
+                {
+                    string inclusive = validation.MaxInclusive ? "inclusive" : "exclusive";
+                    metadataLines.Add($"Maximum value: {max} ({inclusive}).");
+                }
+                if (!string.IsNullOrEmpty(validation.PatternRaw))
+                    metadataLines.Add($"Pattern: {validation.PatternRaw}.");
+            }
+        }
+
+        if (descriptionLines.Count == 0 && metadataLines.Count == 0)
             return sb;
 
         for (int indent = 0; indent < indentation; indent++)
             sb.Append("    ");
         sb.AppendLine("/**");
 
-        string[] descLines = node.Description.Split('\n');
-        foreach (string descLine in descLines)
+        foreach (string line in descriptionLines)
         {
             for (int indent = 0; indent < indentation; indent++)
                 sb.Append("    ");
-            sb.AppendLine($" * {descLine}");
+            sb.AppendLine($" * {line}");
+        }
+
+        foreach (string line in metadataLines)
+        {
+            for (int indent = 0; indent < indentation; indent++)
+                sb.Append("    ");
+            sb.AppendLine($" * {line}");
         }
 
         for (int indent = 0; indent < indentation; indent++)
