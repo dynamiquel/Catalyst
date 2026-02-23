@@ -55,7 +55,7 @@ public class FileReader
 
     public FileNode ReadFileFromSpec(RawFileNode rawFileNode)
     {
-        Logger?.LogInformation("Reading spec file {FilePath}", rawFileNode.FileInfo.FullName);
+        Logger.LogInformation("Reading spec file {FilePath}", rawFileNode.FileInfo.FullName);
 
         string builtFilePath = GetBuiltSpecFilePath(rawFileNode.FileInfo);
         
@@ -87,7 +87,7 @@ public class FileReader
         if (includeSpecs is null) 
             return;
         
-        Logger?.LogInformation("Found {Count} include specs in {FilePath}", includeSpecs.Count, fileNode.FullName);
+        Logger.LogInformation("Found {Count} include specs in {FilePath}", includeSpecs.Count, fileNode.FullName);
         
         foreach (var includeSpec in includeSpecs)
         {
@@ -497,13 +497,92 @@ public class FileReader
             Name = propertyName,
             UnBuiltType = propertyType,
             Description = (propertyRawNode.ReadPropertyAsStr("description") ?? propertiesRawNode.ReadPropertyAsStr("desc"))?.TrimEnd(),
-            Value = unBuiltValue
+            Value = unBuiltValue,
+            Validation = ReadValidationAttributes(propertyRawNode)
         };
         
         ReadPropertyCompilerOptions(definitionNode, propertyRawNode, propertyNode);
         
         definitionNode.Properties.Add(propertyName, propertyNode);
     }
+
+    ValidationAttributes? ReadValidationAttributes(RawNode propertyRawNode)
+    {
+        object? minValue = propertyRawNode.Internal.GetValueOrDefault("min");
+        object? maxValue = propertyRawNode.Internal.GetValueOrDefault("max");
+        string? patternValue = propertyRawNode.ReadPropertyAsStr("pattern");
+
+        if (minValue is null && maxValue is null && patternValue is null)
+            return null;
+
+        double? min = null;
+        double? max = null;
+        bool minInclusive = true;
+        bool maxInclusive = false;
+
+        if (minValue is not null)
+        {
+            min = ParseDoubleWithSuffix(minValue, out minInclusive);
+        }
+
+        if (maxValue is not null)
+        {
+            max = ParseDoubleWithSuffix(maxValue, out maxInclusive);
+        }
+
+        return new ValidationAttributes
+        {
+            Min = min,
+            MinInclusive = minInclusive,
+            Max = max,
+            MaxInclusive = maxInclusive,
+            Pattern = GetRegexForPattern(patternValue)
+        };
+    }
+
+    static double ParseDoubleWithSuffix(object value, out bool inclusive)
+    {
+        inclusive = true;
+        string strValue = value.ToString() ?? string.Empty;
+        
+        if (strValue.EndsWith('i'))
+        {
+            inclusive = true;
+            strValue = strValue[..^1];
+        }
+        else if (strValue.EndsWith('e'))
+        {
+            inclusive = false;
+            strValue = strValue[..^1];
+        }
+        
+        return Convert.ToDouble(strValue);
+    }
+    
+    static string? GetRegexForPattern(string? pattern) => pattern switch
+    {
+        "alpha"        => @"^[a-zA-Z]+$",
+        "alphanumeric" => @"^[a-zA-Z0-9]+$",
+        "hex"          => @"^[0-9a-fA-F]+$",
+        "number"       => @"^-?[0-9]+(\.[0-9]+)?([eE][+-]?[0-9]+)?$",
+        
+        "ascii"        => @"^[\x00-\x7F]+$",
+        "ascii8"       => @"^[\x00-\xFF]+$",
+        "vascii"       => @"^[\x20-\x7E]+$",
+        "vascii8"      => @"^[\x20-\xFF]+$",
+        
+        "uuid"         => @"^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$",
+        "url"          => @"^[a-zA-Z][a-zA-Z0-9+.-]*:[^ \s]*$",
+        "date"         => @"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$",
+        "ipv4"         => @"^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$",
+        "ipv6"         => @"^(?:(?:[a-fA-F\d]{1,4}:){7}(?:[a-fA-F\d]{1,4}|:)|(?:[a-fA-F\d]{1,4}:){1,7}:|(?:[a-fA-F\d]{1,4}:){1,6}:[a-fA-F\d]{1,4}|(?:[a-fA-F\d]{1,4}:){1,5}(?::[a-fA-F\d]{1,4}){1,2}|(?:[a-fA-F\d]{1,4}:){1,4}(?::[a-fA-F\d]{1,4}){1,3}|(?:[a-fA-F\d]{1,4}:){1,3}(?::[a-fA-F\d]{1,4}){1,4}|(?:[a-fA-F\d]{1,4}:){1,2}(?::[a-fA-F\d]{1,4}){1,5}|[a-fA-F\d]{1,4}:(?::[a-fA-F\d]{1,4}){1,6}|:(?:(?::[a-fA-F\d]{1,4}){1,7}|:))$",
+
+        "email"        => @"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$",
+        "http"         => @"^https?:\/\/(?:www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b(?:[-a-zA-Z0-9()@:%_\+.~#?&\/=]*)$",
+        "slug"         => @"^[a-z0-9]+(?:-[a-z0-9]+)*$",
+        "phone"        => @"^\+?[1-9]\d{1,14}$",
+        _              => pattern
+    };
 
     void ReadConstant(DefinitionNode definitionNode, RawNode constantsRawNode, string constantName, object constantValue)
     {

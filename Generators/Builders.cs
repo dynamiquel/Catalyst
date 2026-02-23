@@ -82,6 +82,25 @@ public interface IServerServiceBuilder<T> : IServerServiceBuilder where T : Comp
     T Compiler { get; init; }
 }
 
+public interface IValidatorBuilder
+{
+    string Name { get; }
+    string GetBuiltFileName(BuildContext context, DefinitionNode definitionNode);
+    void Build(BuildContext context, DefinitionNode definitionNode);
+    void Compile(BuiltFile file, BuiltValidator validator, StringBuilder sb);
+}
+
+public interface IValidatorBuilder<T> : IValidatorBuilder where T : Compiler
+{
+    T Compiler { get; init; }
+}
+
+public interface IValidatorCompiler
+{
+    string Name { get; }
+    void Compile(BuiltFile file, BuiltValidator validator, StringBuilder sb);
+}
+
 /// <summary>
 /// These extensions primarily exist because C# is annoying in that it doesn't let you call
 /// functions from a parent interface.

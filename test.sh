@@ -9,7 +9,7 @@ echo "=========================================="
 
 echo ""
 echo "Testing C#..."
-dotnet run -- --Language=cs --BaseInputDir=./TestData --BaseOutputDir=./output/cs
+dotnet run -- --Language=cs --BaseInputDir=./TestData --BaseOutputDir=./output/cs --server=true --validator=true
 echo "C# - OK"
 
 echo ""

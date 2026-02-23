@@ -37,7 +37,8 @@ CompilerOptions compilerOptions = new(
     EnumBuilderName: config.EnumBuilder,
     DefinitionBuilderName: config.DefinitionBuilder,
     ClientServiceBuilderName: config.ClientBuilder,
-    ServerServiceBuilderName: config.ServerBuilder);
+    ServerServiceBuilderName: config.ServerBuilder,
+    ValidatorBuilderName: config.ValidatorBuilder);
 
 FileInfo[] inputFiles = GetInputFiles();
 
@@ -155,6 +156,12 @@ Config ReadConfiguration()
         foundConfig.Client = true;
     else if (foundConfig.Client is false)
         foundConfig.ClientBuilder = null;
+    
+    // If any Validator Builder other than default was specified, implicitly enable server generation.
+    if (foundConfig.ValidatorBuilder is not null && !foundConfig.ValidatorBuilder.Equals("default"))
+        foundConfig.Validator = true;
+    else if (foundConfig.Validator is false)
+        foundConfig.ValidatorBuilder = null;
     
     return foundConfig;
 }

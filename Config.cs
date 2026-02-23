@@ -12,8 +12,10 @@ public class Config
     public required string Language { get; set; }
     public bool Client { get; set; } = true;
     public bool Server { get; set; } = false;
+    public bool Validator { get; set; } = false;
     public string EnumBuilder { get; set; } = Builder.Default;
     public string DefinitionBuilder { get; set; } = Builder.Default;
     public string? ClientBuilder { get; set; } = Builder.Default;
     public string? ServerBuilder { get; set; } = Builder.Default;
+    public string? ValidatorBuilder { get; set; } = Builder.Default;
 }

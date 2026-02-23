@@ -10,7 +10,8 @@ public record CompilerOptions(
     string EnumBuilderName, 
     string DefinitionBuilderName, 
     string? ClientServiceBuilderName, 
-    string? ServerServiceBuilderName);
+    string? ServerServiceBuilderName,
+    string? ValidatorBuilderName);
 
 public abstract class Compiler
 {
@@ -22,11 +23,13 @@ public abstract class Compiler
     protected IDefinitionBuilder DefinitionBuilder { get; }
     protected IClientServiceBuilder? ClientServiceBuilder { get; }
     protected IServerServiceBuilder? ServerServiceBuilder { get; }
+    protected IValidatorBuilder? ValidatorBuilder { get; }
 
     List<IEnumBuilder> AllEnumBuilders { get; } = [];
     List<IDefinitionBuilder> AllDefinitionBuilders { get; } = [];
     List<IClientServiceBuilder> AllClientServiceBuilders { get; } = [];
     List<IServerServiceBuilder> AllServerServiceBuilders { get; } = [];
+    List<IValidatorBuilder> AllValidatorBuilders { get; } = [];
 
     protected Compiler(CompilerOptions options)
     {
@@ -52,6 +55,13 @@ public abstract class Compiler
             ServerServiceBuilder = 
                 AllServerServiceBuilders.Find(b => b.Name.Split(';').Contains(options.ServerServiceBuilderName))
                 ?? throw new NullReferenceException($"Failed to find Server Service Builder {options.ServerServiceBuilderName}");
+        }
+
+        if (!string.IsNullOrEmpty(options.ValidatorBuilderName))
+        {
+            IValidatorBuilder? foundBuilder = AllValidatorBuilders.Find(b => b.Name.Split(';').Contains(options.ValidatorBuilderName));
+            if (foundBuilder is not null)
+                ValidatorBuilder = foundBuilder;
         }
     }
 
@@ -81,6 +91,7 @@ public abstract class Compiler
         Type definitionBuilderInterface = typeof(IDefinitionBuilder<>).MakeGenericType(GetType());
         Type clientServiceBuilderInterface = typeof(IClientServiceBuilder<>).MakeGenericType(GetType());
         Type serverServiceBuilderInterface = typeof(IServerServiceBuilder<>).MakeGenericType(GetType());
+        Type validatorBuilderInterface = typeof(IValidatorBuilder<>).MakeGenericType(GetType());
         
         foreach (Assembly assembly in AppDomain.CurrentDomain.GetAssemblies())
         foreach (Type type in assembly.GetTypes())
@@ -93,6 +104,8 @@ public abstract class Compiler
                 AllClientServiceBuilders.Add(clientBuilder);
             else if (TryCreateBuilder<IServerServiceBuilder>(type, serverServiceBuilderInterface) is { } serviceBuilder)
                 AllServerServiceBuilders.Add(serviceBuilder);
+            else if (TryCreateBuilder<IValidatorBuilder>(type, validatorBuilderInterface) is { } validatorBuilder)
+                AllValidatorBuilders.Add(validatorBuilder);
         }
     }
     
@@ -113,6 +126,10 @@ public abstract class Compiler
         if (ServerServiceBuilder is not null)
             foreach (KeyValuePair<string, ServiceNode> serviceNode in fileNode.Services)
                 ServerServiceBuilder.Build(buildContext, serviceNode.Value);
+
+        if (ValidatorBuilder is not null)
+            foreach (KeyValuePair<string, DefinitionNode> definitionNode in fileNode.Definitions)
+                ValidatorBuilder.Build(buildContext, definitionNode.Value);
 
         foreach (BuiltFile builtFile in buildContext.Files)
             BuildIncludesForFile(builtFile);

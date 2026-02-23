@@ -196,6 +196,10 @@ public class CSharpCompiler : Compiler
             foreach (BuiltService service in file.Services)
                 ServerServiceBuilder.Compile(file, service, sb);
         
+        if (ValidatorBuilder is not null)
+            foreach (BuiltValidator validator in file.Validators)
+                ValidatorBuilder.Compile(file, validator, sb);
+        
         return new CompiledFile(file.Name, sb.ToString());
     }
 

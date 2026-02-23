@@ -30,6 +30,8 @@ public record BuiltEnum(EnumNode Node, string Name, List<BuiltEnumValue> Values)
 public record BuiltDefinition(DefinitionNode Node, string Name, List<BuiltProperty> Properties, List<BuiltConstant> Constants, List<BuiltFunction> Functions);
 public record BuiltEndpoint(EndpointNode Node, string Name, BuiltDataType RequestType, BuiltDataType ResponseType);
 public record BuiltService(ServiceNode Node, string Name, List<BuiltEndpoint> Endpoints);
+public record BuiltValidator(DefinitionNode Node, string Name, string TargetName, List<BuiltValidatorProperty> Properties);
+public record BuiltValidatorProperty(PropertyNode Node, string Name, ValidationAttributes Validation);
     
 public enum FileFlags
 {
@@ -45,7 +47,8 @@ public record BuiltFile(
     string? Namespace, 
     List<BuiltEnum> Enums,
     List<BuiltDefinition> Definitions, 
-    List<BuiltService> Services)
+    List<BuiltService> Services,
+    List<BuiltValidator> Validators)
 {
     public override string ToString()
     {
@@ -69,7 +72,8 @@ public record BuildContext(FileNode FileNode, List<BuiltFile> Files)
                 Flags: fileFlags,
                 Includes: [],
                 Namespace: compiler.GetCompiledNamespace(FileNode.Namespace),
-                Services: []
+                Services: [],
+                Validators: []
             ));
 
             file = Files[^1];
