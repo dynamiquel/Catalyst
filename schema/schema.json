@@ -1,13 +1,11 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "Catalyst API Specification Schema (Core)",
+  "title": "Catalyst API Specification Schema",
   "type": "object",
   "properties": {
     "format": {
       "type": "string",
-      "enum": [
-        "json"
-      ],
+      "enum": ["json"],
       "default": "json",
       "description": "Specifies the serialization format."
     },
@@ -23,15 +21,136 @@
       },
       "description": "List of schema files to include."
     },
+    "enums": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/definitions/enumDefinition"
+      },
+      "description": "Enum definitions."
+    },
     "definitions": {
       "type": "object",
       "additionalProperties": {
         "$ref": "#/definitions/definition"
       },
       "description": "Definitions of data structures."
+    },
+    "endpoints": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/definitions/endpoint"
+      },
+      "description": "Endpoints for the default service (shorthand when no explicit service is needed)."
+    },
+    "services": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/definitions/service"
+      },
+      "description": "Service definitions containing API endpoints."
+    },
+    "cs": {
+      "$ref": "#/definitions/languageOptions",
+      "description": "C# language-specific compiler options."
+    },
+    "unreal": {
+      "$ref": "#/definitions/languageOptions",
+      "description": "Unreal Engine language-specific compiler options."
+    },
+    "ts": {
+      "$ref": "#/definitions/languageOptions",
+      "description": "TypeScript language-specific compiler options."
     }
   },
   "definitions": {
+    "builtInTypes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": ["str", "i32", "i64", "f64", "bool", "date", "time", "uuid", "list<>", "set<>", "map<,>", "any"]
+    },
+    "builtInPatterns": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": ["alpha", "alphanumeric", "hex", "number", "ascii", "ascii8", "vascii", "vascii8", "uuid", "url", "date", "ipv4", "ipv6", "email", "http", "slug", "phone"]
+    },
+    "languageOptions": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "Language-specific compiler options."
+    },
+    "enumDefinition": {
+      "oneOf": [
+        {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/enumValue"
+          },
+          "description": "Simple enum definition as a list of values."
+        },
+        {
+          "type": "object",
+          "properties": {
+            "description": {
+              "type": "string",
+              "description": "Human-readable description of the enum."
+            },
+            "desc": {
+              "type": "string",
+              "description": "Alias for description."
+            },
+            "flags": {
+              "type": "boolean",
+              "description": "Whether this is a flags enum."
+            },
+            "values": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/enumValue"
+              },
+              "description": "List of enum values."
+            },
+            "cs": {
+              "$ref": "#/definitions/languageOptions",
+              "description": "C# language-specific options for this enum."
+            },
+            "unreal": {
+              "$ref": "#/definitions/languageOptions",
+              "description": "Unreal Engine language-specific options for this enum."
+            },
+            "ts": {
+              "$ref": "#/definitions/languageOptions",
+              "description": "TypeScript language-specific options for this enum."
+            }
+          },
+          "additionalProperties": true
+        }
+      ],
+      "description": "Definition of an enum."
+    },
+    "enumValue": {
+      "oneOf": [
+        {
+          "type": "string",
+          "description": "Enum value as a string (label only, value auto-assigned)."
+        },
+        {
+          "type": "object",
+          "additionalProperties": {
+            "oneOf": [
+              { "type": "integer" },
+              { "type": "string" }
+            ]
+          },
+          "maxProperties": 1,
+          "description": "Enum value as a key-value pair (label: numericValue or label: '^bitfield' or label: 'OtherFlag | AnotherFlag')."
+        }
+      ],
+      "description": "A single enum value entry."
+    },
     "definition": {
       "type": "object",
       "properties": {
@@ -56,6 +175,32 @@
             "$ref": "#/definitions/propertyDefinition"
           },
           "description": "Alias for properties."
+        },
+        "constants": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/constantDefinition"
+          },
+          "description": "Constants defined within this data structure."
+        },
+        "consts": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/constantDefinition"
+          },
+          "description": "Alias for constants."
+        },
+        "cs": {
+          "$ref": "#/definitions/languageOptions",
+          "description": "C# language-specific options for this definition."
+        },
+        "unreal": {
+          "$ref": "#/definitions/languageOptions",
+          "description": "Unreal Engine language-specific options for this definition."
+        },
+        "ts": {
+          "$ref": "#/definitions/languageOptions",
+          "description": "TypeScript language-specific options for this definition."
         }
       },
       "additionalProperties": true
@@ -64,16 +209,28 @@
       "oneOf": [
         {
           "type": "string",
-          "pattern": "^(str|i32|i64|f64|bool|date|time|uuid|list<.+>|set<.+>|map<.+,.+>|[a-zA-Z0-9\\._]+)(\\?)?$",
-          "description": "Shorthand property type definition (allowing optional, containers, and references)."
+          "pattern": "^(str|i32|i64|f64|bool|date|time|uuid|list<.+>|set<.+>|map<.+,.+>|any|[a-zA-Z0-9\\._]+)(\\?)?$",
+          "examples": ["str", "i32", "bool", "list<str>", "MyCustomType", "User?"],
+          "markdownDescription": "Shorthand property type definition.\n\n**Built-in types:**\n- `str` - string\n- `i32` / `i64` - integers\n- `f64` - float\n- `bool` - boolean\n- `date` / `time` / `uuid` - special types\n- `list<T>` / `set<T>` / `map<K,V>` - containers\n- `any` - any type\n- `[Namespace.]Type` - reference\n\nAdd `?` for optional (e.g., `str?`, `User?`)"
         },
         {
           "type": "object",
           "properties": {
             "type": {
-              "type": "string",
-              "pattern": "^(str|i32|i64|f64|bool|date|time|uuid|list<.+>|set<.+>|map<.+,.+>|[a-zA-Z0-9\\._]+)(\\?)?$",
-              "description": "Data type of the property (allowing optional, containers, and references)."
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^(str|i32|i64|f64|bool|date|time|uuid|list<.+>|set<.+>|map<.+,.+>|any|[a-zA-Z0-9\\._]+)(\\?)?$",
+                  "examples": ["str", "i32", "bool", "list<str>", "MyCustomType", "User?"],
+                  "markdownDescription": "Data type of the property. \n\n**Built-in types:**\n- `str` - string\n- `i32` - 32-bit integer\n- `i64` - 64-bit integer\n- `f64` - 64-bit float\n- `bool` - boolean\n- `date` - ISO 8601 date\n- `time` - timespan\n- `uuid` - UUID\n- `list<T>` - list of T\n- `set<T>` - set of T\n- `map<K,V>` - map with key K and value V\n- `any` - any type\n- `[Namespace.]DefinitionName` - reference to another definition\n\nAdd `?` suffix for optional (e.g., `str?`)"
+                },
+                {
+                  "type": "string",
+                  "enum": ["str", "i32", "i64", "f64", "bool", "date", "time", "uuid", "list<>", "set<>", "map<,>", "any"],
+                  "examples": ["str", "i32", "bool", "date", "uuid", "list<>"]
+                }
+              ],
+              "description": "Data type of the property."
             },
             "description": {
               "type": "string",
@@ -84,25 +241,189 @@
               "description": "Alias for description."
             },
             "default": {
-              "type": [
-                "string",
-                "number",
-                "boolean",
-                "null"
+              "type": ["string", "number", "boolean", "null"],
+              "description": "Default value for the property. Use 'default' to use the type's default."
+            },
+            "min": {
+              "type": ["number", "string"],
+              "examples": ["0", "1e", "3i"],
+              "description": "Minimum value (validation). Use suffix 'i' or 'e' for exclusive, no suffix for inclusive."
+            },
+            "max": {
+              "type": ["number", "string"],
+              "examples": ["100", "50e", "150i"],
+              "description": "Maximum value (validation). Use suffix 'i' or 'e' for exclusive, no suffix for inclusive."
+            },
+            "pattern": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "examples": ["alpha", "email", "uuid", "^test-[0-9]+$"],
+                  "markdownDescription": "Regex pattern for string validation. \n\n**Built-in patterns:**\n- `alpha` - alphabetic only\n- `alphanumeric` - alphanumeric\n- `hex` - hexadecimal\n- `number` - numeric values\n- `ascii` / `ascii8` - ASCII / extended ASCII\n- `vascii` / `vascii8` - visible ASCII\n- `uuid` / `url` / `date` - specific formats\n- `ipv4` / `ipv6` - IP addresses\n- `email` / `http` - URI formats\n- `slug` / `phone` - specific formats\n\nOr use custom regex."
+                },
+                {
+                  "type": "string",
+                  "enum": ["alpha", "alphanumeric", "hex", "number", "ascii", "ascii8", "vascii", "vascii8", "uuid", "url", "date", "ipv4", "ipv6", "email", "http", "slug", "phone"],
+                  "examples": ["email", "uuid", "phone", "url"]
+                }
               ],
-              "description": "Default value for the property."
+              "description": "Regex pattern for string validation."
+            },
+            "cs": {
+              "$ref": "#/definitions/languageOptions",
+              "description": "C# language-specific options for this property."
+            },
+            "unreal": {
+              "$ref": "#/definitions/languageOptions",
+              "description": "Unreal Engine language-specific options for this property."
+            },
+            "ts": {
+              "$ref": "#/definitions/languageOptions",
+              "description": "TypeScript language-specific options for this property."
             }
           },
-          "required": [
-            "type"
-          ],
+          "required": ["type"],
           "additionalProperties": true
         }
       ],
-      "description": "Definition of a property, can be a string (shorthand) or an object, supporting optional, containers, and references."
+      "description": "Definition of a property, can be a string (shorthand) or an object."
+    },
+    "constantDefinition": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^(str|i32|i64|f64|bool|date|time|uuid|[a-zA-Z0-9\\._]+)(\\?)?$",
+              "examples": ["str", "i32", "f64", "bool", "date", "uuid"],
+              "markdownDescription": "Data type of the constant. \n\n**Built-in types:**\n- `str` - string\n- `i32` - 32-bit integer\n- `i64` - 64-bit integer\n- `f64` - 64-bit float\n- `bool` - boolean\n- `date` - ISO 8601 date\n- `time` - timespan\n- `uuid` - UUID\n\nOr reference an enum type."
+            },
+            {
+              "type": "string",
+              "enum": ["str", "i32", "i64", "f64", "bool", "date", "time", "uuid"],
+              "examples": ["str", "i32", "bool"]
+            }
+          ],
+          "description": "Data type of the constant."
+        },
+        "value": {
+          "description": "Value of the constant."
+        },
+        "description": {
+          "type": "string",
+          "description": "Human-readable description of the constant."
+        },
+        "desc": {
+          "type": "string",
+          "description": "Alias for description."
+        },
+        "cs": {
+          "$ref": "#/definitions/languageOptions",
+          "description": "C# language-specific options for this constant."
+        },
+        "unreal": {
+          "$ref": "#/definitions/languageOptions",
+          "description": "Unreal Engine language-specific options for this constant."
+        },
+        "ts": {
+          "$ref": "#/definitions/languageOptions",
+          "description": "TypeScript language-specific options for this constant."
+        }
+      },
+      "required": ["type", "value"],
+      "additionalProperties": true
+    },
+    "service": {
+      "type": "object",
+      "properties": {
+        "description": {
+          "type": "string",
+          "description": "Human-readable description of the service."
+        },
+        "desc": {
+          "type": "string",
+          "description": "Alias for description."
+        },
+        "path": {
+          "type": "string",
+          "description": "Base path for all endpoints in this service."
+        },
+        "endpoints": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/endpoint"
+          },
+          "description": "Endpoints defined within this service."
+        },
+        "cs": {
+          "$ref": "#/definitions/languageOptions",
+          "description": "C# language-specific options for this service."
+        },
+        "unreal": {
+          "$ref": "#/definitions/languageOptions",
+          "description": "Unreal Engine language-specific options for this service."
+        },
+        "ts": {
+          "$ref": "#/definitions/languageOptions",
+          "description": "TypeScript language-specific options for this service."
+        }
+      },
+      "required": ["endpoints"],
+      "additionalProperties": true
+    },
+    "endpoint": {
+      "type": "object",
+      "properties": {
+        "description": {
+          "type": "string",
+          "description": "Human-readable description of the endpoint."
+        },
+        "desc": {
+          "type": "string",
+          "description": "Alias for description."
+        },
+        "request": {
+          "type": "string",
+          "description": "Request type for this endpoint."
+        },
+        "req": {
+          "type": "string",
+          "description": "Alias for request."
+        },
+        "response": {
+          "type": "string",
+          "description": "Response type for this endpoint."
+        },
+        "res": {
+          "type": "string",
+          "description": "Alias for response."
+        },
+        "method": {
+          "type": "string",
+          "enum": ["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS"],
+          "examples": ["GET", "POST", "PUT", "DELETE"],
+          "description": "HTTP method. Defaults to POST."
+        },
+        "path": {
+          "type": "string",
+          "description": "Endpoint path (appended to service path)."
+        },
+        "cs": {
+          "$ref": "#/definitions/languageOptions",
+          "description": "C# language-specific options for this endpoint."
+        },
+        "unreal": {
+          "$ref": "#/definitions/languageOptions",
+          "description": "Unreal Engine language-specific options for this endpoint."
+        },
+        "ts": {
+          "$ref": "#/definitions/languageOptions",
+          "description": "TypeScript language-specific options for this endpoint."
+        }
+      },
+      "additionalProperties": true
     }
   },
-  "required": [
-    "definitions"
-  ]
+  "required": ["definitions"]
 }

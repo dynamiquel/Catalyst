@@ -3,13 +3,25 @@ This section details the TypeScript-specific attributes and type conversions use
 
 ## Compiler Options
 ### File Options
-- None currently.
+Currently no file-specific options.
+
+### Enum Options
+Currently no enum-specific options.
 
 ### Definition Options
-- None currently.
+Currently no definition-specific options.
 
 ### Property Options
-- None currently.
+Currently no property-specific options.
+
+### Service Options
+Currently no service-specific options.
+
+### Endpoint Options
+Currently no endpoint-specific options.
+
+## Validator System
+The TypeScript generator does not currently include a Validator system that generates validation code.
 
 ## Property Type Conversions
 | Schema Type                  | TypeScript Type | Notes                                                           |

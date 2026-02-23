@@ -3,22 +3,46 @@ This section details the C#-specific attributes and type conversions used during
 
 ## Compiler Options
 ### File Options
-- `type`: The type to generate for definitions in this file. `record` or `class`
-- `useRequired`: Whether the required keyword should be added to applicable Properties
+| Option        | Type    | Description                                                                                   |
+|---------------|---------|-----------------------------------------------------------------------------------------------|
+| `type`        | string  | The type to generate for definitions in this file. `record` or `class`.                       |
+| `useRequired` | boolean | Whether the `required` keyword should be added to applicable Properties. Defaults to `false`. |
+
+### Enum Options
+| Option | Type   | Description                   |
+|--------|--------|-------------------------------|
+| `type` | string | Not currently used for enums. |
 
 ### Definition Options
-- `type`: The type to generate for definitions in this file. `record` or `class`
-- `useRequired`: Whether the required keyword should be added to applicable Properties
+| Option        | Type    | Description                                                                                 |
+|---------------|---------|---------------------------------------------------------------------------------------------|
+| `type`        | string  | The type to generate for definitions in this file. `record` or `class`.                     |
+| `useRequired` | boolean | Whether the `required` keyword should be added to applicable Properties in this definition. |
 
 ### Property Options
-- `required`: Whether the required keyword should be added to the Property
+| Option     | Type    | Description                                                                                         |
+|------------|---------|-----------------------------------------------------------------------------------------------------|
+| `required` | boolean | Whether the `required` keyword should be added to this Property. Overrides inherited `useRequired`. |
+
+### Service Options
+| Option | Type   | Description                      |
+|--------|--------|----------------------------------|
+| `type` | string | Not currently used for services. |
+
+### Endpoint Options
+| Option | Type   | Description                       |
+|--------|--------|-----------------------------------|
+| `type` | string | Not currently used for endpoints. |
+
+## Validator System
+The C# generator includes a Validator system that generates validation code based on property attributes. This is automatically enabled when validation attributes are specified in the schema.
 
 ## Property Type Conversions
 | Schema Type                  | C# Type                 | Notes                                                                       |
 |------------------------------|-------------------------|-----------------------------------------------------------------------------|
 | `str`                        | `string`                |                                                                             |
 | `i32`                        | `int`                   |                                                                             |
-| `i64`                        | `long`                   |                                                                             |
+| `i64`                        | `long`                  |                                                                             |
 | `f64`                        | `double`                |                                                                             |
 | `bool`                       | `bool`                  |                                                                             |
 | `date`                       | `DateTime`              |                                                                             |
