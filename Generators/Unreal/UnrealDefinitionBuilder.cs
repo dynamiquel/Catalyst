@@ -17,7 +17,7 @@ public class UnrealDefinitionBuilder : IDefinitionBuilder<UnrealCompiler>
         string fileName = Compiler.GetFileName(context.FileNode) + ".h";
         
         return Path.Combine(
-            StringExtensions.FilePathToPascalCase(context.FileNode.Directory) ?? string.Empty, 
+            Helpers.FilePathToPascalCase(context.FileNode.Directory) ?? string.Empty, 
             fileName);
     }
 
@@ -27,7 +27,7 @@ public class UnrealDefinitionBuilder : IDefinitionBuilder<UnrealCompiler>
         string fileName = Compiler.GetFileName(context.FileNode) + ".cpp";
         
         return Path.Combine(
-            StringExtensions.FilePathToPascalCase(context.FileNode.Directory) ?? string.Empty, 
+            Helpers.FilePathToPascalCase(context.FileNode.Directory) ?? string.Empty, 
             fileName);
     }
 

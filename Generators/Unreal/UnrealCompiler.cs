@@ -135,7 +135,7 @@ public class UnrealCompiler : Compiler
         
         string? filePrefix = fileNode.FindCompilerOptions<UnrealFileOptionsNode>()?.Prefix ?? GetPrefixFromNamespace(fileNode.Namespace);
         string fileName = filePrefix ?? string.Empty;
-        string desiredFileName = StringExtensions.FilePathToPascalCase(fileNode.FileName);
+        string desiredFileName = Helpers.FilePathToPascalCase(fileNode.FileName);
         if (!fileName.EndsWith(desiredFileName))
             fileName += desiredFileName;
         

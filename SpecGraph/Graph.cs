@@ -543,7 +543,7 @@ public class Graph
                         else if (jsonValue.GetValueKind() == JsonValueKind.Number)
                             seconds = jsonValue.GetValue<double>();
                         else if (jsonValue.GetValueKind() == JsonValueKind.String)
-                            seconds = ParseTimespanString(jsonValue.GetValue<string>());
+                            seconds = Helpers.ParseTimespan(jsonValue.GetValue<string>());
                         else
                         {
                             throw new InvalidDataMemberValueFormatException
@@ -764,40 +764,7 @@ public class Graph
             }
         }
     }
-
-    static readonly Regex TimespanRegex = new(
-        @"^\s*(?:(\d+(?:\.\d+)?)y)?\s*(?:(\d+(?:\.\d+)?)w)?\s*(?:(\d+(?:\.\d+)?)d)?\s*(?:(\d+(?:\.\d+)?)h)?\s*(?:(\d+(?:\.\d+)?)m)?\s*(?:(\d+(?:\.\d+)?)s)?\s*(?:(\d+(?:\.\d+)?)ms)?\s*$",
-        RegexOptions.Compiled | RegexOptions.IgnoreCase);
     
-    double ParseTimespanString(string value)
-    {
-        var match = TimespanRegex.Match(value.Trim());
-        if (!match.Success)
-            return double.Parse(value);
-
-        double totalSeconds = 0;
-
-        if (match.Groups[1].Success && double.TryParse(match.Groups[1].Value, out var years))
-            totalSeconds += years * 31536000;
-
-        if (match.Groups[2].Success && double.TryParse(match.Groups[2].Value, out var weeks))
-            totalSeconds += weeks * 604800;
-
-        if (match.Groups[3].Success && double.TryParse(match.Groups[3].Value, out var days))
-            totalSeconds += days * 86400;
-
-        if (match.Groups[4].Success && double.TryParse(match.Groups[4].Value, out var hours))
-            totalSeconds += hours * 3600;
-
-        if (match.Groups[5].Success && double.TryParse(match.Groups[5].Value, out var seconds))
-            totalSeconds += seconds;
-
-        if (match.Groups[6].Success && double.TryParse(match.Groups[6].Value, out var ms))
-            totalSeconds += ms / 1000.0;
-
-        return totalSeconds;
-    }
-
     void AddBuiltInPropertyTypes()
     {
         PropertyTypes.Add(new BooleanType());

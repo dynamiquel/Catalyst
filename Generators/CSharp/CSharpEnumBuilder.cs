@@ -10,7 +10,7 @@ public class CSharpEnumBuilder : IEnumBuilder<CSharpCompiler>
     public string GetBuiltFileName(BuildContext context, EnumNode enumNode)
     {
         // One file for all enums.
-        return StringExtensions.FilePathToPascalCase(context.FileNode.FilePath) + ".cs";
+        return Helpers.FilePathToPascalCase(context.FileNode.FilePath) + ".cs";
     }
 
     public void Build(BuildContext context, EnumNode enumNode)

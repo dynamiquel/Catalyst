@@ -498,7 +498,7 @@ public class FileReader
             UnBuiltType = propertyType,
             Description = (propertyRawNode.ReadPropertyAsStr("description") ?? propertiesRawNode.ReadPropertyAsStr("desc"))?.TrimEnd(),
             Value = unBuiltValue,
-            Validation = ReadValidationAttributes(propertyRawNode)
+            Validation = ReadValidationAttributes(propertyRawNode, propertyType)
         };
         
         ReadPropertyCompilerOptions(definitionNode, propertyRawNode, propertyNode);
@@ -506,7 +506,7 @@ public class FileReader
         definitionNode.Properties.Add(propertyName, propertyNode);
     }
 
-    ValidationAttributes? ReadValidationAttributes(RawNode propertyRawNode)
+    ValidationAttributes? ReadValidationAttributes(RawNode propertyRawNode, string propertyType)
     {
         object? minValue = propertyRawNode.Internal.GetValueOrDefault("min");
         object? maxValue = propertyRawNode.Internal.GetValueOrDefault("max");
@@ -519,15 +519,20 @@ public class FileReader
         double? max = null;
         bool minInclusive = true;
         bool maxInclusive = false;
+        bool isTimeType = propertyType.Equals("time", StringComparison.OrdinalIgnoreCase);
 
         if (minValue is not null)
         {
-            min = ParseDoubleWithSuffix(minValue, out minInclusive);
+            min = isTimeType && minValue is string minStr && Helpers.ContainsTimeUnits(minStr)
+                ? Helpers.ParseTimespan(minStr)
+                : ParseDoubleWithSuffix(minValue, out minInclusive);
         }
 
         if (maxValue is not null)
         {
-            max = ParseDoubleWithSuffix(maxValue, out maxInclusive);
+            max = isTimeType && maxValue is string maxStr && Helpers.ContainsTimeUnits(maxStr)
+                ? Helpers.ParseTimespan(maxStr)
+                : ParseDoubleWithSuffix(maxValue, out maxInclusive);
         }
 
         return new ValidationAttributes

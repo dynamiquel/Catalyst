@@ -11,7 +11,7 @@ public class TypeScriptDefinitionBuilder : IDefinitionBuilder<TypeScriptCompiler
 
     public string GetBuiltFileName(BuildContext context, DefinitionNode definitionNode)
     {
-        return StringExtensions.FilePathToPascalCase(context.FileNode.FilePath) + ".ts";
+        return Helpers.FilePathToPascalCase(context.FileNode.FilePath) + ".ts";
     }
 
     public void Build(BuildContext context, DefinitionNode definitionNode)

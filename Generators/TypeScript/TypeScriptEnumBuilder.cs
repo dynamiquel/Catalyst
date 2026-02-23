@@ -9,7 +9,7 @@ public class TypeScriptEnumBuilder : IEnumBuilder<TypeScriptCompiler>
 
     public string GetBuiltFileName(BuildContext context, EnumNode enumNode)
     {
-        return StringExtensions.FilePathToPascalCase(context.FileNode.FilePath) + ".ts";
+        return Helpers.FilePathToPascalCase(context.FileNode.FilePath) + ".ts";
     }
 
     public void Build(BuildContext context, EnumNode enumNode)

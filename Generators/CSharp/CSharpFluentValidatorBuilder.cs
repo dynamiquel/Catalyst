@@ -1,6 +1,7 @@
 using System.Text;
 using Catalyst.Generators.Builders;
 using Catalyst.SpecGraph.Nodes;
+using Catalyst.SpecGraph.Properties;
 
 namespace Catalyst.Generators.CSharp;
 
@@ -12,7 +13,7 @@ public class CSharpFluentValidatorBuilder : IValidatorBuilder<CSharpCompiler>
     public string GetBuiltFileName(BuildContext context, DefinitionNode definitionNode)
     {
         // One file for all validators.
-        return StringExtensions.FilePathToPascalCase(context.FileNode.FilePath) + "Validators.cs";
+        return Helpers.FilePathToPascalCase(context.FileNode.FilePath) + "Validators.cs";
     }
 
     public void Build(BuildContext context, DefinitionNode definitionNode)
@@ -56,6 +57,7 @@ public class CSharpFluentValidatorBuilder : IValidatorBuilder<CSharpCompiler>
             bool isCollection = csharpType.StartsWith("List<") || csharpType.StartsWith("HashSet<");
             bool isNumeric = csharpType is "int" or "long" or "double" or "decimal";
             bool isTimeSpan = csharpType == "TimeSpan";
+            bool isNullable = prop.Node.BuiltType is IOptionalDataType;
             bool hasMin = validation.Min.HasValue;
             bool hasMax = validation.Max.HasValue;
             bool hasRange = hasMin && hasMax && isNumeric;
@@ -64,6 +66,16 @@ public class CSharpFluentValidatorBuilder : IValidatorBuilder<CSharpCompiler>
 
             if (!hasValidation)
                 continue;
+
+            string propertyAccess = $"x => x.{prop.Name}";
+            string indent = "        ";
+            if (isNullable)
+            {
+                sb.AppendLine($"{indent}When(x => x.{prop.Name} is not null, () =>");
+                sb.AppendLine($"{indent}{{");
+                indent = "            ";
+                propertyAccess = $"x => x.{prop.Name}!";
+            }
 
             List<string> rules = [];
 
@@ -76,6 +88,7 @@ public class CSharpFluentValidatorBuilder : IValidatorBuilder<CSharpCompiler>
                 rules.Add(validation.MinInclusive
                     ? $".GreaterThanOrEqualTo({validation.Min!.Value:F0})"
                     : $".GreaterThan({validation.Min!.Value:F0})");
+                
                 rules.Add(validation.MaxInclusive
                     ? $".LessThanOrEqualTo({validation.Max!.Value:F0})"
                     : $".LessThan({validation.Max!.Value:F0})");
@@ -84,6 +97,7 @@ public class CSharpFluentValidatorBuilder : IValidatorBuilder<CSharpCompiler>
             {
                 rules.Add($".MinimumLength({(int)validation.Min!.Value})");
                 rules.Add($".MaximumLength({(int)validation.Max!.Value})");
+                
                 if (validation.Min.Value == 1)
                     rules.Add(".NotEmpty()");
             }
@@ -146,6 +160,7 @@ public class CSharpFluentValidatorBuilder : IValidatorBuilder<CSharpCompiler>
                 {
                     if (!hasMin)
                         rules.Add(".Count()");
+                    
                     rules.Add(validation.MaxInclusive
                         ? $".LessThanOrEqualTo({(int)validation.Max!.Value})"
                         : $".LessThan({(int)validation.Max!.Value})");
@@ -153,19 +168,20 @@ public class CSharpFluentValidatorBuilder : IValidatorBuilder<CSharpCompiler>
             }
             
             if (validation.Pattern is not null)
-            {
                 rules.Add($".Matches(@\"{validation.Pattern}\")");
-            }
 
-            sb.AppendLine($"        RuleFor(x => x.{prop.Name})");
+            sb.AppendLine($"{indent}RuleFor({propertyAccess})");
 
             for (int i = 0; i < rules.Count; i++)
             {
                 if (i == rules.Count - 1)
-                    sb.AppendLine($"            {rules[i]};");
+                    sb.AppendLine($"{indent}    {rules[i]};");
                 else
-                    sb.AppendLine($"            {rules[i]}");
+                    sb.AppendLine($"{indent}    {rules[i]}");
             }
+
+            if (isNullable)
+                sb.AppendLine($"        }});");
 
             sb.AppendLine();
         }

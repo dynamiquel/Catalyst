@@ -13,7 +13,7 @@ public class CSharpControllerServiceBuilder : IServerServiceBuilder<CSharpCompil
     public string GetBuiltFileName(BuildContext context, ServiceNode serviceNode)
     {
         // One file for all services.
-        return StringExtensions.FilePathToPascalCase(context.FileNode.FilePath) + "ControllerBase.cs";
+        return Helpers.FilePathToPascalCase(context.FileNode.FilePath) + "ControllerBase.cs";
     }
 
     public void Build(BuildContext context, ServiceNode serviceNode)

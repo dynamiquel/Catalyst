@@ -12,7 +12,7 @@ public class CSharpClientServiceBuilder : IClientServiceBuilder<CSharpCompiler>
     public string GetBuiltFileName(BuildContext context, ServiceNode serviceNode)
     {
         // One file for all services.
-        return StringExtensions.FilePathToPascalCase(context.FileNode.FilePath) + "Client.cs";
+        return Helpers.FilePathToPascalCase(context.FileNode.FilePath) + "Client.cs";
     }
 
     public void Build(BuildContext context, ServiceNode serviceNode)

@@ -11,7 +11,7 @@ public class TypeScriptClientServiceBuilder : IClientServiceBuilder<TypeScriptCo
 
     public string GetBuiltFileName(BuildContext context, ServiceNode serviceNode)
     {
-        return StringExtensions.FilePathToPascalCase(context.FileNode.FilePath) + "Client.ts";
+        return Helpers.FilePathToPascalCase(context.FileNode.FilePath) + "Client.ts";
     }
 
     public void Build(BuildContext context, ServiceNode serviceNode)

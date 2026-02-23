@@ -14,7 +14,7 @@ public class UnrealEnumBuilder : IEnumBuilder<UnrealCompiler>
         string fileName = Compiler.GetFileName(context.FileNode) + ".h";
         
         return Path.Combine(
-            StringExtensions.FilePathToPascalCase(context.FileNode.Directory) ?? string.Empty, 
+            Helpers.FilePathToPascalCase(context.FileNode.Directory) ?? string.Empty, 
             fileName);
     }
 

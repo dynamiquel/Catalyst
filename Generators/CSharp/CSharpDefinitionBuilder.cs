@@ -14,7 +14,7 @@ public class CSharpDefinitionBuilder : IDefinitionBuilder<CSharpCompiler>
     public string GetBuiltFileName(BuildContext context, DefinitionNode definitionNode)
     {
         // One file for all definitions.
-        return StringExtensions.FilePathToPascalCase(context.FileNode.FilePath) + ".cs";
+        return Helpers.FilePathToPascalCase(context.FileNode.FilePath) + ".cs";
     }
 
     public void Build(BuildContext context, DefinitionNode definitionNode)

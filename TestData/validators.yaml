@@ -47,3 +47,6 @@ definitions:
       customPattern:
         type: str
         pattern: "^test-[0-9]+$"
+      nullableAscii8:
+        type: str?
+        pattern: ascii8

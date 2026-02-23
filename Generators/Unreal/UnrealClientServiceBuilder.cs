@@ -15,7 +15,7 @@ public class UnrealClientServiceBuilder : IClientServiceBuilder<UnrealCompiler>
         string fileName = Compiler.GetFileName(context.FileNode) + "Client.h";
         
         return Path.Combine(
-            StringExtensions.FilePathToPascalCase(context.FileNode.Directory) ?? string.Empty, 
+            Helpers.FilePathToPascalCase(context.FileNode.Directory) ?? string.Empty, 
             fileName);
     }
     
@@ -25,7 +25,7 @@ public class UnrealClientServiceBuilder : IClientServiceBuilder<UnrealCompiler>
         string fileName = Compiler.GetFileName(context.FileNode) + "Client.cpp";
 
         return Path.Combine(
-            StringExtensions.FilePathToPascalCase(context.FileNode.Directory) ?? string.Empty, 
+            Helpers.FilePathToPascalCase(context.FileNode.Directory) ?? string.Empty, 
             fileName);
     }
 
