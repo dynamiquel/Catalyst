@@ -7,6 +7,7 @@ public class ServiceNode : Node, INodeDescription, ICompilerOptions
 {
     public required string Path { get; set; }
     public string? Description { get; set; }
+    public bool RequiresAuth { get; set; } = true;
     public Dictionary<string, EndpointNode> Endpoints { get; set; } = [];
     public Dictionary<string, GeneratorOptionsNode> CompilerOptions { get; } = [];
 }

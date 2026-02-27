@@ -17,6 +17,7 @@ public class CSharpOptionsReader : OptionsReader
         CSharpClassType classType = ParseClassType(rawCompilerOptions?.ReadPropertyAsStr("classType")) ?? CSharpClassType.Record;
         bool useRequires = rawCompilerOptions?.ReadPropertyAsBool("useRequired") ?? true;
         bool useOptions = rawCompilerOptions?.ReadPropertyAsBool("useOptions") ?? true;
+        string generator = rawCompilerOptions?.ReadPropertyAsStr("generator") ?? "controller";
 
         return new CSharpFileOptionsNode
         {
@@ -24,7 +25,8 @@ public class CSharpOptionsReader : OptionsReader
             Name = SectionName,
             ClassType = classType,
             UseRequired = useRequires,
-            UseOptions = useOptions
+            UseOptions = useOptions,
+            Generator = generator
         };
     }
 
@@ -100,12 +102,16 @@ public class CSharpOptionsReader : OptionsReader
             rawCompilerOptions?.ReadPropertyAsBool("useOptions") ?? 
             ((CSharpFileOptionsNode?)parentCompilerOptions)?.UseOptions ??
             true;
-        
+
+        string? generatorFromService = rawCompilerOptions?.ReadPropertyAsStr("generator");
+        string generator = generatorFromService ?? ((CSharpFileOptionsNode?)parentCompilerOptions)?.Generator ?? "controller";
+
         return new CSharpServiceOptionsNode
         {
             Parent = new WeakReference<Node>(serviceNode),
             Name = SectionName,
-            UseOptions = useOptions
+            UseOptions = useOptions,
+            Generator = generator
         };
     }
 

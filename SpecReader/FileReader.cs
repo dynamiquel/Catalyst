@@ -700,12 +700,15 @@ public class FileReader
         if (!path.StartsWith('/'))
             path = '/' + path;
         
+        bool requiresAuth = serviceRawNode.ReadPropertyAsBool("requiresAuth") ?? true;
+
         ServiceNode serviceNode = new()
         {
             Parent = new WeakReference<Node>(fileNode),
             Name = serviceName,
             Description = serviceRawNode.ReadDescription(),
-            Path = path
+            Path = path,
+            RequiresAuth = requiresAuth
         };
         
         ReadServiceCompilerOptions(fileNode, serviceRawNode, serviceNode);
@@ -799,6 +802,8 @@ public class FileReader
             path = string.Empty;
         }
         
+        bool? requiresAuth = endpointRawNode.ReadPropertyAsBool("requiresAuth");
+
         EndpointNode endpointNode = new()
         {
             Parent = new WeakReference<Node>(serviceNode),
@@ -808,6 +813,7 @@ public class FileReader
             UnBuiltRequestType = requestType,
             UnBuiltResponseType = responseType,
             Description = endpointRawNode.ReadDescription(),
+            RequiresAuth = requiresAuth,
         };
         
         // TODO: ReadEndpointCompilerOptions(definitionNode, propertyRawNode, propertyNode);

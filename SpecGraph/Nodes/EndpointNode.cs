@@ -23,6 +23,7 @@ public class EndpointNode : Node, INodeDescription, ICompilerOptions
     public required string UnBuiltRequestType { get; set; }
     public required string UnBuiltResponseType { get; set; }
     public string? Description { get; set; }
+    public bool? RequiresAuth { get; set; }
     public IDataType? BuiltRequestType { get; set; }
     public IDataType? BuiltResponseType { get; set; }
     public Dictionary<string, GeneratorOptionsNode> CompilerOptions { get; } = [];

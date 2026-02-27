@@ -20,6 +20,7 @@ public class CSharpFileOptionsNode : GeneratorOptionsNode
     public required CSharpClassType ClassType { get; set; }
     public required bool UseRequired { get; set; }
     public required bool UseOptions { get; set; }
+    public required string Generator { get; set; }
 }
 
 public class CSharpEnumOptionsNode : GeneratorOptionsNode;
@@ -38,4 +39,5 @@ public class CSharpPropertyOptionsNode : GeneratorOptionsNode
 public class CSharpServiceOptionsNode : GeneratorOptionsNode
 {
     public required bool UseOptions { get; set; }
+    public required string Generator { get; set; }
 }

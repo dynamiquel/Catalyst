@@ -1,0 +1,64 @@
+namespace: Nexa.Api.Test
+
+includes: []
+
+services:
+  auth:
+    path: /Auth
+    requiresAuth: false
+    endpoints:
+      login:
+        path: /login
+        method: POST
+        req: LoginRequest
+        res: LoginResponse
+      
+      logout:
+        path: /logout
+        method: POST
+        req: LogoutRequest
+        res: LogoutResponse
+
+  user_auth:
+    path: /User
+    requiresAuth: true
+    endpoints:
+      getProfile:
+        path: /profile
+        method: GET
+        req: ProfileRequest
+        res: ProfileResponse
+      
+      updateProfile:
+        path: /profile
+        method: PUT
+        req: ProfileRequest
+        res: ProfileResponse
+        requiresAuth: false
+
+definitions:
+  LoginRequest:
+    props:
+      username: str
+      password: str
+  
+  LoginResponse:
+    props:
+      token: str
+  
+  LogoutRequest:
+    props:
+      token: str
+  
+  LogoutResponse:
+    props:
+      success: bool
+  
+  ProfileRequest:
+    props:
+      userId: uuid?
+  
+  ProfileResponse:
+    props:
+      username: str
+      email: str

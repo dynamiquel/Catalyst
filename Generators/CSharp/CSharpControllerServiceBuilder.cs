@@ -18,6 +18,10 @@ public class CSharpControllerServiceBuilder : IServerServiceBuilder<CSharpCompil
 
     public void Build(BuildContext context, ServiceNode serviceNode)
     {
+        string? generator = serviceNode.FindCompilerOptions<CSharpServiceOptionsNode>()?.Generator;
+        if (generator == "services-minimalapi")
+            return;
+
         List<BuiltEndpoint> endpoints = [];
         foreach (KeyValuePair<string, EndpointNode> endpointNode in serviceNode.Endpoints)
         {
