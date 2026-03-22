@@ -61,14 +61,35 @@ public class CSharpClientServiceBuilder : IClientServiceBuilder<CSharpCompiler>
             .AppendLine("}")
             .AppendLine();
 
+        // Generate interface
+        string interfaceName = $"I{service.Name}";
+        Compiler.AppendDescriptionComment(fileStr, service.Node);
+
+        fileStr.AppendLine($"public interface {interfaceName}");
+        fileStr.AppendLine("{");
+
+        for (int endpointIndex = 0; endpointIndex < service.Endpoints.Count; endpointIndex++)
+        {
+            BuiltEndpoint endpoint = service.Endpoints[endpointIndex];
+            Compiler.AppendDescriptionComment(fileStr, endpoint.Node, 1);
+            fileStr.AppendLine($"    Task<{endpoint.ResponseType.Name}> {endpoint.Name}({endpoint.RequestType.Name} request, CancellationToken cancellationToken = default);");
+
+            if (endpointIndex < service.Endpoints.Count - 1)
+                fileStr.AppendLine();
+        }
+
+        fileStr.AppendLine("}");
+        fileStr.AppendLine();
+
+        // Generate concrete class implementing the interface
         Compiler.AppendDescriptionComment(fileStr, service.Node);
 
         fileStr
             .AppendLine($"public class {service.Name}(")
             .AppendLine("    HttpClient httpClient,")
             .AppendLine(options.UseOptions 
-                     ? $"    IOptions<{service.Name}Options> options)" 
-                     : $"    {service.Name}Options options)")
+                     ? $"    IOptions<{service.Name}Options> options) : {interfaceName}" 
+                     : $"    {service.Name}Options options) : {interfaceName}")
             .AppendLine("{");
 
         for (int endpointIndex = 0; endpointIndex < service.Endpoints.Count; endpointIndex++)
@@ -89,7 +110,7 @@ public class CSharpClientServiceBuilder : IClientServiceBuilder<CSharpCompiler>
             string getOptions = options.UseOptions ? "options.Value" : "options";
             
             fileStr
-                .AppendLine($"    public async Task<{endpoint.ResponseType.Name}> {endpoint.Name}({endpoint.RequestType.Name} request)")
+                .AppendLine($"    public async Task<{endpoint.ResponseType.Name}> {endpoint.Name}({endpoint.RequestType.Name} request, CancellationToken cancellationToken = default)")
                 .AppendLine("    {")
                 .AppendLine("        ByteArrayContent requestContent = new(request.ToBytes());")
                 .AppendLine("        requestContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(\"application/json\", \"utf-8\");")
@@ -105,7 +126,7 @@ public class CSharpClientServiceBuilder : IClientServiceBuilder<CSharpCompiler>
                 .AppendLine("        if (!string.IsNullOrEmpty(accessToken))")
                 .AppendLine("            httpRequest.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue(\"Bearer\", accessToken);")
                 .AppendLine()
-                .AppendLine("        HttpResponseMessage httpResponse = await httpClient.SendAsync(httpRequest).ConfigureAwait(false);")
+                .AppendLine("        HttpResponseMessage httpResponse = await httpClient.SendAsync(httpRequest, cancellationToken).ConfigureAwait(false);")
                 .AppendLine("        httpResponse.EnsureSuccessStatusCode();")
                 .AppendLine()
                 .AppendLine("        byte[] responseBytes = await httpResponse.Content.ReadAsByteArrayAsync().ConfigureAwait(false);")
