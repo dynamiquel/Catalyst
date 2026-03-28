@@ -93,6 +93,8 @@ public class UnrealDefinitionBuilder : IDefinitionBuilder<UnrealCompiler>
                 return new SomeDataValue($"FTimespan::FromSeconds({timeValue.Value.TotalSeconds.ToString(CultureInfo.InvariantCulture)})");
             case UuidValue uuidValue:
                 return new SomeDataValue($"FGuid(\"{uuidValue.Value}\")");
+            case UrlValue urlValue:
+                return new SomeDataValue($"\"{urlValue.Value}\"");
             default:
                 throw new ArgumentOutOfRangeException();
         }

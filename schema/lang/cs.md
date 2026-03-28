@@ -48,6 +48,7 @@ The C# generator includes a Validator system that generates validation code base
 | `date`                       | `DateTime`              |                                                                             |
 | `time`                       | `TimeSpan`              |                                                                             |
 | `uuid`                       | `Guid`                  |                                                                             |
+| `url`                        | `Uri`                   |
 | `list<T>`                    | `List<T>`               | Where `T` is the C# equivalent of the inner schema type.                    |
 | `set<T>`                     | `HashSet<T>`            | Where `T` is the C# equivalent of the inner schema type.                    |
 | `map<K, V>`                  | `Dictionary<K, V>`      | Where `K` and `V` are the C# equivalents of the schema key and value types. |

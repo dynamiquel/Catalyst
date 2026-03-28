@@ -574,6 +574,36 @@ public class Graph
                         
                         propertyValue = new UuidValue(guid);
                         break;
+                    case UrlType:
+                        Uri uriValue;
+                        if (IsDefaultValue(jsonValue))
+                            uriValue = new Uri(string.Empty, UriKind.RelativeOrAbsolute);
+                        else if (jsonValue.GetValueKind() == JsonValueKind.String)
+                        {
+                            string urlStr = jsonValue.GetValue<string>();
+                            if (!Uri.TryCreate(urlStr, UriKind.RelativeOrAbsolute, out var parsedUri))
+                            {
+                                throw new InvalidDataMemberValueFormatException
+                                {
+                                    DataMemberNode = dataMemberNode,
+                                    ExpectedDataType = propertyType,
+                                    ReceivedValue = jsonValue.ToJsonString()
+                                };
+                            }
+                            uriValue = parsedUri;
+                        }
+                        else
+                        {
+                            throw new InvalidDataMemberValueFormatException
+                            {
+                                DataMemberNode = dataMemberNode,
+                                ExpectedDataType = propertyType,
+                                ReceivedValue = jsonValue.ToJsonString()
+                            };
+                        }
+                        
+                        propertyValue = new UrlValue(uriValue);
+                        break;
                     case EnumType enumType:
                         string enumValueName;
                         if (IsDefaultValue(jsonValue))
@@ -783,6 +813,8 @@ public class Graph
         PropertyTypes.Add(new OptionalTimeType());
         PropertyTypes.Add(new UuidType());
         PropertyTypes.Add(new OptionalUuidType());
+        PropertyTypes.Add(new UrlType());
+        PropertyTypes.Add(new OptionalUrlType());
         PropertyTypes.Add(new AnyType());
     }
 

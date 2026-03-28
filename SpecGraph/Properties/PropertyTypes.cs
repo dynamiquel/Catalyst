@@ -114,6 +114,16 @@ public class OptionalUuidType : UuidType, IOptionalDataType
     public override string Name => "uuid?";
 }
 
+public class UrlType : IDataType
+{
+    public virtual string Name => "url";
+}
+
+public class OptionalUrlType : UrlType, IOptionalDataType
+{
+    public override string Name => "url?";
+}
+
 public class AnyType : IDataType, IOptionalDataType
 {
     public string Name => "any";

@@ -120,6 +120,7 @@ A property definition can have the following keys:
   - `date`: ISO 8601 date
   - `time`: timespan
   - `uuid`: 128-bit UUID
+  - `url`: URL
   - `list<T>`: resizable array of T elements
   - `set<T>`: unique container of T elements
   - `map<K, V>`: hash map of T elements keyed using K
@@ -140,7 +141,7 @@ Properties can include validation attributes to enforce constraints:
 |-----------|-----------------------------------------------|-------------------------------------------------------------------------------------|
 | `min`     | `i32`, `i64`, `f64`, `str`, `list<T>`, `time` | Minimum value/length. Use suffix `i` or `e` for exclusive, no suffix for inclusive. |
 | `max`     | `i32`, `i64`, `f64`, `str`, `list<T>`, `time` | Maximum value/length. Use suffix `i` or `e` for exclusive, no suffix for inclusive. |
-| `pattern` | `str`                                         | Regular expression pattern for validation.                                          |
+| `pattern` | `str`, `uri`                                  | Regular expression pattern for validation.                                          |
 
 ### Validation Suffixes
 - No suffix: Inclusive boundary (e.g., `max: 100` means ≤ 100)
@@ -183,11 +184,12 @@ The following built-in patterns are available for string validation:
 | `vascii8`      | Visible extended ASCII                        | `^[\x20-\xFF]+$`                                                                                              |
 | `uuid`         | UUID format                                   | `^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$`                               |
 | `url`          | URL format                                    | `^[a-zA-Z][a-zA-Z0-9+.-]*:[^ \s]*$`                                                                           |
-| `date`         | ISO 8601 date-time                            | `^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z                                                           |[+-]\d{2}:\d{2})$` |
-| `ipv4`         | IPv4 address                                  | `^(?:(?:25[0-5]                                                                                               |2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$` |
+| `date`         | ISO 8601 date-time                            | `^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z[+-]\d{2}:\d{2})$`                                         |
+| `ipv4`         | IPv4 address                                  | `^(?:(?:25[0-5]2[0-4][0-9][01]?[0-9][0-9]?)\.){3}(?:25[0-5]2[0-4][0-9][01]?[0-9][0-9]?)$`                     |
 | `ipv6`         | IPv6 address                                  | Complex IPv6 regex                                                                                            |
 | `email`        | Email address                                 | `^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`                                                            |
 | `http`         | HTTP/HTTPS URL                                | `^https?:\/\/(?:www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b(?:[-a-zA-Z0-9()@:%_\+.~#?&\/=]*)$` |
+| `https`        | HTTPS URL                                     | `^https:\/\/(?:www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b(?:[-a-zA-Z0-9()@:%_\+.~#?&\/=]*)$`  |
 | `slug`         | URL slug                                      | `^[a-z0-9]+(?:-[a-z0-9]+)*$`                                                                                  |
 | `phone`        | E.164 phone number                            | `^\+?[1-9]\d{1,14}$`                                                                                          |
 

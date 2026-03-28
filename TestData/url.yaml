@@ -1,0 +1,24 @@
+namespace: Catalyst.Tests.Url
+
+definitions:
+  Urls:
+    description: Test URL type in definition
+    properties:
+      homepage:
+        type: url
+      profileUrl:
+        type: url
+      apiEndpoint:
+        description: HTTP or HTTPS allowed
+        type: url
+        pattern: http
+      secureEndpoint:
+        description: HTTPS only URL
+        type: url
+        pattern: https
+      defaultEndpoint:
+        type: url
+        default: default
+      setEndpoint:
+        type: url
+        default: https://google.co.uk/

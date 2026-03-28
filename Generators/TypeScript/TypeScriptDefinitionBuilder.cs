@@ -117,6 +117,8 @@ public class TypeScriptDefinitionBuilder : IDefinitionBuilder<TypeScriptCompiler
                 return new SomeDataValue(timeValue.Value.TotalSeconds.ToString(System.Globalization.CultureInfo.InvariantCulture));
             case UuidValue uuidValue:
                 return new SomeDataValue($"'{uuidValue.Value}'");
+            case UrlValue urlValue:
+                return new SomeDataValue($"'{urlValue.Value}'");
             default:
                 throw new ArgumentOutOfRangeException();
         }

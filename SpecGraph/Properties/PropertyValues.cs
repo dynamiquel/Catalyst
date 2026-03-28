@@ -16,6 +16,7 @@ namespace Catalyst.SpecGraph.Properties;
 [JsonDerivedType(typeof(DateValue))]
 [JsonDerivedType(typeof(TimeValue))]
 [JsonDerivedType(typeof(UuidValue))]
+[JsonDerivedType(typeof(UrlValue))]
 [JsonDerivedType(typeof(ListValue))]
 [JsonDerivedType(typeof(MapValue))]
 [JsonDerivedType(typeof(ObjectValue))]
@@ -33,6 +34,7 @@ public record StringValue(string Value) : IDataValue;
 public record DateValue(DateTime Value) : IDataValue;
 public record TimeValue(TimeSpan Value) : IDataValue;
 public record UuidValue(Guid Value) : IDataValue;
+public record UrlValue(Uri Value) : IDataValue;
 public record ListValue(List<IDataValue> Values) : IDataValue;
 public record MapValue(Dictionary<IDataValue, IDataValue> Values) : IDataValue;
 

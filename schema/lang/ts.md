@@ -34,6 +34,7 @@ The TypeScript generator does not currently include a Validator system that gene
 | `date`                       | `string`        | ISO 8601 string                                                 |
 | `time`                       | `number`        | Seconds                                                         |
 | `uuid`                       | `string`        |                                                                 |
+| `url`                        | `string`        |
 | `list<T>`                    | `Array<T>`      | Where `T` is the TS equivalent of the inner schema type.        |
 | `set<T>`                     | `Array<T>`      | Emitted as arrays in TS.                                        |
 | `map<K, V>`                  | `Record<K, V>`  | Where `K` and `V` are the TS equivalents of the schema types.   |

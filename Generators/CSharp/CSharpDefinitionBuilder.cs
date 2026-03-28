@@ -120,6 +120,8 @@ public class CSharpDefinitionBuilder : IDefinitionBuilder<CSharpCompiler>
                 return new SomeDataValue($"TimeSpan.FromSeconds({timeValue.Value.TotalSeconds.ToString(CultureInfo.InvariantCulture)})");
             case UuidValue uuidValue:
                 return new SomeDataValue($"Guid.Parse(\"{uuidValue.Value}\")");
+            case UrlValue urlValue:
+                return new SomeDataValue($"new Uri(\"{urlValue.Value}\")");
             default:
                 throw new ArgumentOutOfRangeException();
         }

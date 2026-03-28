@@ -214,6 +214,9 @@ public class TypeScriptCompiler : Compiler
             case UuidType:
                 genPropertyType = new BuiltDataType("string");
                 break;
+            case UrlType:
+                genPropertyType = new BuiltDataType("string");
+                break;
             case IUserDataType userType:
                 // For TS, emit only the simple identifier (no namespaces, no optional marker)
                 string typeName = userType.Name;

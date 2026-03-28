@@ -68,7 +68,7 @@
       "items": {
         "type": "string"
       },
-      "default": ["str", "i32", "i64", "f64", "bool", "date", "time", "uuid", "list<>", "set<>", "map<,>", "any"]
+      "default": ["str", "i32", "i64", "f64", "bool", "date", "time", "uuid", "url", "list<>", "set<>", "map<,>", "any"]
     },
     "builtInPatterns": {
       "type": "array",
@@ -226,7 +226,7 @@
                 },
                 {
                   "type": "string",
-                  "enum": ["str", "i32", "i64", "f64", "bool", "date", "time", "uuid", "list<>", "set<>", "map<,>", "any"],
+                  "enum": ["str", "i32", "i64", "f64", "bool", "date", "time", "uuid", "url", "list<>", "set<>", "map<,>", "any"],
                   "examples": ["str", "i32", "bool", "date", "uuid", "list<>"]
                 }
               ],
@@ -295,7 +295,7 @@
           "anyOf": [
             {
               "type": "string",
-              "pattern": "^(str|i32|i64|f64|bool|date|time|uuid|[a-zA-Z0-9\\._]+)(\\?)?$",
+              "pattern": "^(str|i32|i64|f64|bool|date|time|uuid|url|[a-zA-Z0-9\\._]+)(\\?)?$",
               "examples": ["str", "i32", "f64", "bool", "date", "uuid"],
               "markdownDescription": "Data type of the constant. \n\n**Built-in types:**\n- `str` - string\n- `i32` - 32-bit integer\n- `i64` - 64-bit integer\n- `f64` - 64-bit float\n- `bool` - boolean\n- `date` - ISO 8601 date\n- `time` - timespan\n- `uuid` - UUID\n\nOr reference an enum type."
             },

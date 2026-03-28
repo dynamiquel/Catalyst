@@ -169,7 +169,26 @@ public class CSharpFluentValidatorBuilder : IValidatorBuilder<CSharpCompiler>
             }
             
             if (validation.Pattern is not null)
-                rules.Add($".Matches(@\"{validation.Pattern}\")");
+            {
+                string? patternSource = prop.Node.Validation?.PatternRaw ?? validation.Pattern;
+                
+                if (csharpType is "Uri" or "Uri?" && patternSource is "http" or "https")
+                {
+                    switch (patternSource)
+                    {
+                        case "http":
+                            rules.Add(".Must(x => x.IsAbsoluteUri && (x.Scheme == \"http\" || x.Scheme == \"https\"))");
+                            break;
+                        case "https":
+                            rules.Add(".Must(x => x.IsAbsoluteUri && x.Scheme == \"https\")");
+                            break;
+                    }
+                }
+                else
+                {
+                    rules.Add($".Matches(@\"{validation.Pattern}\")");
+                }
+            }
 
             sb.AppendLine($"{indent}RuleFor({propertyAccess})");
 

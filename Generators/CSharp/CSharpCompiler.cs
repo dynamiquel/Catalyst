@@ -257,6 +257,9 @@ public class CSharpCompiler : Compiler
             case UuidType:
                 builtDataType = new BuiltDataType("Guid");
                 break;
+            case UrlType urlType:
+                builtDataType = new BuiltDataType("Uri");
+                break;
             case IUserDataType userType:
                 builtDataType = new BuiltDataType(userType.Name.ToPascalCase());
                 break;

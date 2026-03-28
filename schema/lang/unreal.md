@@ -41,6 +41,7 @@ The Unreal Engine generator does not currently include a Validator system that g
 | `date`                       | `FDateTime`              |                                                                              |
 | `time`                       | `FTimespan`              |                                                                              |
 | `uuid`                       | `FGuid`                  |                                                                              |
+| `url`                        | `FString`                |
 | `list<T>`                    | `TArray<T>`              | Where `T` is the C++ equivalent of the inner schema type.                    |
 | `set<T>`                     | `TSet<T>`                | Where `T` is the C++ equivalent of the inner schema type.                    |
 | `map<K, V>`                  | `TMap<K, V>`             | Where `K` and `V` are the C++ equivalents of the schema key and value types. |
