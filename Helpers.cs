@@ -39,6 +39,20 @@ public static class Helpers
         return char.ToUpper(word[0]) + word[1..];
     }
 
+    [return: NotNullIfNotNull(nameof(input))]
+    public static string? ToSnakeCase(this string? input)
+    {
+        if (string.IsNullOrEmpty(input))
+            return input;
+
+        string spaced = Regex.Replace(input, @"([a-z0-9])([A-Z])", "$1_$2");
+        spaced = Regex.Replace(spaced, @"([A-Z]+)([A-Z][a-z])", "$1_$2");
+        spaced = Regex.Replace(spaced, @"[^a-zA-Z0-9]+", "_");
+        spaced = Regex.Replace(spaced, @"_+", "_");
+
+        return spaced.Trim('_').ToLowerInvariant();
+    }
+
     [return: NotNullIfNotNull(nameof(filePath))]
     public static string? FilePathToPascalCase(string? filePath)
     {
@@ -46,6 +60,16 @@ public static class Helpers
             return filePath;
         
         IEnumerable<string> split = filePath.Split('/', StringSplitOptions.RemoveEmptyEntries).Select(ToPascalCase)!;
+        return string.Join("/", split);
+    }
+
+    [return: NotNullIfNotNull(nameof(filePath))]
+    public static string? FilePathToSnakeCase(string? filePath)
+    {
+        if (string.IsNullOrEmpty(filePath))
+            return filePath;
+
+        IEnumerable<string> split = filePath.Split('/', StringSplitOptions.RemoveEmptyEntries).Select(ToSnakeCase)!;
         return string.Join("/", split);
     }
     
