@@ -23,5 +23,10 @@ dotnet run -- --Language=unreal --BaseInputDir=./TestData --BaseOutputDir=./outp
 echo "Unreal - OK"
 
 echo ""
+echo "Testing Python..."
+dotnet run -- --Language=py --BaseInputDir=./TestData --BaseOutputDir=./output/py
+echo "Python - OK"
+
+echo ""
 echo "=========================================="
 echo "All tests passed!"

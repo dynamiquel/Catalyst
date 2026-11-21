@@ -152,3 +152,5 @@ C# Client, C# Server via ASP.NET Controllers
 Unreal Engine 5 Client (requires the [Unreal Engine Catalyst Plugin](https://github.com/dynamiquel/Catalyst-UEPlugin)
 ### TypeScript
 TypeScript Client
+### Python
+Python Client

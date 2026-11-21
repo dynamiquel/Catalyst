@@ -32,3 +32,49 @@ jobs:
 
     - name: Test Unreal
       run: dotnet run --project . --Language=unreal --BaseInputDir=./TestData --BaseOutputDir=./output/unreal
+
+    - name: Setup Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.12"
+
+    - name: Test Python
+      run: |
+        dotnet run --project . --Language=py --BaseInputDir=./TestData --BaseOutputDir=./output/py
+        python -m compileall -q output/py
+        python - <<'EOF'
+        import datetime
+        import importlib
+        import pkgutil
+        import sys
+
+        sys.path.insert(0, "output")
+
+        import py
+
+        for module in pkgutil.walk_packages(py.__path__, py.__name__ + "."):
+            importlib.import_module(module.name)
+
+        from py.common.address import Address
+        from py.enums import ProductType, UserRole
+        from py.user import User
+
+        address = Address(street="1 Main Street", city="Springfield", postal_code="12345", country="US")
+        user = User(
+            user_id=1,
+            username="catalyst",
+            email="catalyst@example.com",
+            registration_date=datetime.datetime(2024, 1, 15, 10, 30, tzinfo=datetime.timezone.utc),
+            shipping_address=address,
+        )
+
+        payload = user.to_dict()
+        assert payload["userId"] == 1
+        assert payload["registrationDate"] == "2024-01-15T10:30:00Z"
+        assert payload["shippingAddress"]["postalCode"] == "12345"
+        assert User.from_dict(payload) == user
+        assert User.from_json(user.to_json()) == user
+        assert Address.from_dict(address.to_dict()) == address
+        assert ProductType(ProductType.HOUSEHOLD) == ProductType.HOUSEHOLD
+        assert UserRole(UserRole.MODERATOR | UserRole.ADMIN) == UserRole.MODERATOR | UserRole.ADMIN
+        EOF
