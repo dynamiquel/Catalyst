@@ -5,6 +5,7 @@ using Microsoft.Extensions.Logging;
 using Catalyst;
 using Catalyst.Generators;
 using Catalyst.Generators.CSharp;
+using Catalyst.Generators.Python;
 using Catalyst.Generators.Unreal;
 using Catalyst.Generators.TypeScript;
 using Catalyst.SpecGraph;
@@ -54,6 +55,7 @@ FileReader specFileReader = new()
     Logger = loggerFactory.CreateLogger<FileReader>()
 };
 specFileReader.AddGeneratorOptionsReader<CSharpOptionsReader>();
+specFileReader.AddGeneratorOptionsReader<PythonOptionsReader>();
 specFileReader.AddGeneratorOptionsReader<UnrealOptionsReader>();
 specFileReader.AddGeneratorOptionsReader<TypeScriptOptionsReader>();
 
@@ -80,6 +82,8 @@ Compiler compiler;
 
 if (config.Language == CSharp.Name)
     compiler = new CSharpCompiler(compilerOptions) { Logger = compilerLogger };
+else if (config.Language == Python.Name)
+    compiler = new PythonCompiler(compilerOptions) { Logger = compilerLogger };
 else if (config.Language == Unreal.Name)
     compiler = new UnrealCompiler(compilerOptions) { Logger = compilerLogger };
 else if (config.Language == TypeScript.Name)
@@ -117,11 +121,13 @@ for (var builtFileIdx = 0; builtFileIdx < builtFiles.Count; builtFileIdx++)
     
     compilerLogger.LogInformation("[{CurrentIndex}] Compiling Built File '{FileName}'...", builtFileIdx + 1, builtFile.Name);
 
-    CompiledFile compiledFile = compiler.Compile(builtFile);
-    compiledFiles.AddFile(compiledFile);
-    
-    compilerLogger.LogInformation("[{CurrentIndex}] Compiled Built File '{FileName}'", builtFileIdx + 1, builtFile.Name);
-    compilerLogger.LogDebug("':{FileContents}", compiledFile.FileContents);
+    foreach (CompiledFile compiledFile in compiler.CompileFiles(builtFile))
+    {
+        compiledFiles.AddFile(compiledFile);
+
+        compilerLogger.LogInformation("[{CurrentIndex}] Compiled '{FileName}'", builtFileIdx + 1, compiledFile.FileName);
+        compilerLogger.LogDebug("'{FileName}':{FileContents}", compiledFile.FileName, compiledFile.FileContents);
+    }
 }
 
 await compiledFiles.OutputFiles(baseOutputDir);
