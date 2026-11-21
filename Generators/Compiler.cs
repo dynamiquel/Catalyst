@@ -141,6 +141,15 @@ public abstract class Compiler
     {
         return files.Select(Compile);
     }
+
+    /// <summary>
+    /// Compiles a Built File into one or more source files. Most generators emit a single
+    /// file per Built File, but some also need shared or package files.
+    /// </summary>
+    public virtual IEnumerable<CompiledFile> CompileFiles(BuiltFile file)
+    {
+        return [Compile(file)];
+    }
     
     public abstract CompiledFile Compile(BuiltFile file);
     

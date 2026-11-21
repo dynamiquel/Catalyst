@@ -60,6 +60,10 @@
     "ts": {
       "$ref": "#/definitions/languageOptions",
       "description": "TypeScript language-specific compiler options."
+    },
+    "py": {
+      "$ref": "#/definitions/languageOptions",
+      "description": "Python language-specific compiler options."
     }
   },
   "definitions": {
@@ -124,6 +128,10 @@
             "ts": {
               "$ref": "#/definitions/languageOptions",
               "description": "TypeScript language-specific options for this enum."
+            },
+            "py": {
+              "$ref": "#/definitions/languageOptions",
+              "description": "Python language-specific options for this enum."
             }
           },
           "additionalProperties": true
@@ -201,6 +209,10 @@
         "ts": {
           "$ref": "#/definitions/languageOptions",
           "description": "TypeScript language-specific options for this definition."
+        },
+        "py": {
+          "$ref": "#/definitions/languageOptions",
+          "description": "Python language-specific options for this definition."
         }
       },
       "additionalProperties": true
@@ -280,6 +292,10 @@
             "ts": {
               "$ref": "#/definitions/languageOptions",
               "description": "TypeScript language-specific options for this property."
+            },
+            "py": {
+              "$ref": "#/definitions/languageOptions",
+              "description": "Python language-specific options for this property."
             }
           },
           "required": ["type"],
@@ -329,6 +345,10 @@
         "ts": {
           "$ref": "#/definitions/languageOptions",
           "description": "TypeScript language-specific options for this constant."
+        },
+        "py": {
+          "$ref": "#/definitions/languageOptions",
+          "description": "Python language-specific options for this constant."
         }
       },
       "required": ["type", "value"],
@@ -367,6 +387,10 @@
         "ts": {
           "$ref": "#/definitions/languageOptions",
           "description": "TypeScript language-specific options for this service."
+        },
+        "py": {
+          "$ref": "#/definitions/languageOptions",
+          "description": "Python language-specific options for this service."
         }
       },
       "required": ["endpoints"],
@@ -420,6 +444,10 @@
         "ts": {
           "$ref": "#/definitions/languageOptions",
           "description": "TypeScript language-specific options for this endpoint."
+        },
+        "py": {
+          "$ref": "#/definitions/languageOptions",
+          "description": "Python language-specific options for this endpoint."
         }
       },
       "additionalProperties": true
